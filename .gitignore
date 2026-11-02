@@ -1,0 +1,71 @@
+# Dependencies and local tooling
+node_modules/
+.npm-tools/
+npm-bootstrap.tgz
+electron-runtime.zip
+
+# Builds, installers, generated reports and caches
+dist/
+dist-electron/
+release/
+out/
+build/
+coverage/
+.vite/
+.cache/
+*.tsbuildinfo
+*.log
+/logs/*
+!/logs/.gitkeep
+/*-results.json
+/*-diagnostic.json
+/rooms-diagnostic.json
+/*-smoke.png
+/ui-smoke.png
+
+# Secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+credentials*.json
+secrets*.json
+.codex/
+.aws/
+.ssh/
+.vscode/
+.idea/
+*.lnk
+
+# Browser profiles and user state
+**/test-profile*/
+**/userData/
+**/user-data/
+**/browser-data/
+**/profiles/
+**/Partitions/
+**/Cache/
+**/Code Cache/
+**/GPUCache/
+**/Session Storage/
+**/Local Storage/
+**/IndexedDB/
+**/Cookies*
+**/Login Data*
+**/Web Data*
+/config.json
+/config.json.*
+*.bak
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

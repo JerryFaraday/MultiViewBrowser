@@ -1,0 +1,36 @@
+import { contextBridge, ipcRenderer } from "electron";
+contextBridge.exposeInMainWorld("browser", {
+  showScale: (id: string, rect: unknown, locked: boolean) =>
+    ipcRenderer.invoke("scale-show", id, rect, locked),
+  hideScale: () => ipcRenderer.invoke("scale-hide"),
+  log: (event: string, details: unknown) =>
+    ipcRenderer.invoke("operation-log", event, details),
+  beginDrag: (id: string, targets: unknown) =>
+    ipcRenderer.invoke("drag-begin", id, targets),
+  onDragFinished: (fn: () => void) => {
+    const handler = () => fn();
+    ipcRenderer.on("drag-finished", handler);
+    return () => ipcRenderer.removeListener("drag-finished", handler);
+  },
+  endDrag: () => ipcRenderer.invoke("drag-end"),
+  showVolume: (id: string, rect: unknown) =>
+    ipcRenderer.invoke("volume-show", id, rect),
+  hideVolume: () => ipcRenderer.invoke("volume-hide"),
+  onSession: (fn: (data: unknown) => void) => {
+    const handler = (_e: unknown, data: unknown) => fn(data);
+    ipcRenderer.on("session-update", handler);
+    return () => ipcRenderer.removeListener("session-update", handler);
+  },
+  presentation: (value: boolean) => ipcRenderer.invoke("presentation", value),
+  load: () => ipcRenderer.invoke("config-load"),
+  save: (config: unknown) => ipcRenderer.invoke("config-save", config),
+  bounds: (items: unknown) => ipcRenderer.invoke("bounds", items),
+  navigate: (id: string, action: string, url?: string) =>
+    ipcRenderer.invoke("navigate", id, action, url),
+  transfer: (action: string) => ipcRenderer.invoke("transfer", action),
+  onPage: (fn: (event: unknown) => void) => {
+    const handler = (_e: unknown, data: unknown) => fn(data);
+    ipcRenderer.on("page-event", handler);
+    return () => ipcRenderer.removeListener("page-event", handler);
+  },
+});

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src 'unsafe-inline'"
+  />
+  <title>网页缩放</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    input {
+      user-select: text;
+    }
+    body {
+      margin: 0;
+      padding: 14px;
+      height: 100vh;
+      overflow: hidden;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #242424;
+      color: #ddd;
+      font:
+        14px "Segoe UI",
+        sans-serif;
+    }
+    strong {
+      display: block;
+      margin-bottom: 12px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    select,
+    input {
+      width: 181px;
+      min-width: 0;
+      background: #151a23;
+      color: #eee;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 5px;
+      font: inherit;
+    }
+    select:focus,
+    input:focus {
+      outline: 1px solid rgb(0, 135, 189);
+    }
+    :disabled {
+      opacity: 0.55;
+    }
+    p {
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.5;
+      margin: 10px 0 0;
+    }
+  </style>
+  <strong id="heading">网页缩放</strong>
+  <label
+    >模式<select id="mode" aria-label="缩放模式">
+      <option value="responsive">原生响应式（兼容）</option>
+      <option value="auto">自动适配（实验性）</option>
+      <option value="manual">手动比例（裁剪）</option>
+    </select></label
+  >
+  <label
+    >分辨率<select id="resolution" aria-label="逻辑分辨率">
+      <option value="1920x1080">1920 × 1080（1080p）</option>
+      <option value="2560x1440">2560 × 1440（2K）</option>
+      <option value="3840x2160">3840 × 2160（4K）</option>
+    </select></label
+  >
+  <label
+    >手动比例<input
+      id="factor"
+      aria-label="手动比例"
+      type="number"
+      min="0.05"
+      max="3"
+      step="0.05"
+  /></label>
+  <p id="hint">修改后立即生效，移出此弹窗和按钮后关闭。</p>
+</html>

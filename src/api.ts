@@ -1,0 +1,35 @@
+import type { Config, Page, Snapshot } from "./core/model";
+import type { Rect } from "./core/LayoutManager";
+export type PageEvent = {
+  id: string;
+  title?: string;
+  url?: string;
+  error?: string;
+};
+declare global {
+  interface Window {
+    browser: {
+      showScale(id: string, rect: Rect, locked: boolean): Promise<void>;
+      hideScale(): Promise<void>;
+      log(event: string, details: unknown): Promise<void>;
+      beginDrag(
+        id: string,
+        targets: { slot: number; rect: Rect }[],
+      ): Promise<void>;
+      onDragFinished(fn: () => void): () => void;
+      endDrag(): Promise<void>;
+      showVolume(id: string, rect: Rect): Promise<void>;
+      hideVolume(): Promise<void>;
+      onSession(fn: (snapshot: Snapshot) => void): () => void;
+      presentation(value: boolean): Promise<void>;
+      load(): Promise<Config>;
+      save(config: Config): Promise<void>;
+      bounds(
+        items: { id: string; rect: Rect; scale: Page["scale"] }[],
+      ): Promise<void>;
+      navigate(id: string, action: string, url?: string): Promise<void>;
+      transfer(action: string): Promise<Config | null>;
+      onPage(fn: (event: PageEvent) => void): () => void;
+    };
+  }
+}
