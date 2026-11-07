@@ -1,4 +1,5 @@
 import { logOperation } from "./OperationLogger";
+import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { join } from "node:path";
 import { BrowserWindow, WebContentsView, session } from "electron";
@@ -8,6 +9,10 @@ import { fit } from "../src/core/ScaleManager";
 import { isMuted } from "../src/core/AudioManager";
 import type { Rect } from "../src/core/LayoutManager";
 export class BrowserManager {
+  private pendingFocus?: string;
+  focusAfterExchange(id: string) {
+    this.pendingFocus = id;
+  }
   volume = 100;
   presentationMuted = false;
   slots = new Map<string, number>();
@@ -91,9 +96,10 @@ export class BrowserManager {
         this.window.contentView.addChildView(view);
         view.setVisible(false);
         const wc = view.webContents;
-        wc.on("focus", () =>
-          logOperation("web.focus", { slot: this.slots.get(p.id) }),
-        );
+        wc.on("focus", () => {
+          logOperation("web.focus", { slot: this.slots.get(p.id) });
+          this.window.webContents.send("page-focus", p.id);
+        });
         wc.ipc.on("web-operation", (event, name, details) => {
           if (event.sender !== wc || event.senderFrame !== wc.mainFrame) return;
           const entry = sanitizeOperation(name, details);
@@ -149,12 +155,25 @@ export class BrowserManager {
               slot: this.slots.get(p.id),
               status: Date.now() < middleUntil ? "middle" : "left",
             });
-            if (Date.now() < middleUntil) {
+            if (
+              Date.now() < middleUntil ||
+              isLiveProfileLink(wc.getURL(), safe)
+            ) {
               middleUntil = 0;
               this.onOpen(safe);
             } else void wc.loadURL(safe).catch(() => {});
           } catch {}
           return { action: "deny" };
+        });
+        wc.ipc.on("open-profile-link", (event, url) => {
+          if (
+            event.sender !== wc ||
+            event.senderFrame !== wc.mainFrame ||
+            typeof url !== "string"
+          )
+            return;
+          if (isLiveProfileLink(wc.getURL(), url))
+            this.onOpen(normalizeUrl(url));
         });
         wc.on("will-navigate", (event, url) => {
           try {
@@ -255,6 +274,15 @@ export class BrowserManager {
         scale: factor,
       });
       v.setVisible(true);
+    }
+    if (this.pendingFocus) {
+      const view = this.views.get(this.pendingFocus);
+      if (!view) this.pendingFocus = undefined;
+      else if (view.getVisible()) {
+        this.pendingFocus = undefined;
+        this.window.focus();
+        view.webContents.focus();
+      }
     }
   }
   navigate(id: string, action: string, url?: string) {

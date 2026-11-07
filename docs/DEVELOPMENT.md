@@ -51,7 +51,7 @@ node node_modules/electron-builder/cli.js --win --dir '-c.electronDist=node_modu
 
 ## 版本、隐私与提交
 
-显示版本源为[version.json](../version.json)，当前V0.1.1.3；package.json使用三段semver，buildVersion记录四段，不能把前者直接当完整显示版本。行为修改每个交付任务只运行一次 `node scripts/bump-version.mjs`，默认增加第四段；复测、重打包和文档-only不递增。
+显示版本源为[version.json](../version.json)，当前V0.1.1.5；package.json使用三段semver，buildVersion记录四段，不能把前者直接当完整显示版本。行为修改每个交付任务只运行一次 `node scripts/bump-version.mjs`，默认增加第四段；复测、重打包和文档-only不递增。
 
 日志只能使用允许的事件标识及受控数值/布尔元数据，禁止网址、标题、输入、名称、凭据和原始错误。详细约束见[AGENTS](../AGENTS.md)。
 
@@ -63,4 +63,4 @@ git diff --cached --check
 
 敏感扫描针对暂存区，零暂存文件不能作为扫描成功的证据。当前扫描器会将二进制文件标为需人工复核；公开文档图片应人工检查内容及元数据，不能为图片直接关闭扫描器。依赖、构建、日志、生成诊断结果、环境配置和浏览器数据不纳入Git，详见[.gitignore](../.gitignore)。
 
-文档编写入口见[分类映射](DOCUMENTATION_MAP.md)。软件正式名称已用于文档，源码与打包productName仍保留MultiViewBrowser；不要把文档改名误当作运行时品牌迁移。
+文档编写入口见[分类映射](DOCUMENTATION_MAP.md)。productName为MultiView Browser，executableName为MultiViewBrowser；appId、包名及既有用户数据路径保持兼容。

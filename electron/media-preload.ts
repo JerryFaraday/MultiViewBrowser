@@ -1,4 +1,5 @@
 import { mediaDocuments } from "./media-documents";
+import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { ipcRenderer } from "electron";
 
 function clickedLink(event: MouseEvent) {
@@ -15,6 +16,22 @@ document.addEventListener(
     if (!link) return;
     const url = new URL(link.href, location.href);
     if (!["http:", "https:"].includes(url.protocol)) return;
+    if (event.isTrusted && isLiveProfileLink(location.href, url.href)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      ipcRenderer.send("open-profile-link", url.href);
+      return;
+    }
+    // Do not navigate a script-driven placeholder before its site handler runs.
+    if (
+      location.hostname === "live.bilibili.com" &&
+      link.target &&
+      link.target !== "_self" &&
+      (!link.getAttribute("href") || link.getAttribute("href")!.startsWith("#"))
+    ) {
+      event.preventDefault();
+      return;
+    }
     // Preserve ordinary in-page handlers; override browser new-tab modifiers/targets.
     if (
       event.ctrlKey ||

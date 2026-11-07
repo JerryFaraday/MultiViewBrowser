@@ -30,7 +30,7 @@ server.listen(0, "127.0.0.1", () => {
     await wait(2500);
     try {
       const window = BrowserWindow.getAllWindows().find(
-        (w) => w.webContents.getTitle() === "MultiViewBrowser",
+        (w) => w.webContents.getTitle() === "MultiView Browser",
       )!;
       const point = await window.webContents.executeJavaScript(
         `(()=>{const r=document.querySelector('.master-mute').getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}})()`,

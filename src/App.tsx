@@ -15,12 +15,7 @@ import {
   normalizeUrl,
 } from "./core/model";
 import { presets, slots } from "./core/LayoutManager";
-import {
-  isMuted,
-  swapPages,
-  snapVolume,
-  stepVolume,
-} from "./core/AudioManager";
+import { isMuted, snapVolume, stepVolume } from "./core/AudioManager";
 import { LayoutView, Thumbnail } from "./components/LayoutView";
 export function App() {
   const [config, setConfig] = useState<Config>(),
@@ -157,8 +152,18 @@ export function App() {
       }),
     [],
   );
+  useEffect(
+    () =>
+      window.browser.onPageFocus((id) => {
+        const slot = current.current?.session.pages.findIndex(
+          (p) => p?.id === id,
+        );
+        if (slot !== undefined && slot >= 0) setSelected(slot);
+      }),
+    [],
+  );
   if (!config)
-    return <div className="loading">正在启动 MultiViewBrowser…{error}</div>;
+    return <div className="loading">正在启动 MultiView Browser…{error}</div>;
   const c = config,
     s = c.session;
   const edit = (fn: (draft: Config) => void) =>
@@ -303,9 +308,7 @@ export function App() {
           const from = e.dataTransfer.getData("slot"),
             url = e.dataTransfer.getData("favorite");
           if (from !== "" && s.pages[+from])
-            edit((d) => {
-              d.session.pages = swapPages(d.session.pages, +from, slot);
-            });
+            void window.browser.exchange(c, +from, slot).catch(fail);
           if (url) open(url, slot);
           setDrag(false);
           setTarget(null);
@@ -366,6 +369,7 @@ export function App() {
               >
                 <input
                   name="url"
+                  spellCheck={false}
                   key={p.url}
                   defaultValue={p.url}
                   title={p.title}
@@ -453,9 +457,9 @@ export function App() {
             if (e.target !== e.currentTarget) return;
             if (slot === 0) setMax(max === 0 ? null : 0);
             else
-              edit((d) => {
-                d.session.pages = swapPages(d.session.pages, slot, 0);
-              });
+              void window.browser
+                .exchange(c, p ? slot : 0, p ? 0 : slot)
+                .catch(fail);
           }}
           ref={(el) => {
             if (el) areas.current.set(slot, el);
@@ -479,7 +483,7 @@ export function App() {
     <div className="app">
       <nav className="toolbar">
         <strong>
-          <span className="logo">▦</span> MultiViewBrowser
+          <span className="logo">▦</span> MultiView Browser
           <small style={{ marginLeft: 6, opacity: 0.65 }}>
             V{version.version}
           </small>

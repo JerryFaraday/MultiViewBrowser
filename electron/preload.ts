@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("browser", {
+  exchange: (config: unknown, from: number, to: number) =>
+    ipcRenderer.invoke("exchange-pages", config, from, to),
+  onPageFocus: (fn: (id: string) => void) => {
+    const handler = (_e: unknown, id: string) => fn(id);
+    ipcRenderer.on("page-focus", handler);
+    return () => ipcRenderer.removeListener("page-focus", handler);
+  },
   showScale: (id: string, rect: unknown, locked: boolean) =>
     ipcRenderer.invoke("scale-show", id, rect, locked),
   hideScale: () => ipcRenderer.invoke("scale-hide"),

@@ -19,6 +19,12 @@ import { DragOverlay } from "./DragOverlay";
 import { swapPages } from "../src/core/AudioManager";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { defaults } from "../src/core/WorkspaceManager";
+// Preserve the previous packaged profile after changing productName.
+if (
+  app.isPackaged &&
+  app.getPath("userData") === join(app.getPath("appData"), "MultiView Browser")
+)
+  app.setPath("userData", join(app.getPath("appData"), "MultiViewBrowser"));
 let window: BrowserWindow, manager: BrowserManager, store: ConfigStore;
 app.whenReady().then(async () => {
   const exeDir = dirname(app.getPath("exe")),
@@ -115,12 +121,24 @@ app.whenReady().then(async () => {
     const from = c.session.pages.findIndex((p) => p?.id === source);
     if (from < 0) return;
     logOperation("drag.drop", { from, to: slot, status: "success" });
+    exchange(c, from, slot);
+  });
+  function exchange(
+    c: import("../src/core/model").Config,
+    from: number,
+    slot: number,
+  ) {
+    const source = c.session.pages[from]?.id;
+    if (!source || from === slot) return;
     c.session.pages = swapPages(c.session.pages, from, slot);
     store.save(c);
     manager.sync(c.session);
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
+    manager.focusAfterExchange(
+      (from === 0 || slot === 0 ? c.session.pages[0]?.id : source) ?? source,
+    );
     window.webContents.send("session-update", c.session);
-  });
+  }
   const popup = new VolumePopup(window, updatePageVolume);
   const scalePopup = new ScalePopup(window, (id, scale) => {
     const c = store.load();
@@ -158,6 +176,14 @@ app.whenReady().then(async () => {
     )
       throw Error("拒绝 IPC 来源");
   };
+  ipcMain.handle("exchange-pages", (e, raw, from, to) => {
+    trusted(e);
+    exchange(
+      validateConfig(raw),
+      z.number().int().min(0).max(8).parse(from),
+      z.number().int().min(0).max(8).parse(to),
+    );
+  });
   ipcMain.handle("operation-log", (e, event, details) => {
     trusted(e);
     const parsed = sanitizeOperation(event, details);

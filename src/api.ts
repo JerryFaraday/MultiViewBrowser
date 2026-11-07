@@ -9,6 +9,8 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      exchange(config: Config, from: number, to: number): Promise<void>;
+      onPageFocus(fn: (id: string) => void): () => void;
       showScale(id: string, rect: Rect, locked: boolean): Promise<void>;
       hideScale(): Promise<void>;
       log(event: string, details: unknown): Promise<void>;

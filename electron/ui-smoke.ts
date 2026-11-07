@@ -22,7 +22,7 @@ app.whenReady().then(async () => {
   await new Promise((r) => setTimeout(r, 2500));
   try {
     const w = BrowserWindow.getAllWindows().find(
-      (v) => v.webContents.getTitle() === "MultiViewBrowser",
+      (v) => v.webContents.getTitle() === "MultiView Browser",
     )!;
     const emptyStartupWindows = BrowserWindow.getAllWindows().length;
     const initialFullscreen = w.isFullScreen();
