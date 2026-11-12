@@ -51,7 +51,7 @@ node node_modules/electron-builder/cli.js --win --dir '-c.electronDist=node_modu
 
 ## 版本、隐私与提交
 
-显示版本源为[version.json](../version.json)，当前V0.1.1.5；package.json使用三段semver，buildVersion记录四段，不能把前者直接当完整显示版本。行为修改每个交付任务只运行一次 `node scripts/bump-version.mjs`，默认增加第四段；复测、重打包和文档-only不递增。
+显示版本源为[version.json](../version.json)，当前V0.1.1.8；package.json使用三段semver，buildVersion记录四段，不能把前者直接当完整显示版本。行为修改每个交付任务只运行一次 `node scripts/bump-version.mjs`，默认增加第四段；复测、重打包和文档-only不递增。
 
 日志只能使用允许的事件标识及受控数值/布尔元数据，禁止网址、标题、输入、名称、凭据和原始错误。详细约束见[AGENTS](../AGENTS.md)。
 

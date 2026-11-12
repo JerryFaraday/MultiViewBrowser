@@ -55,3 +55,7 @@ ConfigStore在Electron userData保存config.json，schema版本为1；临时文�
 [OperationLogger](../electron/OperationLogger.ts)、[OperationLog白名单](../src/core/OperationLog.ts)与[界面采集](../src/operation-log.ts)记录操作类别及受控元数据；具体网址、标题、输入、凭据和原始错误不进操作日志。audio-status/audio-probe是专项诊断通道，不是操作日志内容。
 
 Vite构建React，esbuild构建主进程和preload并复制浮窗HTML，electron-builder按package.json文件清单打包。过程见[开发指南](DEVELOPMENT.md)，已知风险见[问题清单](KNOWN_ISSUES.md)。
+
+### 5E自动适配兼容路径
+
+BrowserManager在子文档加载完成后识别直播页面中oss.5eplay.com/nesting_file/嵌入页。对25%–500%的auto模式保持原fit矩形，禁用设备图像模拟并使用isolated原生zoom；同域其他页面不联动。切回响应式/手动、离开该站点或低于25%时复原zoom=1并使用原路径。没有向跨域iframe注入Node或伪造按钮点击，也不修改网站DOM。

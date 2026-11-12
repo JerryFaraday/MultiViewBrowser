@@ -9,6 +9,10 @@ import { fit } from "../src/core/ScaleManager";
 import { isMuted } from "../src/core/AudioManager";
 import type { Rect } from "../src/core/LayoutManager";
 export class BrowserManager {
+  private frameZoomPages = new Set<string>();
+  private frameZoomFactors = new Map<string, number>();
+  private visibleBounds: { id: string; rect: Rect; scale: Page["scale"] }[] =
+    [];
   private pendingFocus?: string;
   focusAfterExchange(id: string) {
     this.pendingFocus = id;
@@ -73,6 +77,8 @@ export class BrowserManager {
         this.muted.delete(id);
         this.pageVolumes.delete(id);
         this.slots.delete(id);
+        this.frameZoomPages.delete(id);
+        this.frameZoomFactors.delete(id);
       }
     snapshot.pages.forEach((p, slot) => {
       if (!p) return;
@@ -96,6 +102,28 @@ export class BrowserManager {
         this.window.contentView.addChildView(view);
         view.setVisible(false);
         const wc = view.webContents;
+        wc.on("did-frame-finish-load", () => {
+          if (wc.isDestroyed() || !this.views.has(p.id)) return;
+          const compatible =
+            URL.canParse(wc.getURL()) &&
+            new URL(wc.getURL()).hostname === "live.bilibili.com" &&
+            wc.mainFrame.framesInSubtree.some((frame) => {
+              try {
+                const url = new URL(frame.url);
+                return (
+                  url.hostname === "oss.5eplay.com" &&
+                  url.pathname.startsWith("/nesting_file/")
+                );
+              } catch {
+                return false;
+              }
+            });
+          const before = this.frameZoomPages.has(p.id);
+          if (compatible) this.frameZoomPages.add(p.id);
+          else this.frameZoomPages.delete(p.id);
+          if (before !== compatible && this.views.get(p.id)?.getVisible())
+            this.bounds(this.visibleBounds);
+        });
         wc.on("focus", () => {
           logOperation("web.focus", { slot: this.slots.get(p.id) });
           this.window.webContents.send("page-focus", p.id);
@@ -207,12 +235,14 @@ export class BrowserManager {
           });
           publish();
         });
-        wc.on("dom-ready", () =>
+        wc.on("dom-ready", () => {
+          const factor = this.frameZoomFactors.get(p.id);
+          if (factor !== undefined) wc.setZoomFactor(factor);
           wc.send("audio-settings", {
             master: this.volume,
             page: this.pageVolumes.get(p.id) ?? 100,
-          }),
-        );
+          });
+        });
         wc.on("did-navigate-in-page", publish);
         wc.on("did-fail-load", (_e, code, description, _url, main) => {
           if (main && code !== -3)
@@ -252,19 +282,41 @@ export class BrowserManager {
     });
   }
   bounds(items: { id: string; rect: Rect; scale: Page["scale"] }[]) {
+    this.visibleBounds = items;
     const visible = new Set(items.map((x) => x.id));
     for (const [id, v] of this.views) if (!visible.has(id)) v.setVisible(false);
     for (const item of items) {
       const v = this.views.get(item.id);
       if (!v) continue;
+      const fitted = fit(item.rect, item.scale);
+      const nativeZoom =
+        this.frameZoomPages.has(item.id) &&
+        item.scale.mode === "auto" &&
+        fitted.factor >= 0.25 &&
+        fitted.factor <= 5;
+      if (!nativeZoom && this.frameZoomFactors.has(item.id)) {
+        v.webContents.setZoomFactor(1);
+        this.frameZoomFactors.delete(item.id);
+      }
       if (item.scale.mode === "responsive") {
         v.webContents.disableDeviceEmulation();
         v.setBounds(item.rect);
         v.setVisible(true);
         continue;
       }
-      const { rect, factor } = fit(item.rect, item.scale);
+      const { rect, factor } = fitted;
       v.setBounds(rect);
+      if (nativeZoom) {
+        v.webContents.disableDeviceEmulation();
+        if (!this.frameZoomFactors.has(item.id))
+          v.webContents.setZoomMode("isolated");
+        if (this.frameZoomFactors.get(item.id) !== factor) {
+          this.frameZoomFactors.set(item.id, factor);
+          v.webContents.setZoomFactor(factor);
+        }
+        v.setVisible(true);
+        continue;
+      }
       v.webContents.enableDeviceEmulation({
         screenPosition: "desktop",
         viewPosition: { x: 0, y: 0 },
@@ -315,5 +367,8 @@ export class BrowserManager {
     this.requested.clear();
     this.muted.clear();
     this.pageVolumes.clear();
+    this.frameZoomPages.clear();
+    this.frameZoomFactors.clear();
+    this.visibleBounds = [];
   }
 }

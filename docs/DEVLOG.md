@@ -54,3 +54,7 @@ README转为MultiView Browser项目首页，版本历史、用户指南、开发
 ## 2026-11-07：直播间主播主页跳转（V0.1.1.7）
 
 在21516508直播间实际DOM中，initiator-avatar及initiator-name均为target=_blank且没有href，由网站事件脚本打开个人空间。旧捕获处理将其解析为当前URL并停止后续处理，导致刷新。保留直播站点占位链接的脚本事件，将live.bilibili.com到space.bilibili.com数字UID路径的请求定向空槽；不泛化为所有左键新开窗口。
+
+## 2026-11-12：5E跨域iframe输入兼容（V0.1.1.8）
+
+1883358196中的5E是跨域iframe，切换按钮为普通DOM；排除脚本初始化、遮罩、inert和超宽iframe单变量影响。用户验证响应式可用、原自动适配不可用；同一页面F8原方案失败、F9独立原生缩放成功。针对已加载oss.5eplay.com/nesting_file/的直播页面启用独立缩放，避免同域窗口联动；25%以下保留原路径，避免内核缩放下限改变逻辑视口。详细证据与未解决范围见专项报告。
