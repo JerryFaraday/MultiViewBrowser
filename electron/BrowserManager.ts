@@ -1,5 +1,6 @@
 import { logOperation } from "./OperationLogger";
 import { nextPageZoom } from "../src/core/PageZoom";
+import { ZoomFeedback } from "./ZoomFeedback";
 import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { join } from "node:path";
@@ -10,6 +11,7 @@ import { fit } from "../src/core/ScaleManager";
 import { isMuted } from "../src/core/AudioManager";
 import type { Rect } from "../src/core/LayoutManager";
 export class BrowserManager {
+  private zoomFeedback: ZoomFeedback;
   pageZooms = new Map<string, number>();
   changePageZoom(id: string, direction: "in" | "out" | "reset") {
     if (!this.views.has(id)) return;
@@ -17,6 +19,13 @@ export class BrowserManager {
     this.pageZooms.set(id, value);
     this.bounds(this.visibleBounds);
     this.onPageZoom(id, value);
+    const view = this.views.get(id)!;
+    if (view.getVisible())
+      void this.zoomFeedback.show(
+        id,
+        view.getBounds(),
+        view.webContents.getZoomFactor(),
+      );
   }
   private frameZoomPages = new Set<string>();
   private frameZoomFactors = new Map<string, number>();
@@ -69,6 +78,7 @@ export class BrowserManager {
     ) => void = () => {},
     private onPageZoom: (id: string, value: number) => void = () => {},
   ) {
+    this.zoomFeedback = new ZoomFeedback(window);
     const shared = session.fromPartition("persist:multiview");
     shared.setPermissionRequestHandler((_wc, _permission, callback) =>
       callback(false),
@@ -90,6 +100,7 @@ export class BrowserManager {
         this.pageZooms.delete(id);
         this.frameZoomPages.delete(id);
         this.frameZoomFactors.delete(id);
+        this.zoomFeedback.remove(id);
       }
     snapshot.pages.forEach((p, slot) => {
       if (!p) return;
@@ -367,6 +378,20 @@ export class BrowserManager {
       });
       v.setVisible(true);
     }
+    this.zoomFeedback.update(
+      items.flatMap(({ id }) => {
+        const view = this.views.get(id);
+        return view?.getVisible()
+          ? [
+              {
+                id,
+                rect: view.getBounds(),
+                factor: view.webContents.getZoomFactor(),
+              },
+            ]
+          : [];
+      }),
+    );
     if (this.pendingFocus) {
       const view = this.views.get(this.pendingFocus);
       if (!view) this.pendingFocus = undefined;
@@ -397,9 +422,11 @@ export class BrowserManager {
       wc.navigationHistory.goForward();
   }
   hideViews() {
+    this.zoomFeedback.hide();
     for (const v of this.views.values()) v.setVisible(false);
   }
   destroy() {
+    this.zoomFeedback.destroy();
     for (const v of this.views.values())
       if (!v.webContents.isDestroyed()) v.webContents.close();
     this.views.clear();

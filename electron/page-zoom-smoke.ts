@@ -63,6 +63,15 @@ app.whenReady().then(async () => {
       b = m.views.get(pages[1].id)!;
     const marker = await a.webContents.executeJavaScript("window.marker");
     const bounds = JSON.stringify([a.getBounds(), b.getBounds()]);
+    const initiallyHidden = w
+      .getChildWindows()
+      .every((child) => !child.isVisible());
+    const feedback = () =>
+      w.getChildWindows().filter((child) => !child.isDestroyed());
+    const label = (child: BrowserWindow) =>
+      child.webContents.executeJavaScript(
+        "document.getElementById('zoom').textContent",
+      );
     const key = async (wc: Electron.WebContents, keyCode: string) => {
       wc.sendInputEvent({ type: "keyDown", keyCode, modifiers: ["control"] });
       wc.sendInputEvent({ type: "keyUp", keyCode, modifiers: ["control"] });
@@ -74,12 +83,24 @@ app.whenReady().then(async () => {
     const keyboard =
       a.webContents.getZoomFactor() === 1.1 &&
       b.webContents.getZoomFactor() === 1;
+    const aFeedback = feedback().find((child) => child.isVisible())!;
+    const actualPercentage =
+      (await label(aFeedback)) ===
+      Math.round(a.webContents.getZoomFactor() * 100) + "%";
+    const focusPreserved =
+      a.webContents.isFocused() && !aFeedback.isFocusable();
+    await wait(1100);
     // The wheel request is delivered to b while a retains keyboard focus.
     b.webContents.emit("zoom-changed", { preventDefault() {} }, "in");
     await wait(100);
     const wheelRequest =
       b.webContents.getZoomFactor() > 1 &&
       a.webContents.getZoomFactor() === 1.1;
+    const bFeedback = feedback().find((child) => child.id !== aFeedback.id)!;
+    await wait(1100);
+    const independentTimeout = !aFeedback.isVisible() && bFeedback.isVisible();
+    await wait(1150);
+    const dismissed = !bFeedback.isVisible();
     const zoomContainerStable =
       JSON.stringify([a.getBounds(), b.getBounds()]) === bounds;
     await key(a.webContents, "-");
@@ -90,12 +111,17 @@ app.whenReady().then(async () => {
     layout();
     const exchanged =
       a.webContents.getZoomFactor() === 1.1 && snap.pages[1]?.pageZoom === 1.1;
+    const origin = w.getContentBounds();
+    const followsExchange =
+      aFeedback.getBounds().x === origin.x + a.getBounds().x + 550 - 80 - 10;
     const unchanged =
       JSON.stringify([a.getBounds(), b.getBounds()]) !== bounds &&
       a.getBounds().width === 550 &&
       b.getBounds().width === 550;
     await key(a.webContents, "0");
     const reset = a.webContents.getZoomFactor() === 1;
+    const resetFeedback =
+      aFeedback.isVisible() && (await label(aFeedback)) === "100%";
     for (let i = 0; i < 30; i++) m.changePageZoom(pages[0].id, "in");
     const max = Math.abs(a.webContents.getZoomFactor() - 5) < 0.0001;
     for (let i = 0; i < 40; i++) m.changePageZoom(pages[0].id, "out");
@@ -122,6 +148,13 @@ app.whenReady().then(async () => {
     const preserved =
       marker === (await a.webContents.executeJavaScript("window.marker"));
     const result = {
+      initiallyHidden,
+      actualPercentage,
+      focusPreserved,
+      independentTimeout,
+      dismissed,
+      followsExchange,
+      resetFeedback,
       keyboard,
       wheelRequest,
       zoomContainerStable,

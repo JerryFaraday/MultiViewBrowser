@@ -65,3 +65,6 @@ BrowserManager在子文档加载完成后识别直播页面中oss.5eplay.com/nes
 Page.pageZoom默认1，存入Snapshot及工作区。BrowserManager按稳定页面ID维护比例，原生zoom-changed处理Ctrl滚轮，before-input-event处理Ctrl快捷键；所有WebContents设置isolated缩放模式防止同域联动。PageZoom.ts仅定义浏览器常用档位和边界，实际缩放由WebContents.setZoomFactor完成，不注入CSS Transform。外层界面快捷键经可信IPC转发到选中网页。
 
 普通路径保留原设备模拟参数，并叠加内容Page Zoom。5E兼容路径的实际原生因子为fit.factor×pageZoom；超出25%–500%时回退原设备模拟，保留既有兼容限制。所有路径均不因内容比例调整原bounds。
+
+
+缩放反馈由electron/ZoomFeedback.ts管理：BrowserManager在用户缩放后读取getZoomFactor并触发独立提示，后续bounds更新跟随网页实例位置。提示使用不获取焦点且原生鼠标穿透的透明子窗口，避免被WebContentsView遮挡；无额外页面脚本、持久化字段或IPC权限。计时与淡出仅控制提示，不写入缩放状态。
