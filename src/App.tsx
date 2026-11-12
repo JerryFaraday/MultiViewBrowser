@@ -33,6 +33,14 @@ export function App() {
     ready = useRef(false);
   current.current = config;
   currentMax.current = max;
+  useEffect(
+    () =>
+      window.browser.onZoomShortcut((direction) => {
+        const page = current.current?.session.pages[selected];
+        if (page) void window.browser.zoomPage(page.id, direction).catch(fail);
+      }),
+    [selected],
+  );
   const [favoriteDraft, setFavoriteDraft] = useState<Favorite>();
   const [question, setQuestion] = useState<{
     text: string;

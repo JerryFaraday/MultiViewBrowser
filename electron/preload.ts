@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("browser", {
+  zoomPage: (id: string, direction: string) =>
+    ipcRenderer.invoke("page-zoom", id, direction),
+  onZoomShortcut: (fn: (direction: "in" | "out" | "reset") => void) => {
+    const handler = (_e: unknown, direction: "in" | "out" | "reset") =>
+      fn(direction);
+    ipcRenderer.on("page-zoom-shortcut", handler);
+    return () => ipcRenderer.removeListener("page-zoom-shortcut", handler);
+  },
   exchange: (config: unknown, from: number, to: number) =>
     ipcRenderer.invoke("exchange-pages", config, from, to),
   onPageFocus: (fn: (id: string) => void) => {

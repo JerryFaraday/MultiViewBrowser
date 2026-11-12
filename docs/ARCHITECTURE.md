@@ -59,3 +59,9 @@ Vite构建React，esbuild构建主进程和preload并复制浮窗HTML，electron
 ### 5E自动适配兼容路径
 
 BrowserManager在子文档加载完成后识别直播页面中oss.5eplay.com/nesting_file/嵌入页。对25%–500%的auto模式保持原fit矩形，禁用设备图像模拟并使用isolated原生zoom；同域其他页面不联动。切回响应式/手动、离开该站点或低于25%时复原zoom=1并使用原路径。没有向跨域iframe注入Node或伪造按钮点击，也不修改网站DOM。
+
+### 独立Page Zoom
+
+Page.pageZoom默认1，存入Snapshot及工作区。BrowserManager按稳定页面ID维护比例，原生zoom-changed处理Ctrl滚轮，before-input-event处理Ctrl快捷键；所有WebContents设置isolated缩放模式防止同域联动。PageZoom.ts仅定义浏览器常用档位和边界，实际缩放由WebContents.setZoomFactor完成，不注入CSS Transform。外层界面快捷键经可信IPC转发到选中网页。
+
+普通路径保留原设备模拟参数，并叠加内容Page Zoom。5E兼容路径的实际原生因子为fit.factor×pageZoom；超出25%–500%时回退原设备模拟，保留既有兼容限制。所有路径均不因内容比例调整原bounds。

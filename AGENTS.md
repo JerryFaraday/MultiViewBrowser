@@ -1,5 +1,7 @@
 # Project conventions
 
+- After each completed update, validate and scan the staged changes, commit them and run a normal git push to origin on the current branch. Never force push or overwrite remote history. Report authentication or network blockers explicitly.
+
 - Current display version is stored in `version.json` (four numeric components).
 - For each future delivered task that changes application behavior, run `node scripts/bump-version.mjs` once before building. Increment only the fourth component unless the user explicitly requests another component change.
 - Rebuilding, testing, formatting, reviewing, or packaging the same change must not increment the version again. The initial logging release was V0.1.1.0.

@@ -32,6 +32,7 @@ export const pageSchema = z.object({
       }
     }),
   title: z.string().max(1000),
+  pageZoom: z.number().min(0.25).max(5).default(1),
   audio: z.enum(["auto", "muted", "unmuted"]),
   volume: z
     .union([
@@ -108,6 +109,7 @@ export function newPage(url: string): Page {
     id: crypto.randomUUID(),
     url: normalizeUrl(url),
     title: "新网页",
+    pageZoom: 1,
     audio: "auto",
     volume: 100,
     scale: { mode: "auto", width: 1920, height: 1080, factor: 1 },

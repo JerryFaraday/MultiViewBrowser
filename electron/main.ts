@@ -73,6 +73,20 @@ app.whenReady().then(async () => {
   window.setMenu(null);
   window.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
+    if (input.control && !input.alt && !input.meta) {
+      const direction = ["+", "="].includes(input.key)
+        ? "in"
+        : input.key === "-"
+          ? "out"
+          : input.key === "0"
+            ? "reset"
+            : undefined;
+      if (direction) {
+        event.preventDefault();
+        window.webContents.send("page-zoom-shortcut", direction);
+        return;
+      }
+    }
     if (input.key === "F11") {
       event.preventDefault();
       window.setFullScreen(!window.isFullScreen());
@@ -97,6 +111,19 @@ app.whenReady().then(async () => {
       window.webContents.send("session-update", c.session);
     },
     updatePageVolume,
+    (id, value) => {
+      const c = store.load(),
+        page = c.session.pages.find((p) => p?.id === id);
+      if (!page) return;
+      page.pageZoom = value;
+      store.save(c);
+      logOperation("ui.change", {
+        action: "page.scale",
+        slot: c.session.pages.findIndex((p) => p?.id === id),
+        value: Math.round(value * 100),
+      });
+      window.webContents.send("session-update", c.session);
+    },
   );
   function updatePageVolume(
     id: string,
@@ -188,6 +215,13 @@ app.whenReady().then(async () => {
     trusted(e);
     const parsed = sanitizeOperation(event, details);
     if (parsed) logOperation(parsed.event, parsed.details);
+  });
+  ipcMain.handle("page-zoom", (e, id, direction) => {
+    trusted(e);
+    manager.changePageZoom(
+      z.string().parse(id),
+      z.enum(["in", "out", "reset"]).parse(direction),
+    );
   });
   ipcMain.handle("drag-begin", (e, id, raw) => {
     trusted(e);

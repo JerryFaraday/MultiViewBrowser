@@ -1,4 +1,5 @@
 import { logOperation } from "./OperationLogger";
+import { nextPageZoom } from "../src/core/PageZoom";
 import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { join } from "node:path";
@@ -9,6 +10,14 @@ import { fit } from "../src/core/ScaleManager";
 import { isMuted } from "../src/core/AudioManager";
 import type { Rect } from "../src/core/LayoutManager";
 export class BrowserManager {
+  pageZooms = new Map<string, number>();
+  changePageZoom(id: string, direction: "in" | "out" | "reset") {
+    if (!this.views.has(id)) return;
+    const value = nextPageZoom(this.pageZooms.get(id) ?? 1, direction);
+    this.pageZooms.set(id, value);
+    this.bounds(this.visibleBounds);
+    this.onPageZoom(id, value);
+  }
   private frameZoomPages = new Set<string>();
   private frameZoomFactors = new Map<string, number>();
   private visibleBounds: { id: string; rect: Rect; scale: Page["scale"] }[] =
@@ -58,6 +67,7 @@ export class BrowserManager {
       id: string,
       value: Page["volume"],
     ) => void = () => {},
+    private onPageZoom: (id: string, value: number) => void = () => {},
   ) {
     const shared = session.fromPartition("persist:multiview");
     shared.setPermissionRequestHandler((_wc, _permission, callback) =>
@@ -77,12 +87,14 @@ export class BrowserManager {
         this.muted.delete(id);
         this.pageVolumes.delete(id);
         this.slots.delete(id);
+        this.pageZooms.delete(id);
         this.frameZoomPages.delete(id);
         this.frameZoomFactors.delete(id);
       }
     snapshot.pages.forEach((p, slot) => {
       if (!p) return;
       this.slots.set(p.id, slot);
+      this.pageZooms.set(p.id, p.pageZoom ?? 1);
       let view = this.views.get(p.id);
       if (!view) {
         logOperation("web.page_created", { slot });
@@ -102,6 +114,11 @@ export class BrowserManager {
         this.window.contentView.addChildView(view);
         view.setVisible(false);
         const wc = view.webContents;
+        wc.setZoomMode("isolated");
+        wc.on("zoom-changed", (event, direction) => {
+          event.preventDefault();
+          this.changePageZoom(p.id, direction);
+        });
         wc.on("did-frame-finish-load", () => {
           if (wc.isDestroyed() || !this.views.has(p.id)) return;
           const compatible =
@@ -156,6 +173,21 @@ export class BrowserManager {
         });
         wc.on("before-input-event", (event, input) => {
           if (input.type !== "keyDown") return;
+          if (input.control && !input.alt && !input.meta) {
+            const direction =
+              ["+", "="].includes(input.key) || input.code === "NumpadAdd"
+                ? "in"
+                : input.key === "-" || input.code === "NumpadSubtract"
+                  ? "out"
+                  : input.key === "0" || input.code === "Numpad0"
+                    ? "reset"
+                    : undefined;
+            if (direction) {
+              event.preventDefault();
+              this.changePageZoom(p.id, direction);
+              return;
+            }
+          }
           if (input.key === "F11") {
             event.preventDefault();
             this.window.setFullScreen(!this.window.isFullScreen());
@@ -236,8 +268,9 @@ export class BrowserManager {
           publish();
         });
         wc.on("dom-ready", () => {
-          const factor = this.frameZoomFactors.get(p.id);
-          if (factor !== undefined) wc.setZoomFactor(factor);
+          const factor =
+            this.frameZoomFactors.get(p.id) ?? this.pageZooms.get(p.id) ?? 1;
+          wc.setZoomFactor(factor);
           wc.send("audio-settings", {
             master: this.volume,
             page: this.pageVolumes.get(p.id) ?? 100,
@@ -289,15 +322,22 @@ export class BrowserManager {
       const v = this.views.get(item.id);
       if (!v) continue;
       const fitted = fit(item.rect, item.scale);
+      const pageZoom = this.pageZooms.get(item.id) ?? 1;
+      const combinedZoom = fitted.factor * pageZoom;
       const nativeZoom =
         this.frameZoomPages.has(item.id) &&
         item.scale.mode === "auto" &&
-        fitted.factor >= 0.25 &&
-        fitted.factor <= 5;
+        combinedZoom >= 0.25 &&
+        combinedZoom <= 5;
       if (!nativeZoom && this.frameZoomFactors.has(item.id)) {
-        v.webContents.setZoomFactor(1);
+        v.webContents.setZoomFactor(pageZoom);
         this.frameZoomFactors.delete(item.id);
       }
+      if (
+        !nativeZoom &&
+        Math.abs(v.webContents.getZoomFactor() - pageZoom) > 0.0001
+      )
+        v.webContents.setZoomFactor(pageZoom);
       if (item.scale.mode === "responsive") {
         v.webContents.disableDeviceEmulation();
         v.setBounds(item.rect);
@@ -310,9 +350,9 @@ export class BrowserManager {
         v.webContents.disableDeviceEmulation();
         if (!this.frameZoomFactors.has(item.id))
           v.webContents.setZoomMode("isolated");
-        if (this.frameZoomFactors.get(item.id) !== factor) {
-          this.frameZoomFactors.set(item.id, factor);
-          v.webContents.setZoomFactor(factor);
+        if (this.frameZoomFactors.get(item.id) !== combinedZoom) {
+          this.frameZoomFactors.set(item.id, combinedZoom);
+          v.webContents.setZoomFactor(combinedZoom);
         }
         v.setVisible(true);
         continue;
@@ -367,6 +407,7 @@ export class BrowserManager {
     this.requested.clear();
     this.muted.clear();
     this.pageVolumes.clear();
+    this.pageZooms.clear();
     this.frameZoomPages.clear();
     this.frameZoomFactors.clear();
     this.visibleBounds = [];
