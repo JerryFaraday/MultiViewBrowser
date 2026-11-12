@@ -436,12 +436,6 @@ export function App() {
                 ⚙
               </button>
               <button
-                title="最大化 / 还原"
-                onClick={() => setMax(max === slot ? null : slot)}
-              >
-                □
-              </button>
-              <button
                 title="关闭网页"
                 onClick={() =>
                   edit((d) => {
