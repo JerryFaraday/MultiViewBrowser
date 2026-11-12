@@ -85,3 +85,10 @@ const result = {
 };
 writeFileSync("review-media-results.json", JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result, null, 2));
+
+if (
+  afterCommand.newVolume !== 0.25 ||
+  !result.newPlayerChangeReported ||
+  result.defectReproduced
+)
+  process.exitCode = 1;

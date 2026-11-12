@@ -99,7 +99,10 @@ function apply(media: HTMLMediaElement) {
     media.isConnected &&
     media.readyState >= 2 &&
     !media.paused &&
-    (!volumeSource?.isConnected || mediaScore(media) > mediaScore(volumeSource))
+    (!volumeSource?.isConnected ||
+      volumeSource.paused ||
+      volumeSource.ended ||
+      mediaScore(media) > mediaScore(volumeSource))
   ) {
     volumeSource = media;
     applied.delete(media);
@@ -224,7 +227,21 @@ function watch(doc: Document) {
   );
   doc.addEventListener(
     "play",
-    () => {
+    (event) => {
+      const media = event.target as HTMLMediaElement;
+      if (
+        media.isConnected &&
+        !media.paused &&
+        media.readyState >= 2 &&
+        media !== volumeSource &&
+        (!volumeSource?.isConnected ||
+          volumeSource.paused ||
+          volumeSource.ended ||
+          mediaScore(media) >= mediaScore(volumeSource))
+      ) {
+        volumeSource = media;
+        applied.delete(media);
+      }
       scan();
       void context?.resume().catch(() => {});
     },

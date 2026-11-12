@@ -114,4 +114,24 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   listeners.get("volumechange")!({ target: extra });
   expect(media.volume).toBe(1);
   expect(sent).not.toContainEqual(["site-volume", 0]);
+  // Old player remains connected but paused; equally sized replacement takes over.
+  media.paused = true;
+  extra = { ...media, paused: false, volume: 0.75 };
+  mutate();
+  receive(null, { master: 100, page: 25 });
+  expect(extra.volume).toBe(0.25);
+  sent.length = 0;
+  extra.volume = 0.5;
+  listeners.get("volumechange")!({ target: extra });
+  expect(sent).toContainEqual(["site-volume", 50]);
+  sent.length = 0;
+  media.volume = 0.75;
+  listeners.get("volumechange")!({ target: media });
+  expect(sent).not.toContainEqual(["site-volume", 75]);
+  // Explicit play transfers an equal-score source even while the previous player remains active.
+  media.paused = false;
+  listeners.get("play")!({ target: media });
+  receive(null, { master: 100, page: 75 });
+  expect(media.volume).toBe(0.75);
+  expect(extra.volume).toBe(0.5);
 });

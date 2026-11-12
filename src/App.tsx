@@ -1,3 +1,4 @@
+import { mergeConfig } from "./core/ConfigMerge";
 import version from "../version.json";
 import { viewBounds } from "./core/ViewBounds";
 import { displayScale } from "./core/ScaleManager";
@@ -30,7 +31,8 @@ export function App() {
   const areas = useRef(new Map<number, HTMLDivElement>()),
     current = useRef(config),
     currentMax = useRef(max),
-    ready = useRef(false);
+    ready = useRef(false),
+    acknowledged = useRef<Config | undefined>(undefined);
   current.current = config;
   currentMax.current = max;
   useEffect(
@@ -59,8 +61,10 @@ export function App() {
     window.browser
       .load()
       .then((c) => {
-        setConfig(c);
         ready.current = true;
+        if (c.revision < (acknowledged.current?.revision ?? -1)) return;
+        acknowledged.current = c;
+        setConfig(c);
       })
       .catch(fail);
     return window.browser.onPage((e) => {
@@ -87,9 +91,24 @@ export function App() {
     });
   }, []);
   useEffect(() => {
-    if (!config || !ready.current) return;
+    if (!config || !ready.current || config === acknowledged.current) return;
     const timer = setTimeout(
-      () => window.browser.save(config).then(bounds).catch(fail),
+      () =>
+        window.browser
+          .save(config)
+          .then((saved) => {
+            if (saved.revision < (acknowledged.current?.revision ?? -1)) return;
+            acknowledged.current = saved;
+            setConfig((draft) =>
+              draft === config
+                ? saved
+                : draft
+                  ? mergeConfig(config, draft, saved)
+                  : saved,
+            );
+            bounds();
+          })
+          .catch(fail),
       180,
     );
     return () => clearTimeout(timer);
@@ -147,9 +166,12 @@ export function App() {
   }, [max]);
   useEffect(
     () =>
-      window.browser.onSession((session) =>
-        setConfig((c) => (c ? { ...c, session } : c)),
-      ),
+      window.browser.onSession((_session, saved) => {
+        if (saved.revision < (acknowledged.current?.revision ?? -1)) return;
+        const base = acknowledged.current;
+        acknowledged.current = saved;
+        setConfig((c) => (c && base ? mergeConfig(base, c, saved) : saved));
+      }),
     [],
   );
   useEffect(

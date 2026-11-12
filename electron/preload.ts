@@ -31,8 +31,9 @@ contextBridge.exposeInMainWorld("browser", {
   showVolume: (id: string, rect: unknown) =>
     ipcRenderer.invoke("volume-show", id, rect),
   hideVolume: () => ipcRenderer.invoke("volume-hide"),
-  onSession: (fn: (data: unknown) => void) => {
-    const handler = (_e: unknown, data: unknown) => fn(data);
+  onSession: (fn: (data: unknown, config: unknown) => void) => {
+    const handler = (_e: unknown, data: unknown, config: unknown) =>
+      fn(data, config);
     ipcRenderer.on("session-update", handler);
     return () => ipcRenderer.removeListener("session-update", handler);
   },

@@ -53,3 +53,12 @@ export function stepVolume(value: number, direction: 1 | -1) {
 export function effectiveVolume(master: number, page: number) {
   return (master * page) / 100;
 }
+
+export function setPageVolume(
+  page: Page,
+  value: Page["volume"],
+  userInitiated: boolean,
+) {
+  page.volume = value;
+  if (userInitiated && value > 0) page.audio = "unmuted";
+}

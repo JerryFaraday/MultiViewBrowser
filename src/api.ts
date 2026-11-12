@@ -26,10 +26,10 @@ declare global {
       endDrag(): Promise<void>;
       showVolume(id: string, rect: Rect): Promise<void>;
       hideVolume(): Promise<void>;
-      onSession(fn: (snapshot: Snapshot) => void): () => void;
+      onSession(fn: (snapshot: Snapshot, config: Config) => void): () => void;
       presentation(value: boolean): Promise<void>;
       load(): Promise<Config>;
-      save(config: Config): Promise<void>;
+      save(config: Config): Promise<Config>;
       bounds(
         items: { id: string; rect: Rect; scale: Page["scale"] }[],
       ): Promise<void>;

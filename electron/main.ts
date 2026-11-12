@@ -16,7 +16,7 @@ import { ConfigStore, validateConfig } from "./storage";
 import { BrowserManager } from "./BrowserManager";
 import { openInEmptySlot } from "../src/core/SlotManager";
 import { DragOverlay } from "./DragOverlay";
-import { swapPages } from "../src/core/AudioManager";
+import { swapPages, setPageVolume } from "../src/core/AudioManager";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { defaults } from "../src/core/WorkspaceManager";
 // Preserve the previous packaged profile after changing productName.
@@ -108,9 +108,9 @@ app.whenReady().then(async () => {
       store.save(c);
       manager.sync(c.session);
       manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
-      window.webContents.send("session-update", c.session);
+      window.webContents.send("session-update", c.session, c);
     },
-    updatePageVolume,
+    (id, value) => updatePageVolume(id, value, false),
     (id, value) => {
       const c = store.load(),
         page = c.session.pages.find((p) => p?.id === id);
@@ -122,12 +122,13 @@ app.whenReady().then(async () => {
         slot: c.session.pages.findIndex((p) => p?.id === id),
         value: Math.round(value * 100),
       });
-      window.webContents.send("session-update", c.session);
+      window.webContents.send("session-update", c.session, c);
     },
   );
   function updatePageVolume(
     id: string,
     value: import("../src/core/model").Page["volume"],
+    userInitiated = true,
   ) {
     const c = store.load();
     logOperation("audio.page_change", {
@@ -136,12 +137,11 @@ app.whenReady().then(async () => {
     });
     const p = c.session.pages.find((p) => p?.id === id);
     if (!p) return;
-    p.volume = value;
-    if (value > 0) p.audio = "unmuted";
+    setPageVolume(p, value, userInitiated);
     store.save(c);
     manager.sync(c.session);
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
-    window.webContents.send("session-update", c.session);
+    window.webContents.send("session-update", c.session, c);
   }
   const overlay = new DragOverlay(window, (source, slot) => {
     const c = store.load();
@@ -164,7 +164,7 @@ app.whenReady().then(async () => {
     manager.focusAfterExchange(
       (from === 0 || slot === 0 ? c.session.pages[0]?.id : source) ?? source,
     );
-    window.webContents.send("session-update", c.session);
+    window.webContents.send("session-update", c.session, c);
   }
   const popup = new VolumePopup(window, updatePageVolume);
   const scalePopup = new ScalePopup(window, (id, scale) => {
@@ -194,7 +194,7 @@ app.whenReady().then(async () => {
     store.save(c);
     manager.sync(c.session);
     scalePopup.update(c);
-    window.webContents.send("session-update", c.session);
+    window.webContents.send("session-update", c.session, c);
   });
   const trusted = (event: Electron.IpcMainInvokeEvent) => {
     if (
@@ -205,11 +205,23 @@ app.whenReady().then(async () => {
   };
   ipcMain.handle("exchange-pages", (e, raw, from, to) => {
     trusted(e);
-    exchange(
-      validateConfig(raw),
-      z.number().int().min(0).max(8).parse(from),
-      z.number().int().min(0).max(8).parse(to),
-    );
+    const draft = validateConfig(raw);
+    const sourceSlot = z.number().int().min(0).max(8).parse(from);
+    const targetSlot = z.number().int().min(0).max(8).parse(to);
+    const source = draft.session.pages[sourceSlot]?.id;
+    const target = draft.session.pages[targetSlot]?.id;
+    const c = store.accept(draft);
+    const actualFrom = c.session.pages.findIndex((p) => p?.id === source);
+    const actualTo = target
+      ? c.session.pages.findIndex((p) => p?.id === target)
+      : targetSlot;
+    if (
+      source &&
+      actualFrom >= 0 &&
+      actualTo >= 0 &&
+      (target || !c.session.pages[actualTo])
+    )
+      exchange(c, actualFrom, actualTo);
   });
   ipcMain.handle("operation-log", (e, event, details) => {
     trusted(e);
@@ -302,26 +314,37 @@ app.whenReady().then(async () => {
     trusted(e);
     scalePopup.closeSoon();
   });
+  let sessionInitialized = false;
   ipcMain.handle("config-load", (e) => {
     trusted(e);
     const c = store.load();
     logOperation("config.load", {
       count: c.session.pages.filter(Boolean).length,
     });
-    return c.restore ? c : { ...c, session: defaults().session };
+    if (!sessionInitialized) {
+      sessionInitialized = true;
+      if (!c.restore) {
+        c.session = defaults().session;
+        store.save(c);
+      }
+      manager.sync(c.session);
+      manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
+    }
+    return c;
   });
   ipcMain.handle("config-save", (e, raw) => {
     trusted(e);
-    const c = validateConfig(raw);
-    logConfigChanges(store.load(), c);
+    const before = store.load();
+    const c = store.accept(validateConfig(raw));
+    logConfigChanges(before, c);
     logOperation("config.save", {
       count: c.session.pages.filter(Boolean).length,
     });
-    store.save(c);
     manager.sync(c.session);
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     popup.update(c);
     scalePopup.update(c);
+    return c;
   });
   ipcMain.handle("bounds", (e, raw) => {
     trusted(e);

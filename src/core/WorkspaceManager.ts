@@ -3,6 +3,7 @@ import type { Config } from "./model";
 export function defaults(): Config {
   return {
     version: 1,
+    revision: 0,
     restore: true,
     bookmarksBar: false,
     masterVolume: 100,

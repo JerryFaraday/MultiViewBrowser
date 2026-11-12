@@ -62,7 +62,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "buildVersion": "0.1.1.11",
+    "buildVersion": "0.1.1.12",
     "executableName": "MultiViewBrowser"
   },
   "type": "module"

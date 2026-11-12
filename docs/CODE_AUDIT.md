@@ -193,3 +193,37 @@ review探针新证据：staleSave={initial:100,afterPopup:25,afterStaleSave:100}
 本次npm audit返回6个moderate包条目：minimatch、@electron/universal、app-builder-lib、dmg-builder、electron-builder、electron-builder-squirrel-windows。直接公告为[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)，受影响版本>=7.0.0且<11.0.1，修复版本11.0.1。公告描述攻击者可控glob模式在特定优化路径造成资源放大、CPU/内存拒绝服务。依赖命中已确认；本项目是否能由不可信输入触达该路径尚未证明，未做恶意负载复现，故按潜在风险列项。该链来自开发打包工具，未证明远程网页可利用。
 
 建议：限制打包时处理不可信模式/项目输入，在隔离构建环境验证上游兼容修复，再选择依赖更新方案。npm给出的electron-builder 25.1.0方案跨当前版本且涉及降级，不能直接视为安全升级建议；不运行audit fix --force。本轮不变更依赖。新增此项后总数为15，严重程度Critical 0、High 2、Medium 10、Low 3；证据分类为已确认8、潜在风险4、优化建议3。
+
+## 第一阶段修复状态（V0.1.1.12，2026-11-12）
+
+原始审计条目、基线行号及历史复现记录全部保留。A01、A02、A03现标记为**已修复，通过本地回归；真实网站兼容性未全面验收**。其他条目不在本阶段修复范围。15项为累计审计发现数，不是当前未修复数量。
+
+### A01：主进程权威配置与旧快照合并
+
+修改涉及electron/storage.ts、electron/main.ts、electron/preload.ts、src/core/ConfigMerge.ts、src/core/model.ts、src/core/WorkspaceManager.ts、src/api.ts和src/App.tsx。
+
+主进程ConfigStore是配置写入权威，保存成功后增加revision。旧配置没有revision时兼容为0。主进程保留最近128个基线快照，渲染进程提交携带基线revision的草稿：比较基线、草稿和最新配置，独立字段修改合并，同字段冲突保留主进程最新值；已删除页面不被旧编辑复活，网页字段按ID跟随实例合并。双方同时改变数组顺序/结构时保留主进程结构，页面删除优先于旧字段编辑，不宣称能够无损融合所有并发集合结构操作。基线不可用时明确报错，拒绝覆盖。历史仅在当前进程内保存，不做跨启动的旧草稿重放。
+
+渲染进程收到保存响应和主进程事件后重新合并尚未提交的草稿，忽略落后于已确认revision的响应；已确认状态不反复自动保存。主进程在首次加载时初始化原生会话，不再依靠渲染进程回写同一配置触发启动。交换IPC先合并，再按来源/目标页面ID查找最新位置；消失目标不会被错误的旧槽位代替。未改变换位后的焦点及音频规则。退出最终保存握手（A05）不在本次修复范围。
+
+回归：tests/config-race.test.ts覆盖旧快照不撤销音量/换位/缩放/已保存工作区、工作区快照读取恢复、关闭不复活且槽位不前移、并发页面字段跟随换位ID、未知修订号拒绝且状态不变。原生review-probe测得100%→浮窗25%→提交旧快照后仍25%，pass=true。exchange-smoke六场景焦点及同实例保留通过；page-zoom-smoke独立缩放、复位、交换及反馈18项布尔检查通过。
+
+### A02：播放器交接
+
+修改electron/media-preload.ts及tests/media-lifecycle.test.ts。选源允许旧源暂停或结束后由就绪且播放中的新媒体接管；play事件在同分时优先新播放来源，常规扫描保留严格得分比较，避免等大播放器随DOM扫描来回抢占。接管时清除该媒体的已应用缓存，使当前页面音量立即写入；旧媒体volumechange不再作为来源同步。
+
+VM回归验证旧节点仍连接DOM时新源获得25%、反向50%回传、旧源不再污染同步，以及同分播放事件接管。review-media-probe新增失败退出判定，当前newVolume=0.25、newPlayerChangeReported=true、defectReproduced=false。原生review-probe新增本地Chromium真实video克隆替换：保留旧DOM并暂停，新video播放后获得25%，再将新video设为50%后主进程读回50%，replacementPass=true。这是本地媒体验证，不是Bilibili等真实站点验收。
+
+### A03：网站同步与用户意图区分
+
+修改electron/main.ts及src/core/AudioManager.ts。setPageVolume仅在userInitiated且非零音量时解除静音；BrowserManager网站回传明确传false，音量浮窗仍保留用户主动解除静音语义。主副自动策略、总静音及放大时临时静音路径不变。
+
+单元回归覆盖muted/auto/unmuted三种状态的网站回传、自动副槽静音和用户主动调节。原生review-probe显示网站回传75%后audio仍muted且nativeBefore/nativeAfter均true；新播放器50%回传也保持muted。audio-smoke页面音量、总音量增益、放大/恢复静音及总静音检查通过。上述不保证网站自有音频图或跨域媒体均可控。
+
+### 本次验证与遗留边界
+
+未安装依赖；按约定仅执行一次bump-version，版本V0.1.1.12。严格类型检查、生产构建（tsc、Vite、Electron esbuild）、全量39项测试（14文件）、项目格式检查通过。review、媒体、exchange、page-zoom、audio、drag、log探针通过；日志测试敏感字符串未落盘。初次测试遇到执行沙箱临时目录rename权限限制，改用受控提权重跑通过；保留Electron应用沙箱，无系统ACL修改。
+
+综合ui-smoke仍退出1：nativePopup.width=35与buttonWidth=34严格相等断言失败，aligned=true；与补充审计记录的1px几何问题一致，本阶段未修复，也未放宽断言。review-probe同时修正了旧窗口标题定位，并对A01/A03及本地媒体替换加入明确pass与非零失败退出，避免仅输出数据却误报通过。
+
+真实鼠标OLE、多屏DPI、IME、真实网站登录聊天、自有播放器及长时间媒体负载仍未全面验收。工作区回归包含序列化保存/读取恢复的快照字段，未声称覆盖了全部人工CRUD或真实站点状态恢复。

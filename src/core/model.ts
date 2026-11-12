@@ -73,6 +73,7 @@ export const favoriteSchema = z.object({
 });
 export const configSchema = z.object({
   version: z.literal(1),
+  revision: z.number().int().nonnegative().default(0),
   restore: z.boolean(),
   bookmarksBar: z.boolean().default(false),
   masterMuted: z.boolean().default(false),

@@ -46,7 +46,7 @@ void (async () => {
     try {
       await new Promise((r) => setTimeout(r, 2500));
       const w = BrowserWindow.getAllWindows().find(
-          (v) => v.webContents.getTitle() === "MultiViewBrowser",
+          (v) => v.webContents.getTitle() === "MultiView Browser",
         )!,
         wc = w.webContents;
       const get = () => wc.executeJavaScript("window.browser.load()");
@@ -103,10 +103,42 @@ void (async () => {
       );
       await new Promise((r) => setTimeout(r, 350));
       const afterSite = await get();
+      // Real Chromium media replacement on the local test page, retaining the old DOM node.
+      await views[1].webContents.executeJavaScript(
+        `(async()=>{const old=document.querySelector('video');old.pause();const next=old.cloneNode(true);next.id='replacement';document.body.append(next);await next.play()})()`,
+      );
+      await new Promise((r) => setTimeout(r, 200));
+      const replacementConfig = await get();
+      replacementConfig.session.pages[1].volume = 25;
+      await save(replacementConfig);
+      await new Promise((r) => setTimeout(r, 200));
+      const replacementVolume = await views[1].webContents.executeJavaScript(
+        "document.querySelector('#replacement').volume",
+      );
+      await views[1].webContents.executeJavaScript(
+        "document.querySelector('#replacement').volume=.5",
+      );
+      await new Promise((r) => setTimeout(r, 250));
+      const afterReplacement = await get();
+      const replacementPass =
+        replacementVolume === 0.25 &&
+        afterReplacement.session.pages[1].volume === 50 &&
+        afterReplacement.session.pages[1].audio === "muted";
+      const pass =
+        replacementPass &&
+        changed.session.pages[0].volume === 25 &&
+        overwritten.session.pages[0].volume === 25 &&
+        nativeBefore &&
+        afterSite.session.pages[1].audio === "muted" &&
+        views[1].webContents.isAudioMuted();
       writeFileSync(
         "review-runtime-results.json",
         JSON.stringify(
           {
+            pass,
+            replacementPass,
+            replacementVolume,
+            replacementReported: afterReplacement.session.pages[1].volume,
             staleSave: {
               initial: stale.session.pages[0].volume,
               afterPopup: changed.session.pages[0].volume,
@@ -128,7 +160,7 @@ void (async () => {
         ),
       );
       server.close();
-      app.exit();
+      app.exit(pass ? 0 : 1);
     } catch (e) {
       writeFileSync("review-runtime-results.json", String(e));
       server.close();
