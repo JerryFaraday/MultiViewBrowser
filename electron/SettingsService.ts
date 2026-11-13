@@ -1,3 +1,4 @@
+import { themeCSS } from "../src/core/Theme";
 import { pruneLogs } from "./LogRetention";
 import {
   app,
@@ -5,7 +6,6 @@ import {
   dialog,
   shell,
   session,
-  nativeTheme,
   net,
   ipcMain,
 } from "electron";
@@ -17,7 +17,6 @@ import type { Config } from "../src/core/model";
 import type { Preferences } from "../src/core/Preferences";
 import type { BrowserManager } from "./BrowserManager";
 export const repository = "https://github.com/JerryFaraday/MultiViewBrowser";
-const lightCSS = `:root{color-scheme:light!important;color:#243247!important;background:#f3f6fb!important}body{color:#243247!important} .app,main,.web-area{background:#f3f6fb!important}.toolbar,.bookmarks-bar,.pane-bar,.side-title,.side,.modal,.settings-page,.settings-page-header,.settings-tabs,aside,footer,.status{background:#e8eef6!important;color:#243247!important;border-color:#bcc9da!important}button{background:#e2eaf5!important;color:#26364a!important;border-color:#b9c8dc!important}button:hover,button:focus{background:#cedbef!important;color:#17283f!important}button[aria-pressed=true]{background:#bfd0ea!important}.setting-switch[aria-checked=true]{background:#0087bd!important;border-color:#0087bd!important}input,select,textarea{background:#fbfdff!important;color:#243247!important;border-color:#b9c8dc!important}.modal-cover{background:#32445a66!important}.bookmark-empty,p,small{color:#56667c!important}.stash-count{background:#c9d9ed!important;color:#253c5a!important}.favorite,.saved,.pane{border-color:#bfccdb!important}`;
 export class SettingsService {
   private styles = new Map<number, string>();
   private generations = new Map<number, number>();
@@ -37,7 +36,6 @@ export class SettingsService {
     };
     observe(window);
     app.on("browser-window-created", (_e, w) => observe(w));
-    nativeTheme.on("updated", () => this.apply(true));
     ipcMain.handle("settings-action", async (e, raw) => {
       if (
         e.sender !== window.webContents ||
@@ -132,32 +130,29 @@ export class SettingsService {
       !url.startsWith("http://localhost:")
     )
       return;
-    if (w.webContents.getTitle() === "窗口交换交互层") return;
+    const overlay = w.webContents.getTitle() === "窗口交换交互层";
     const generation = (this.generations.get(w.id) ?? 0) + 1;
     this.generations.set(w.id, generation);
     const p = this.read().preferences,
-      light =
-        p.theme === "light" ||
-        (p.theme === "system" && !nativeTheme.shouldUseDarkColors),
       color = { blue: "rgb(0, 135, 189)", teal: "#148c83", violet: "#8070c7" }[
         p.accent
       ];
     try {
       w.webContents.setZoomMode("isolated");
-      if (Math.abs(w.webContents.getZoomFactor() - p.uiScale) > 0.001)
+      if (
+        !overlay &&
+        Math.abs(w.webContents.getZoomFactor() - p.uiScale) > 0.001
+      )
         w.webContents.setZoomFactor(p.uiScale);
       const old = this.styles.get(w.id);
       if (old) await w.webContents.removeInsertedCSS(old).catch(() => {});
       if (this.generations.get(w.id) !== generation) return;
       const css =
-        (light
-          ? lightCSS +
-            (w !== this.window
-              ? w.webContents.getTitle() === "网页缩放比例"
-                ? "body{background:transparent!important}#zoom{background:#e8eef6!important;color:#243247!important;border-color:#b9c8dc!important}"
-                : "body{background:#e8eef6!important}"
-              : "")
-          : "") +
+        themeCSS(
+          p.theme,
+          overlay,
+          w.webContents.getTitle() === "网页缩放比例",
+        ) +
         (p.accent !== "blue"
           ? `input[type=range]{accent-color:${color}!important}.setting-switch[aria-checked=true]{background:${color}!important;border-color:${color}!important}.pane-bar .audio-toggle.audible{color:${color}!important}`
           : "");

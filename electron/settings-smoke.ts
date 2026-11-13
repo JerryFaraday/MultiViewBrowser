@@ -86,10 +86,10 @@ server.listen(0, "127.0.0.1", async () => {
         .find((x) => x.getURL() === base + "/workspace")!,
       identity = await original.executeJavaScript("window.marker");
     await edit(
-      "c.preferences.theme='light';c.preferences.uiScale=1.25;c.preferences.tooltips=false;c.preferences.showGroupNames=true;c.preferences.resolution='1440';c.preferences.scaleMode='responsive';c.preferences.pageZoom=1.25;c.preferences.retryCount=2",
+      "c.preferences.theme='gray';c.preferences.uiScale=1.25;c.preferences.tooltips=false;c.preferences.showGroupNames=true;c.preferences.resolution='1440';c.preferences.scaleMode='responsive';c.preferences.pageZoom=1.25;c.preferences.retryCount=2",
     );
     const appearance = await root.executeJavaScript(
-      "getComputedStyle(document.querySelector('.toolbar')).backgroundColor==='rgb(232, 238, 246)'&&document.querySelectorAll('[title]').length===0&&document.querySelector('.bookmark-group-name').textContent==='常用'",
+      "getComputedStyle(document.querySelector('.toolbar')).backgroundColor==='rgb(43, 43, 43)'&&document.querySelectorAll('[title]').length===0&&document.querySelector('.bookmark-group-name').textContent==='常用'",
     );
     const scale = root.getZoomFactor() === 1.25;
     await root.executeJavaScript(
@@ -171,7 +171,7 @@ server.listen(0, "127.0.0.1", async () => {
       volume.webContents.getZoomFactor() === 1.25 &&
       Math.abs(volume.getBounds().height - 200) <= 1 &&
       (await volume.webContents.executeJavaScript(
-        "getComputedStyle(document.body).backgroundColor==='rgb(232, 238, 246)'",
+        "getComputedStyle(document.body).backgroundColor==='rgb(36, 36, 36)'",
       ));
     await root.executeJavaScript("window.browser.hideVolume()");
     await wait(200);
@@ -228,7 +228,7 @@ server.listen(0, "127.0.0.1", async () => {
     c = await load();
     const importScope =
       c.favorites.length === 0 &&
-      c.preferences.theme === "light" &&
+      c.preferences.theme === "gray" &&
       c.session.pages[0].id === beforeImport.session.pages[0].id &&
       c.workspaces.length === 1;
     await root.executeJavaScript(
@@ -333,7 +333,25 @@ server.listen(0, "127.0.0.1", async () => {
       "!document.querySelector('.settings-page')",
     );
     const sameWindow = BrowserWindow.getAllWindows().length === windows;
+    const webBefore = await original.executeJavaScript(
+      "({color:getComputedStyle(document.body).backgroundColor,dark:matchMedia('(prefers-color-scheme:dark)').matches,marker:window.marker})",
+    );
+    await edit("c.preferences.theme='black'");
+    const black = await root.executeJavaScript(
+      "getComputedStyle(document.documentElement).backgroundColor==='rgb(0, 0, 0)'&&getComputedStyle(document.querySelector('.toolbar')).backgroundColor==='rgb(17, 17, 17)'",
+    );
+    await edit("c.preferences.theme='dark'");
+    const navy = await root.executeJavaScript(
+      "getComputedStyle(document.documentElement).backgroundColor==='rgb(16, 20, 29)'&&getComputedStyle(document.querySelector('.toolbar')).backgroundColor==='rgb(25, 32, 46)'",
+    );
+    const webAfter = await original.executeJavaScript(
+      "({color:getComputedStyle(document.body).backgroundColor,dark:matchMedia('(prefers-color-scheme:dark)').matches,marker:window.marker})",
+    );
+    const webUntouched = JSON.stringify(webBefore) === JSON.stringify(webAfter);
     const result = {
+      black,
+      navy,
+      webUntouched,
       icons,
       esc,
       preserved,

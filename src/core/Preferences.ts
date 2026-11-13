@@ -21,7 +21,10 @@ export const preferencesSchema = z.object({
   pageZoom: z.number().min(0.25).max(5).default(1),
   retryCount: z.number().int().min(0).max(10).default(0),
   showGroupNames: z.boolean().default(false),
-  theme: z.enum(["dark", "light", "system"]).default("dark"),
+  theme: z
+    .enum(["dark", "gray", "black", "light", "system"])
+    .default("dark")
+    .transform((v) => (v === "light" || v === "system" ? "dark" : v)),
   uiScale: z
     .union([z.literal(0.9), z.literal(1), z.literal(1.1), z.literal(1.25)])
     .default(1),

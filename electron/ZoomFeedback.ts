@@ -54,8 +54,8 @@ export class ZoomFeedback {
       *{box-sizing:border-box;user-select:none;pointer-events:none}
       body{margin:0;background:transparent;overflow:hidden}
       #zoom{height:36px;display:flex;align-items:center;justify-content:center;
-      margin:2px;border:1px solid #444;border-radius:6px;background:#242424;
-      color:#eee;font:500 14px "Segoe UI",sans-serif;opacity:0;transition:opacity 180ms ease}
+      margin:2px;border:1px solid var(--ui-75,#444);border-radius:6px;background:var(--ui-73,#242424);
+      color:var(--ui-77,#eee);font:500 14px "Segoe UI",sans-serif;opacity:0;transition:opacity 180ms ease}
       </style><div id="zoom" role="status" aria-label="网页缩放比例"></div></html>`;
     return {
       window,

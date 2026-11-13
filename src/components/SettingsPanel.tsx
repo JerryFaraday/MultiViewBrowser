@@ -332,9 +332,9 @@ export function SettingsPanel({
               {row(
                 "应用主题",
                 select("theme", [
-                  ["dark", "深色"],
-                  ["light", "浅色"],
-                  ["system", "跟随系统"],
+                  ["dark", "深蓝（Dark Navy）"],
+                  ["gray", "深灰（Dark Gray）"],
+                  ["black", "纯黑（Just Black）"],
                 ]),
                 "只影响应用界面，不强制改变网站的主题。",
               )}
