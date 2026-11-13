@@ -44,3 +44,6 @@
 完整版本来自version.json；展示实际Electron/Chromium/Node版本。检查更新只查询GitHub正式Releases并比较四段版本，不后台自动检查、不下载或安装。仓库、发布页和独立用户手册在系统浏览器打开。诊断导出采用白名单，只包含运行版本、平台架构、数量和有限枚举/数值偏好，不包含网址、页面标题、名称、权限站点、用户目录、Cookie、凭据和日志正文。
 
 实现入口：src/components/SettingsPanel.tsx、src/core/Preferences.ts、electron/SettingsService.ts、electron/storage.ts。权限API参考[Electron Session文档](https://www.electronjs.org/docs/latest/api/session)。
+
+
+V0.2.1.1新增“收藏管理”分类，复用原收藏编辑、分组和搜索功能。布尔偏好使用开关按钮；新增preferences.newPageUrl，默认https://live.bilibili.com，空槽添加时使用，已有链接路由不变。顶部移除三个对应快捷按钮。

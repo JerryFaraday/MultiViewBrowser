@@ -236,10 +236,43 @@ server.listen(0, "127.0.0.1", async () => {
     );
     await wait(200);
     const categories = await root.executeJavaScript(
-      "document.querySelectorAll('.settings-tabs button').length===6",
+      "document.querySelectorAll('.settings-tabs button').length===7",
     );
-    writeFileSync("settings-smoke.png", (await root.capturePage()).toPNG());
+    try {
+      writeFileSync("settings-smoke.png", (await root.capturePage()).toPNG());
+    } catch {
+      console.log("Screenshot unavailable; functional assertions continue");
+    }
+    const removedTools = await root.executeJavaScript(
+      "!Array.from(document.querySelectorAll('.toolbar>button')).some(b=>['☆ 收藏夹','收藏栏','＋ 网页'].includes(b.textContent))",
+    );
+    await root.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
+    );
+    const switches = await root.executeJavaScript(
+      "document.querySelectorAll('[role=switch]').length===2&&document.querySelectorAll('.settings-content select').length===0",
+    );
+    await root.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏管理').click()",
+    );
+    const editor = await root.executeJavaScript(
+      "!!document.querySelector('input[placeholder=\"搜索名称、地址、备注\"]')",
+    );
+    await edit(
+      "c.preferences.newPageUrl=" +
+        JSON.stringify(base + "/custom") +
+        ";c.session.pages[1]=null",
+    );
+    await root.executeJavaScript(
+      "document.querySelector('.pane[data-slot=\"1\"] .web-area button').click()",
+    );
+    await wait(450);
+    const customUrl = (await load()).session.pages[1]?.url === base + "/custom";
     const result = {
+      removedTools,
+      switches,
+      editor,
+      customUrl,
       startup,
       appearance,
       scale,

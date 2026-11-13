@@ -1,13 +1,20 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { Config } from "../core/model";
+import { normalizeUrl, type Config } from "../core/model";
+import { SettingSwitch } from "./SettingSwitch";
 import type { Preferences } from "../core/Preferences";
 import version from "../../version.json";
 type Props = {
   config: Config;
   edit: (fn: (c: Config) => void) => void;
   onImported: (c: Config) => void;
+  favoritesEditor: ReactNode;
 };
-export function SettingsPanel({ config: c, edit, onImported }: Props) {
+export function SettingsPanel({
+  config: c,
+  edit,
+  onImported,
+  favoritesEditor,
+}: Props) {
   const [tab, setTab] = useState("常规"),
     [message, setMessage] = useState(""),
     [info, setInfo] = useState<Record<string, unknown>>({}),
@@ -53,11 +60,19 @@ export function SettingsPanel({ config: c, edit, onImported }: Props) {
       ))}
     </select>
   );
-  const toggle = (key: "autoSaveSession" | "showGroupNames" | "tooltips") =>
-    select(key, [
-      [true, "开启"],
-      [false, "关闭"],
-    ]);
+  const toggle = (key: "autoSaveSession" | "showGroupNames" | "tooltips") => (
+    <SettingSwitch
+      checked={p[key]}
+      onChange={(value) => update(key, value)}
+      label={
+        {
+          autoSaveSession: "关闭时自动保存会话",
+          showGroupNames: "显示收藏分组名称",
+          tooltips: "鼠标悬停提示",
+        }[key]
+      }
+    />
+  );
   const action = async (id: string) => {
     setBusy(true);
     try {
@@ -100,20 +115,26 @@ export function SettingsPanel({ config: c, edit, onImported }: Props) {
   return (
     <div className="settings-system">
       <nav className="settings-tabs" aria-label="设置分类">
-        {["常规", "网页浏览", "收藏栏", "外观", "数据与隐私", "关于与诊断"].map(
-          (t) => (
-            <button
-              key={t}
-              aria-pressed={tab === t}
-              onClick={() => {
-                setTab(t);
-                setMessage("");
-              }}
-            >
-              {t}
-            </button>
-          ),
-        )}
+        {[
+          "常规",
+          "网页浏览",
+          "收藏栏",
+          "收藏管理",
+          "外观",
+          "数据与隐私",
+          "关于与诊断",
+        ].map((t) => (
+          <button
+            key={t}
+            aria-pressed={tab === t}
+            onClick={() => {
+              setTab(t);
+              setMessage("");
+            }}
+          >
+            {t}
+          </button>
+        ))}
       </nav>
       <section className="settings-content" aria-label={tab}>
         <h3>{tab}</h3>
@@ -174,11 +195,33 @@ export function SettingsPanel({ config: c, edit, onImported }: Props) {
             )}
           </>
         )}
+        {tab === "收藏管理" && favoritesEditor}
         {tab === "网页浏览" && (
           <>
             <p>
               以下默认值只用于新页面，已有页面、暂存实例与已保存工作区保持原设置。
             </p>
+            {row(
+              "添加网页默认网址",
+              <input
+                key={p.newPageUrl}
+                aria-label="添加网页默认网址"
+                spellCheck={false}
+                autoComplete="off"
+                defaultValue={p.newPageUrl}
+                onBlur={(e) => {
+                  try {
+                    const value = normalizeUrl(e.target.value.trim());
+                    update("newPageUrl", value);
+                    setMessage("");
+                  } catch {
+                    e.target.value = p.newPageUrl;
+                    setMessage("默认网址仅允许有效HTTP/HTTPS地址。");
+                  }
+                }}
+              />,
+              "用于空窗口的添加网页入口；不改写收藏和链接打开的目标网址。",
+            )}
             {row(
               "新页面默认逻辑分辨率",
               select("resolution", [
@@ -230,16 +273,11 @@ export function SettingsPanel({ config: c, edit, onImported }: Props) {
             {row(
               "加载失败自动重试",
               <div>
-                <select
-                  aria-label="加载失败自动重试"
-                  value={p.retryCount > 0 ? "on" : "off"}
-                  onChange={(e) =>
-                    update("retryCount", e.target.value === "on" ? 3 : 0)
-                  }
-                >
-                  <option value="off">关闭</option>
-                  <option value="on">开启</option>
-                </select>
+                <SettingSwitch
+                  label="加载失败自动重试"
+                  checked={p.retryCount > 0}
+                  onChange={(value) => update("retryCount", value ? 3 : 0)}
+                />
                 {p.retryCount > 0 && (
                   <input
                     key={p.retryCount}
@@ -265,25 +303,19 @@ export function SettingsPanel({ config: c, edit, onImported }: Props) {
           <>
             {row(
               "显示收藏栏",
-              <select
-                aria-label="显示收藏栏"
-                value={String(c.bookmarksBar)}
-                onChange={(e) =>
+              <SettingSwitch
+                label="显示收藏栏"
+                checked={c.bookmarksBar}
+                onChange={(value) =>
                   edit((d) => {
-                    d.bookmarksBar = e.target.value === "true";
+                    d.bookmarksBar = value;
                   })
                 }
-              >
-                <option value="true">开启</option>
-                <option value="false">关闭</option>
-              </select>,
+              />,
             )}
             {row(
               "显示收藏分组名称",
-              select("showGroupNames", [
-                [true, "显示"],
-                [false, "隐藏"],
-              ]),
+              toggle("showGroupNames"),
               "分组顺序与分隔线保持现有规则。",
             )}
           </>
@@ -419,13 +451,13 @@ export function SettingsPanel({ config: c, edit, onImported }: Props) {
                   {(["camera", "microphone", "notifications"] as const).map(
                     (key, i) => (
                       <label key={key}>
-                        <input
-                          type="checkbox"
+                        <SettingSwitch
+                          label={site + " " + ["摄像头", "麦克风", "通知"][i]}
                           checked={rule[key]}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             update("permissions", [
                               ...p.permissions.filter((x) => x.origin !== site),
-                              { ...rule, [key]: e.target.checked },
+                              { ...rule, [key]: value },
                             ])
                           }
                         />

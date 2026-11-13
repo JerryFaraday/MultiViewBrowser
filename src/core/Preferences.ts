@@ -1,5 +1,16 @@
 import { z } from "zod";
 export const preferencesSchema = z.object({
+  newPageUrl: z
+    .string()
+    .max(8192)
+    .refine((x) => {
+      try {
+        return ["http:", "https:"].includes(new URL(x).protocol);
+      } catch {
+        return false;
+      }
+    })
+    .default("https://live.bilibili.com"),
   startupWindow: z.enum(["maximized", "last", "normal"]).default("maximized"),
   startupContent: z.enum(["last", "workspace", "blank"]).default("last"),
   defaultWorkspace: z.string().max(100).default(""),

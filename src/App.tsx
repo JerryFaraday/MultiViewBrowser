@@ -44,7 +44,6 @@ export function App() {
   const failedPage = useRef<string | undefined>(undefined);
   const [config, setConfig] = useState<Config>(),
     [panel, setPanel] = useState(""),
-    [side, setSide] = useState(false),
     [query, setQuery] = useState(""),
     [selected, setSelected] = useState(0),
     [max, setMax] = useState<number | null>(null),
@@ -86,7 +85,7 @@ export function App() {
     const observer = new ResizeObserver(align);
     observer.observe(document.body);
     return () => observer.disconnect();
-  }, [config, max, side]);
+  }, [config, max]);
   const areas = useRef(new Map<number, HTMLDivElement>()),
     current = useRef(config),
     currentMax = useRef(max),
@@ -226,7 +225,7 @@ export function App() {
       clearTimeout(timer);
       window.removeEventListener("resize", bounds);
     };
-  }, [config, panel, side, max, question, favoriteDraft]);
+  }, [config, panel, max, question, favoriteDraft]);
   useEffect(() => {
     void window.browser.presentation(max !== null).catch(fail);
   }, [max]);
@@ -294,14 +293,6 @@ export function App() {
     } catch (e) {
       fail(e);
     }
-  }
-  function add() {
-    const empty = slots(s.tree).find((i) => !s.pages[i]);
-    if (empty !== undefined) {
-      open("https://live.bilibili.com", empty);
-      return;
-    }
-    void window.browser.newPage("https://live.bilibili.com").catch(fail);
   }
   const apply = (tree: Tree, id: string) => {
     edit((d) => {
@@ -555,7 +546,7 @@ export function App() {
           {!p && !drag && (
             <button
               className="add-page"
-              onClick={() => open("https://live.bilibili.com", slot)}
+              onClick={() => open(c.preferences.newPageUrl, slot)}
             >
               ＋ 添加网页
             </button>
@@ -575,19 +566,6 @@ export function App() {
           </small>
         </strong>
         <button onClick={() => setPanel("layouts")}>▦ 布局</button>
-        <button onClick={() => setSide(!side)}>☆ 收藏夹</button>
-        <button
-          aria-pressed={c.bookmarksBar}
-          title="显示 / 隐藏横向收藏栏"
-          onClick={() =>
-            edit((d) => {
-              d.bookmarksBar = !d.bookmarksBar;
-            })
-          }
-        >
-          收藏栏
-        </button>
-        <button onClick={add}>＋ 网页</button>
         <div className="spacer" />
         <label className="master-volume" title="浏览器主音量">
           <button
@@ -660,7 +638,7 @@ export function App() {
             <FavoritesList {...favoriteListProps} bar />
             {!c.favorites.length && (
               <span className="bookmark-empty">
-                在收藏夹添加网站后，将按分组顺序显示在这里
+                在设置的收藏管理中添加网站后，将按分组顺序显示在这里
               </span>
             )}
           </div>
@@ -711,44 +689,6 @@ export function App() {
         </nav>
       )}
       <div className="body">
-        {side && (
-          <aside>
-            <div className="side-title">
-              收藏夹 <button onClick={() => favorite()}>＋</button>
-            </div>
-            <input
-              placeholder="搜索名称、地址、备注"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <label>
-              打开位置{" "}
-              <select
-                value={selected}
-                onChange={(e) => setSelected(+e.target.value)}
-              >
-                {slots(s.tree).map((i) => (
-                  <option key={i} value={i}>
-                    {windowName(i)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              onClick={async () => {
-                const name = await ask("新分组名称");
-                if (name)
-                  edit((d) => {
-                    if (!d.groups.includes(name)) d.groups.push(name);
-                  });
-              }}
-            >
-              新建分组
-            </button>
-            <FavoritesList {...favoriteListProps} query={query} />
-            <button onClick={() => favorite()}>☆ 收藏当前网页</button>
-          </aside>
-        )}
         <main>
           {max !== null ? (
             renderPage(max)
@@ -905,6 +845,44 @@ export function App() {
             )}
             {panel === "settings" && (
               <SettingsPanel
+                favoritesEditor={
+                  <>
+                    <div className="side-title">
+                      收藏夹 <button onClick={() => favorite()}>＋</button>
+                    </div>
+                    <input
+                      placeholder="搜索名称、地址、备注"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    <label>
+                      打开位置{" "}
+                      <select
+                        value={selected}
+                        onChange={(e) => setSelected(+e.target.value)}
+                      >
+                        {slots(s.tree).map((i) => (
+                          <option key={i} value={i}>
+                            {windowName(i)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      onClick={async () => {
+                        const name = await ask("新分组名称");
+                        if (name)
+                          edit((d) => {
+                            if (!d.groups.includes(name)) d.groups.push(name);
+                          });
+                      }}
+                    >
+                      新建分组
+                    </button>
+                    <FavoritesList {...favoriteListProps} query={query} />
+                    <button onClick={() => favorite()}>☆ 收藏当前网页</button>
+                  </>
+                }
                 config={c}
                 edit={edit}
                 onImported={(value) => {

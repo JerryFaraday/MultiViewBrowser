@@ -31,7 +31,7 @@ app.whenReady().then(async () => {
       `({title:document.title,buttons:document.querySelectorAll('button').length,panes:document.querySelectorAll('.pane').length,bridge:!!window.browser})`,
     );
     await w.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('＋ 网页')).click()`,
+      `document.querySelector('.web-area button').click()`,
     );
     await new Promise((r) => setTimeout(r, 2000));
     result.webContents = webContents.getAllWebContents().length;
@@ -181,9 +181,16 @@ app.whenReady().then(async () => {
       `document.querySelectorAll('.pane input').length`,
     );
     await w.webContents.executeJavaScript(
-      `document.querySelector('.master-volume input').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));Array.from(document.querySelectorAll('.toolbar button')).find(b=>b.textContent==='收藏栏').click()`,
+      `document.querySelector('.master-volume input').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));Array.from(document.querySelectorAll('.toolbar button')).find(b=>b.textContent==='设置').click()`,
     );
     await new Promise((r) => setTimeout(r, 250));
+    await w.webContents.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    await w.webContents.executeJavaScript(
+      "document.querySelector('[role=switch][aria-label=\"显示收藏栏\"]').click();document.querySelector('.modal-title button').click()",
+    );
     await w.webContents.executeJavaScript(
       `document.querySelector('.web-area').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`,
     );
@@ -252,11 +259,15 @@ app.whenReady().then(async () => {
       `document.querySelectorAll('.preset-grid>button').length`,
     );
     await w.webContents.executeJavaScript(
-      `document.querySelector('.modal-title button').click();Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('收藏夹')).click()`,
+      `document.querySelector('.modal-title button').click();Array.from(document.querySelectorAll('.toolbar button')).find(b=>b.textContent==='设置').click()`,
     );
     await new Promise((r) => setTimeout(r, 150));
     await w.webContents.executeJavaScript(
-      `document.querySelector('.side-title button').click()`,
+      `Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏管理').click()`,
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    await w.webContents.executeJavaScript(
+      "document.querySelector('.side-title button').click()",
     );
     await new Promise((r) => setTimeout(r, 300));
     result.favoriteForm = await w.webContents.executeJavaScript(

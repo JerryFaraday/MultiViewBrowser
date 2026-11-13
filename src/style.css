@@ -678,3 +678,42 @@ footer {
   padding: 0 6px;
   white-space: nowrap;
 }
+
+.setting-switch {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto !important;
+  width: 40px;
+  height: 22px;
+  padding: 2px;
+  border-radius: 12px;
+  background: #455166;
+  border: 1px solid #607086;
+}
+.setting-switch span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e9eff9;
+  transition: transform 120ms;
+}
+.setting-switch[aria-checked="true"] {
+  background: #0087bd;
+  border-color: #0087bd;
+}
+.setting-switch[aria-checked="true"] span {
+  transform: translateX(16px);
+}
+.setting-switch:focus-visible {
+  outline: 2px solid #9bbdff;
+  outline-offset: 2px;
+}
+.settings-content .side-title {
+  display: flex;
+  gap: 8px;
+}
+.settings-content .favorite-group h4 {
+  display: flex;
+  gap: 8px;
+}
