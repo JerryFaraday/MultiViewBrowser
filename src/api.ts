@@ -9,6 +9,8 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      newPage(url: string): Promise<void>;
+      showStash(rect: Rect): Promise<void>;
       zoomPage(id: string, direction: "in" | "out" | "reset"): Promise<void>;
       onZoomShortcut(
         fn: (direction: "in" | "out" | "reset") => void,

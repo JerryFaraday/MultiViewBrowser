@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("browser", {
+  newPage: (url: string) => ipcRenderer.invoke("page-new", url),
+  showStash: (rect: unknown) => ipcRenderer.invoke("stash-show", rect),
   zoomPage: (id: string, direction: string) =>
     ipcRenderer.invoke("page-zoom", id, direction),
   onZoomShortcut: (fn: (direction: "in" | "out" | "reset") => void) => {

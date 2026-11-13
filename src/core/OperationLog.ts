@@ -116,6 +116,9 @@ const statuses = new Set([
   "exit",
 ]);
 const actions = new Set([
+  "stash.add",
+  "stash.show",
+  "stash.open",
   "layout.open",
   "layout.apply",
   "layout.save",

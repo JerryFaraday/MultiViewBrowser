@@ -76,6 +76,16 @@ export const configSchema = z.object({
   revision: z.number().int().nonnegative().default(0),
   restore: z.boolean(),
   bookmarksBar: z.boolean().default(false),
+  pageStash: z
+    .array(
+      z.object({
+        id: z.string().max(100),
+        url: pageSchema.shape.url,
+        title: z.string().max(1000),
+      }),
+    )
+    .max(5000)
+    .default([]),
   masterMuted: z.boolean().default(false),
   masterVolume: z.number().min(0).max(150).default(100),
   session: snapshotSchema,

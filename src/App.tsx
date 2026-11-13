@@ -231,7 +231,7 @@ export function App() {
       open("https://live.bilibili.com", empty);
       return;
     }
-    setError("当前布局已无空余槽位，请选择更多窗口的布局或关闭网页。");
+    void window.browser.newPage("https://live.bilibili.com").catch(fail);
   }
   const apply = (tree: Tree, id: string) => {
     edit((d) => {
@@ -593,12 +593,26 @@ export function App() {
       </nav>
       {c.bookmarksBar && (
         <nav className="bookmarks-bar" aria-label="收藏栏">
-          <FavoritesList {...favoriteListProps} bar />
-          {!c.favorites.length && (
-            <span className="bookmark-empty">
-              在收藏夹添加网站后，将按分组顺序显示在这里
-            </span>
-          )}
+          <div className="bookmarks-links">
+            <FavoritesList {...favoriteListProps} bar />
+            {!c.favorites.length && (
+              <span className="bookmark-empty">
+                在收藏夹添加网站后，将按分组顺序显示在这里
+              </span>
+            )}
+          </div>
+          <button
+            className="page-stash"
+            title="页面暂存区：有空位时双击条目打开"
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              void window.browser
+                .showStash({ x: r.x, y: r.y, width: r.width, height: r.height })
+                .catch(fail);
+            }}
+          >
+            暂存区 ({c.pageStash.length}) ▾
+          </button>
         </nav>
       )}
       <div className="body">

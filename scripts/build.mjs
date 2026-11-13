@@ -3,6 +3,7 @@ import { build } from "esbuild";
 await build({
   entryPoints: [
     "electron/main.ts",
+    "electron/stash-preload.ts",
     "electron/preload.ts",
     "electron/media-preload.ts",
     "electron/volume-preload.ts",

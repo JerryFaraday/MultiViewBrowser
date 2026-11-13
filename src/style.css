@@ -386,6 +386,19 @@ p {
   gap: 4px;
   height: 28px;
 }
+.bookmarks-links {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.page-stash {
+  flex-shrink: 0;
+  margin-left: 12px;
+  white-space: nowrap;
+}
 .bookmark {
   display: flex;
   flex-shrink: 0;

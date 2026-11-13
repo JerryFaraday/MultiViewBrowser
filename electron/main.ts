@@ -1,4 +1,5 @@
 import version from "../version.json";
+import { PageStash } from "./PageStash";
 import {
   OperationLogger,
   setOperationLogger,
@@ -18,6 +19,7 @@ import { openInEmptySlot } from "../src/core/SlotManager";
 import { DragOverlay } from "./DragOverlay";
 import { swapPages, setPageVolume } from "../src/core/AudioManager";
 import { sanitizeOperation } from "../src/core/OperationLog";
+import { normalizeUrl } from "../src/core/model";
 import { defaults } from "../src/core/WorkspaceManager";
 // Preserve the previous packaged profile after changing productName.
 if (
@@ -95,21 +97,32 @@ app.whenReady().then(async () => {
       window.setFullScreen(false);
     }
   });
+  function openRequested(url: string) {
+    const c = store.load();
+    const updated = openInEmptySlot(c.session, url);
+    if (!updated) {
+      if (c.pageStash.length >= 5000) return;
+      const item = { id: crypto.randomUUID(), url, title: url };
+      c.pageStash.push(item);
+      logOperation("ui.change", {
+        action: "stash.add",
+        count: c.pageStash.length,
+      });
+      store.save(c);
+      window.webContents.send("session-update", c.session, c);
+      stash.refresh();
+      stash.resolveTitle(item.id);
+      return;
+    }
+    c.session = updated;
+    store.save(c);
+    manager.sync(c.session);
+    manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
+    window.webContents.send("session-update", c.session, c);
+  }
   manager = new BrowserManager(
     window,
-    (url) => {
-      const c = store.load();
-      const updated = openInEmptySlot(c.session, url);
-      if (!updated) {
-        logOperation("web.new_window_ignored", { status: "cancelled" });
-        return;
-      }
-      c.session = updated;
-      store.save(c);
-      manager.sync(c.session);
-      manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
-      window.webContents.send("session-update", c.session, c);
-    },
+    openRequested,
     (id, value) => updatePageVolume(id, value, false),
     (id, value) => {
       const c = store.load(),
@@ -203,6 +216,53 @@ app.whenReady().then(async () => {
     )
       throw Error("拒绝 IPC 来源");
   };
+  const stash = new PageStash(
+    window,
+    () => store.load(),
+    (id, title) => {
+      const c = store.load(),
+        item = c.pageStash.find((x) => x.id === id);
+      if (!item) return;
+      item.title = title;
+      store.save(c);
+      window.webContents.send("session-update", c.session, c);
+    },
+    (id) => {
+      const c = store.load(),
+        item = c.pageStash.find((x) => x.id === id);
+      if (!item) return false;
+      const updated = openInEmptySlot(c.session, item.url);
+      logOperation("ui.double_click", {
+        action: "stash.open",
+        status: updated ? "success" : "cancelled",
+      });
+      if (!updated) return false;
+      c.session = updated;
+      c.pageStash = c.pageStash.filter((x) => x.id !== id);
+      store.save(c);
+      manager.sync(c.session);
+      manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
+      window.webContents.send("session-update", c.session, c);
+      return true;
+    },
+  );
+  ipcMain.handle("page-new", (e, url) => {
+    trusted(e);
+    openRequested(normalizeUrl(z.string().max(8192).parse(url)));
+  });
+  ipcMain.handle("stash-show", (e, raw) => {
+    trusted(e);
+    logOperation("ui.click", { action: "stash.show" });
+    const rect = z
+      .object({
+        x: z.number().min(0).max(20000),
+        y: z.number().min(0).max(20000),
+        width: z.number().min(1).max(20000),
+        height: z.number().min(1).max(1000),
+      })
+      .parse(raw);
+    return stash.show(rect);
+  });
   ipcMain.handle("exchange-pages", (e, raw, from, to) => {
     trusted(e);
     const draft = validateConfig(raw);

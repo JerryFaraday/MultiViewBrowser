@@ -45,6 +45,7 @@
     "files": [
       "dist/**/*",
       "dist-electron/main.cjs",
+      "dist-electron/stash-preload.cjs",
       "dist-electron/preload.cjs",
       "package.json",
       "dist-electron/media-preload.cjs",
@@ -62,7 +63,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "buildVersion": "0.1.1.12",
+    "buildVersion": "0.1.1.13",
     "executableName": "MultiViewBrowser"
   },
   "type": "module"

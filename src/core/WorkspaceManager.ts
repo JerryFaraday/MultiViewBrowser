@@ -6,6 +6,7 @@ export function defaults(): Config {
     revision: 0,
     restore: true,
     bookmarksBar: false,
+    pageStash: [],
     masterVolume: 100,
     masterMuted: false,
     session: {
