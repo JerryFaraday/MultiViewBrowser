@@ -1,5 +1,6 @@
 import { newPage, type Config } from "./model";
 import { slots } from "./LayoutManager";
+import { newPageDefaults } from "./Preferences";
 export function reorderStash(c: Config, source: string, target: string) {
   const from = c.pageStash.findIndex((x) => x.id === source),
     to = c.pageStash.findIndex((x) => x.id === target);
@@ -31,7 +32,7 @@ export function placeStashed(c: Config, id: string, target?: number) {
       .find((i) => !c.session.pages[i]);
   if (!item || slot === undefined || !slots(c.session.tree).includes(slot))
     return undefined;
-  const page = item.page ?? newPage(item.url),
+  const page = item.page ?? newPageDefaults(newPage(item.url), c.preferences),
     old = c.session.pages[slot];
   if (slot === 0) {
     page.audio = "auto";

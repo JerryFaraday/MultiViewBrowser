@@ -1,6 +1,7 @@
 import type { Config, Page, Snapshot } from "./core/model";
 import type { Rect } from "./core/LayoutManager";
 export type PageEvent = {
+  loaded?: boolean;
   id: string;
   title?: string;
   url?: string;
@@ -9,6 +10,9 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      settingsAction(action: string): Promise<Record<string, unknown>>;
+      onCloseFlush(fn: () => void): () => void;
+      closeReady(config: Config): Promise<void>;
       hideStash(): Promise<void>;
       onStashDrag(
         fn: (
@@ -43,7 +47,7 @@ declare global {
         items: { id: string; rect: Rect; scale: Page["scale"] }[],
       ): Promise<void>;
       navigate(id: string, action: string, url?: string): Promise<void>;
-      transfer(action: string): Promise<Config | null>;
+      transfer(action: string, scope?: string): Promise<Config | null>;
       onPage(fn: (event: PageEvent) => void): () => void;
     };
   }

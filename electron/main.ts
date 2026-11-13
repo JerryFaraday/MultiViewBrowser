@@ -1,6 +1,7 @@
 import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 import version from "../version.json";
 import { PageStash } from "./PageStash";
+import { SettingsService } from "./SettingsService";
 import {
   OperationLogger,
   setOperationLogger,
@@ -10,7 +11,7 @@ import {
 import { logConfigChanges } from "./config-log";
 import { VolumePopup } from "./VolumePopup";
 import { ScalePopup } from "./ScalePopup";
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, screen } from "electron";
 import { join, dirname, resolve } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { z } from "zod";
@@ -59,10 +60,44 @@ app.whenReady().then(async () => {
   }
   logOperation("app.ready");
   store = new ConfigStore(app.getPath("userData"));
+  const initial = store.load(),
+    savedWindow =
+      initial.preferences.startupWindow === "last"
+        ? initial.windowState
+        : undefined;
+  const area = savedWindow
+    ? screen.getDisplayMatching(savedWindow).workArea
+    : undefined;
+  const restoredBounds =
+    savedWindow && area
+      ? {
+          width: Math.max(800, Math.min(savedWindow.width, area.width)),
+          height: Math.max(600, Math.min(savedWindow.height, area.height)),
+          x: Math.max(
+            area.x,
+            Math.min(
+              savedWindow.x,
+              area.x +
+                area.width -
+                Math.max(800, Math.min(savedWindow.width, area.width)),
+            ),
+          ),
+          y: Math.max(
+            area.y,
+            Math.min(
+              savedWindow.y,
+              area.y +
+                area.height -
+                Math.max(600, Math.min(savedWindow.height, area.height)),
+            ),
+          ),
+        }
+      : {};
   window = new BrowserWindow({
     show: false,
     width: 1500,
     height: 950,
+    ...restoredBounds,
     minWidth: 800,
     minHeight: 600,
     backgroundColor: "#10141d",
@@ -100,7 +135,7 @@ app.whenReady().then(async () => {
   });
   function openRequested(url: string) {
     const c = store.load();
-    const updated = openInEmptySlot(c.session, url);
+    const updated = openInEmptySlot(c.session, url, c.preferences);
     if (!updated) {
       if (c.pageStash.length >= 5000) return;
       const item = { id: crypto.randomUUID(), url, title: url };
@@ -142,6 +177,8 @@ app.whenReady().then(async () => {
       window.webContents.send("session-update", c.session, c);
     },
   );
+  const settings = new SettingsService(window, () => store.load(), manager);
+  settings.apply();
   function updatePageVolume(
     id: string,
     value: import("../src/core/model").Page["volume"],
@@ -260,6 +297,7 @@ app.whenReady().then(async () => {
   });
   const trusted = (event: Electron.IpcMainInvokeEvent) => {
     if (
+      window.isDestroyed() ||
       event.sender !== window.webContents ||
       event.senderFrame !== window.webContents.mainFrame
     )
@@ -473,8 +511,14 @@ app.whenReady().then(async () => {
     });
     if (!sessionInitialized) {
       sessionInitialized = true;
-      if (!c.restore) {
+      if (c.preferences.startupContent === "blank") {
         c.session = defaults().session;
+        store.save(c);
+      } else if (c.preferences.startupContent === "workspace") {
+        c.session = structuredClone(
+          c.workspaces.find((w) => w.id === c.preferences.defaultWorkspace)
+            ?.snapshot ?? defaults().session,
+        );
         store.save(c);
       }
       manager.sync(
@@ -488,7 +532,14 @@ app.whenReady().then(async () => {
   ipcMain.handle("config-save", (e, raw) => {
     trusted(e);
     const before = store.load();
-    const c = store.accept(validateConfig(raw));
+    const draft = validateConfig(raw),
+      revoked = settings.confirmPreferences(
+        before.preferences,
+        draft.preferences,
+      );
+    const c = store.accept(draft);
+    settings.apply();
+    settings.reloadOrigins(revoked);
     logConfigChanges(before, c);
     logOperation("config.save", {
       count: c.session.pages.filter(Boolean).length,
@@ -540,8 +591,12 @@ app.whenReady().then(async () => {
       url === undefined ? undefined : z.string().parse(url),
     );
   });
-  ipcMain.handle("transfer", async (e, action) => {
+  ipcMain.handle("transfer", async (e, action, scopeRaw) => {
     trusted(e);
+    z.enum(["export", "import"]).parse(action);
+    const scope = z
+      .enum(["all", "preferences", "favorites", "workspaces"])
+      .parse(scopeRaw ?? "all");
     logOperation(action === "export" ? "data.export" : "data.import", {
       status: "requested",
     });
@@ -563,14 +618,52 @@ app.whenReady().then(async () => {
         properties: ["openFile"],
       });
       if (!r.canceled) {
-        const c = validateConfig(
+        const imported = validateConfig(
           JSON.parse(readFileSync(r.filePaths[0], "utf8")),
         );
-        store.save(c);
+        const labels = {
+          all: "全部配置（含当前会话、偏好与站点权限、收藏、暂存和工作区）",
+          preferences: "用户偏好和站点权限",
+          favorites: "收藏及分组",
+          workspaces: "命名工作区及自定义布局",
+        };
+        if (
+          dialog.showMessageBoxSync(window, {
+            type: "warning",
+            message: `将覆盖${labels[scope]}。Cookie、网站存储及操作日志不会导入或删除。确定继续？`,
+            buttons: ["取消", "覆盖"],
+            defaultId: 0,
+            cancelId: 0,
+          }) !== 1
+        )
+          return null;
+        const before = store.load(),
+          c = scope === "all" ? imported : structuredClone(before);
+        if (scope === "preferences") {
+          c.preferences = imported.preferences;
+          c.bookmarksBar = imported.bookmarksBar;
+        }
+        if (scope === "favorites") {
+          c.favorites = imported.favorites;
+          c.groups = imported.groups;
+        }
+        if (scope === "workspaces") {
+          c.workspaces = imported.workspaces;
+          c.layouts = imported.layouts;
+        }
+        const revoked = settings.confirmPreferences(
+          before.preferences,
+          c.preferences,
+        );
+        store.save(c, scope === "all");
+        settings.apply();
+        settings.reloadOrigins(revoked);
         manager.sync(
           c.session,
           c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
         );
+        manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
+        window.webContents.send("session-update", c.session, c);
         logOperation("data.import", { status: "success" });
         return c;
       }
@@ -581,7 +674,65 @@ app.whenReady().then(async () => {
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (e) => e.preventDefault());
   window.on("resize", () => manager.hideViews());
-  window.on("close", () => logOperation("app.close_requested"));
+  let closing = false,
+    confirmed = false,
+    closeTimer: ReturnType<typeof setTimeout> | undefined;
+  const completeClose = () => {
+    if (confirmed || window.isDestroyed()) return;
+    clearTimeout(closeTimer);
+    const c = store.load();
+    const count = c.session.pages.filter(Boolean).length + c.pageStash.length;
+    if (
+      (c.preferences.confirmClose === "always" ||
+        (c.preferences.confirmClose === "multiple" && count > 1)) &&
+      dialog.showMessageBoxSync(window, {
+        type: "question",
+        message: `确定关闭 MultiView Browser？当前有${count}个网页（含暂存）。`,
+        buttons: ["取消", "关闭"],
+        defaultId: 0,
+        cancelId: 0,
+      }) !== 1
+    ) {
+      closing = false;
+      return;
+    }
+
+    c.windowState = {
+      ...window.getNormalBounds(),
+      maximized: window.isMaximized(),
+      fullscreen: window.isFullScreen(),
+    };
+    store.save(c);
+    confirmed = true;
+    window.close();
+  };
+  ipcMain.handle("close-ready", (e, raw) => {
+    trusted(e);
+    if (!closing) return;
+    try {
+      const before = store.load(),
+        draft = validateConfig(raw);
+      const revoked = settings.confirmPreferences(
+        before.preferences,
+        draft.preferences,
+      );
+      const saved = store.accept(draft);
+      settings.apply();
+      settings.reloadOrigins(revoked);
+      window.webContents.send("session-update", saved.session, saved);
+    } finally {
+      completeClose();
+    }
+  });
+  window.on("close", (event) => {
+    logOperation("app.close_requested");
+    if (confirmed) return;
+    event.preventDefault();
+    if (closing) return;
+    closing = true;
+    window.webContents.send("close-flush");
+    closeTimer = setTimeout(completeClose, 2500);
+  });
   for (const [name, event] of [
     ["focus", "app.focus"],
     ["blur", "app.blur"],
@@ -605,8 +756,15 @@ app.whenReady().then(async () => {
   if (process.env.VITE_DEV_SERVER_URL)
     await window.loadURL(process.env.VITE_DEV_SERVER_URL);
   else await window.loadFile(join(__dirname, "../dist/index.html"));
-  window.maximize();
+  if (
+    initial.preferences.startupWindow === "maximized" ||
+    (initial.preferences.startupWindow === "last" &&
+      (!savedWindow || savedWindow.maximized))
+  )
+    window.maximize();
   window.show();
+  if (initial.preferences.startupWindow === "last" && savedWindow?.fullscreen)
+    window.setFullScreen(true);
 });
 app.on("window-all-closed", () => app.quit());
 

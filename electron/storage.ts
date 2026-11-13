@@ -26,6 +26,9 @@ export function validateConfig(raw: unknown): Config {
 export class ConfigStore {
   readonly file: string;
   private history = new Map<number, Config>();
+  private live?: Config;
+  private diskSignature?: string;
+  private savedSession?: Config["session"];
   remember(config: Config) {
     if (!this.history.has(config.revision))
       this.history.set(config.revision, structuredClone(config));
@@ -48,16 +51,31 @@ export class ConfigStore {
   load() {
     for (const file of [this.file, this.file + ".bak"]) {
       try {
-        return this.remember(
-          validateConfig(JSON.parse(readFileSync(file, "utf8"))),
-        );
+        const text = readFileSync(file, "utf8");
+        if (file === this.file && this.live && text === this.diskSignature)
+          return this.remember(structuredClone(this.live));
+        const c = validateConfig(JSON.parse(text));
+        this.diskSignature = file === this.file ? text : undefined;
+        this.live = structuredClone(c);
+        this.savedSession = structuredClone(c.session);
+        return this.remember(c);
       } catch {}
     }
-    return this.remember(defaults());
+    const fallback = defaults();
+    this.savedSession = structuredClone(fallback.session);
+    return this.remember(fallback);
   }
-  save(config: Config) {
+  save(config: Config, forceSession = false) {
     config.revision = this.load().revision + 1;
-    const data = JSON.stringify(validateConfig(config), null, 2);
+    const current = validateConfig(config),
+      disk = structuredClone(current);
+    if (
+      !current.preferences.autoSaveSession &&
+      !forceSession &&
+      this.savedSession
+    )
+      disk.session = structuredClone(this.savedSession);
+    const data = JSON.stringify(disk, null, 2);
     const temp = this.file + ".tmp";
     writeFileSync(temp, data, "utf8");
     if (existsSync(this.file)) {
@@ -67,6 +85,9 @@ export class ConfigStore {
       } catch {}
     }
     renameSync(temp, this.file);
+    this.diskSignature = data;
+    this.savedSession = structuredClone(disk.session);
+    this.live = structuredClone(current);
     this.remember(config);
   }
 }

@@ -1,4 +1,6 @@
+import { SettingsPanel } from "./components/SettingsPanel";
 import { mergeConfig } from "./core/ConfigMerge";
+import { newPageDefaults } from "./core/Preferences";
 import version from "../version.json";
 import { viewBounds } from "./core/ViewBounds";
 import { displayScale } from "./core/ScaleManager";
@@ -39,6 +41,7 @@ function dragTargets(includeStash = true) {
   return result;
 }
 export function App() {
+  const failedPage = useRef<string | undefined>(undefined);
   const [config, setConfig] = useState<Config>(),
     [panel, setPanel] = useState(""),
     [side, setSide] = useState(false),
@@ -59,7 +62,7 @@ export function App() {
   useEffect(() => {
     const align = () => {
       const bar = document.querySelector(".bookmarks-bar"),
-        button = document.querySelector('.toolbar button[title^="放大主窗口"]');
+        button = document.querySelector('[data-action="main-maximize"]');
       const last = document.querySelector(".toolbar > button:last-child");
       if (bar && button && last) {
         document.documentElement.style.setProperty(
@@ -90,6 +93,14 @@ export function App() {
     ready = useRef(false),
     acknowledged = useRef<Config | undefined>(undefined);
   current.current = config;
+  useEffect(
+    () =>
+      window.browser.onCloseFlush(() => {
+        if (current.current)
+          void window.browser.closeReady(current.current).catch(() => {});
+      }),
+    [],
+  );
   currentMax.current = max;
   useEffect(
     () =>
@@ -124,7 +135,13 @@ export function App() {
       })
       .catch(fail);
     return window.browser.onPage((e) => {
-      if (e.error) setError(e.error);
+      if (e.error) {
+        failedPage.current = e.id;
+        setError(e.error);
+      } else if (e.loaded && failedPage.current === e.id) {
+        setError("");
+        failedPage.current = undefined;
+      }
       setConfig((c) =>
         c
           ? {
@@ -211,13 +228,6 @@ export function App() {
     };
   }, [config, panel, side, max, question, favoriteDraft]);
   useEffect(() => {
-    const flush = () => {
-      if (current.current) void window.browser.save(current.current);
-    };
-    window.addEventListener("beforeunload", flush);
-    return () => window.removeEventListener("beforeunload", flush);
-  }, []);
-  useEffect(() => {
     void window.browser.presentation(max !== null).catch(fail);
   }, [max]);
   useEffect(
@@ -272,7 +282,11 @@ export function App() {
         if (old) {
           old.url = normalized;
           old.title = "正在加载…";
-        } else d.session.pages[slot] = newPage(normalized);
+        } else
+          d.session.pages[slot] = newPageDefaults(
+            newPage(normalized),
+            d.preferences,
+          );
       });
       const p = s.pages[slot];
       if (p)
@@ -630,6 +644,7 @@ export function App() {
         </label>
         <button
           aria-pressed={max !== null}
+          data-action="main-maximize"
           title="放大主窗口并保持主窗口音量并静音其他网页，再次点击恢复"
           onClick={() => setMax(max === null ? 0 : null)}
         >
@@ -765,7 +780,11 @@ export function App() {
       </footer>
       {panel && (
         <div className="modal-cover">
-          <section className="modal">
+          <section
+            className={
+              "modal " + (panel === "settings" ? "settings-modal" : "")
+            }
+          >
             <div className="modal-title">
               <h2>
                 {
@@ -885,65 +904,15 @@ export function App() {
               </>
             )}
             {panel === "settings" && (
-              <>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={c.bookmarksBar}
-                    onChange={(e) =>
-                      edit((d) => {
-                        d.bookmarksBar = e.target.checked;
-                      })
-                    }
-                  />{" "}
-                  显示横向收藏栏
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={c.restore}
-                    onChange={(e) =>
-                      edit((d) => {
-                        d.restore = e.target.checked;
-                      })
-                    }
-                  />{" "}
-                  启动时恢复上次会话
-                </label>
-                <p>
-                  导入导出包含收藏、分组、自定义布局、命名工作区和上次会话。导入会替换现有配置。
-                </p>
-                <button
-                  onClick={() =>
-                    window.browser
-                      .save(c)
-                      .then(() => window.browser.transfer("export"))
-                      .catch(fail)
-                  }
-                >
-                  导出 JSON
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm("导入将替换当前配置，继续？"))
-                      window.browser
-                        .transfer("import")
-                        .then((value) => {
-                          if (value) {
-                            setConfig(value);
-                            setMax(null);
-                          }
-                        })
-                        .catch(fail);
-                  }}
-                >
-                  导入 JSON
-                </button>
-                <p>
-                  远程网页使用沙箱与共享持久化
-                  Session。摄像头、麦克风、通知等权限默认拒绝；弹窗在原槽位打开。
-                </p>
-              </>
+              <SettingsPanel
+                config={c}
+                edit={edit}
+                onImported={(value) => {
+                  acknowledged.current = value;
+                  setConfig(value);
+                  setMax(null);
+                }}
+              />
             )}
           </section>
         </div>

@@ -68,3 +68,6 @@ git diff --cached --check
 敏感扫描针对暂存区，零暂存文件不能作为扫描成功的证据。当前扫描器会将二进制文件标为需人工复核；公开文档图片应人工检查内容及元数据，不能为图片直接关闭扫描器。依赖、构建、日志、生成诊断结果、环境配置和浏览器数据不纳入Git，详见[.gitignore](../.gitignore)。
 
 文档编写入口见[分类映射](DOCUMENTATION_MAP.md)。productName为MultiView Browser，executableName为MultiViewBrowser；appId、包名及既有用户数据路径保持兼容。
+
+
+设置专项回归：node scripts/settings-smoke.mjs；跨进程启动/退出回归：node scripts/startup-smoke.mjs。均使用隔离配置及本地网页，数据清理仅针对测试临时目录；真实设备授权和所有DPI组合仍需人工验证。配置分层见[设置说明](SETTINGS.md)。

@@ -113,6 +113,9 @@ export function FavoritesList({
               </button>
             </h4>
           )}
+          {bar && c.preferences.showGroupNames && (
+            <span className="bookmark-group-name">{group}</span>
+          )}
           {visibleFavorites
             .filter((f) => f.group === group)
             .map((f) => (

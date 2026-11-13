@@ -1,13 +1,48 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
+type UiRect = { x: number; y: number; width: number; height: number };
+const nativeRect = (r: UiRect) => {
+  const f = webFrame.getZoomFactor(),
+    x = Math.round(r.x * f),
+    y = Math.round(r.y * f);
+  return {
+    x,
+    y,
+    width: Math.round((r.x + r.width) * f) - x,
+    height: Math.round((r.y + r.height) * f) - y,
+  };
+};
 contextBridge.exposeInMainWorld("browser", {
+  settingsAction: (action: string) =>
+    ipcRenderer.invoke("settings-action", action),
+  onCloseFlush: (fn: () => void) => {
+    const h = () => fn();
+    ipcRenderer.on("close-flush", h);
+    return () => ipcRenderer.removeListener("close-flush", h);
+  },
+  closeReady: (config: unknown) => ipcRenderer.invoke("close-ready", config),
   hideStash: () => ipcRenderer.invoke("stash-hide"),
   onStashDrag: (fn: (id: string, targets: unknown) => void) => {
-    const h = (_e: unknown, id: string, targets: unknown) => fn(id, targets);
+    const h = (_e: unknown, id: string, targets: unknown) => {
+      const f = webFrame.getZoomFactor();
+      fn(
+        id,
+        (targets as { rect: UiRect }[]).map((t) => ({
+          ...t,
+          rect: {
+            x: t.rect.x / f,
+            y: t.rect.y / f,
+            width: t.rect.width / f,
+            height: t.rect.height / f,
+          },
+        })),
+      );
+    };
     ipcRenderer.on("stash-drag-request", h);
     return () => ipcRenderer.removeListener("stash-drag-request", h);
   },
   newPage: (url: string) => ipcRenderer.invoke("page-new", url),
-  showStash: (rect: unknown) => ipcRenderer.invoke("stash-show", rect),
+  showStash: (rect: UiRect) =>
+    ipcRenderer.invoke("stash-show", nativeRect(rect)),
   zoomPage: (id: string, direction: string) =>
     ipcRenderer.invoke("page-zoom", id, direction),
   onZoomShortcut: (fn: (direction: "in" | "out" | "reset") => void) => {
@@ -24,12 +59,16 @@ contextBridge.exposeInMainWorld("browser", {
     return () => ipcRenderer.removeListener("page-focus", handler);
   },
   showScale: (id: string, rect: unknown, locked: boolean) =>
-    ipcRenderer.invoke("scale-show", id, rect, locked),
+    ipcRenderer.invoke("scale-show", id, nativeRect(rect as UiRect), locked),
   hideScale: () => ipcRenderer.invoke("scale-hide"),
   log: (event: string, details: unknown) =>
     ipcRenderer.invoke("operation-log", event, details),
-  beginDrag: (id: string, targets: unknown) =>
-    ipcRenderer.invoke("drag-begin", id, targets),
+  beginDrag: (id: string, targets: { rect: UiRect }[]) =>
+    ipcRenderer.invoke(
+      "drag-begin",
+      id,
+      targets.map((t) => ({ ...t, rect: nativeRect(t.rect) })),
+    ),
   onDragFinished: (fn: () => void) => {
     const handler = () => fn();
     ipcRenderer.on("drag-finished", handler);
@@ -37,7 +76,7 @@ contextBridge.exposeInMainWorld("browser", {
   },
   endDrag: () => ipcRenderer.invoke("drag-end"),
   showVolume: (id: string, rect: unknown) =>
-    ipcRenderer.invoke("volume-show", id, rect),
+    ipcRenderer.invoke("volume-show", id, nativeRect(rect as UiRect)),
   hideVolume: () => ipcRenderer.invoke("volume-hide"),
   onSession: (fn: (data: unknown, config: unknown) => void) => {
     const handler = (_e: unknown, data: unknown, config: unknown) =>
@@ -48,10 +87,15 @@ contextBridge.exposeInMainWorld("browser", {
   presentation: (value: boolean) => ipcRenderer.invoke("presentation", value),
   load: () => ipcRenderer.invoke("config-load"),
   save: (config: unknown) => ipcRenderer.invoke("config-save", config),
-  bounds: (items: unknown) => ipcRenderer.invoke("bounds", items),
+  bounds: (items: { rect: UiRect }[]) =>
+    ipcRenderer.invoke(
+      "bounds",
+      items.map((t) => ({ ...t, rect: nativeRect(t.rect) })),
+    ),
   navigate: (id: string, action: string, url?: string) =>
     ipcRenderer.invoke("navigate", id, action, url),
-  transfer: (action: string) => ipcRenderer.invoke("transfer", action),
+  transfer: (action: string, scope?: string) =>
+    ipcRenderer.invoke("transfer", action, scope),
   onPage: (fn: (event: unknown) => void) => {
     const handler = (_e: unknown, data: unknown) => fn(data);
     ipcRenderer.on("page-event", handler);

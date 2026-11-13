@@ -1,6 +1,6 @@
 {
   "name": "multiview-browser",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Windows 多网页分屏浏览器",
   "author": "MultiView Browser",
@@ -63,10 +63,10 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "buildVersion": "0.2.0.0",
+    "buildVersion": "0.2.1.0",
     "executableName": "MultiViewBrowser",
-    "artifactName": "MultiViewBrowser-V0.2.0.0-${arch}.${ext}"
+    "artifactName": "MultiViewBrowser-V0.2.1.0-${arch}.${ext}"
   },
   "type": "module",
-  "shortVersionWindows": "0.2.0.0"
+  "shortVersionWindows": "0.2.1.0"
 }

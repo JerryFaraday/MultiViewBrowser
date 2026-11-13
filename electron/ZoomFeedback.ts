@@ -13,6 +13,11 @@ type Feedback = {
 /** Native views cover the React surface; these small windows are input-transparent. */
 export class ZoomFeedback {
   private entries = new Map<string, Feedback>();
+  private uiScale = 1;
+  setUiScale(value: number) {
+    this.uiScale = value;
+    for (const entry of this.entries.values()) this.position(entry);
+  }
   constructor(private parent: BrowserWindow) {
     parent.on("move", () => {
       for (const entry of this.entries.values()) this.position(entry);
@@ -66,8 +71,10 @@ export class ZoomFeedback {
     if (entry.window.isDestroyed() || this.parent.isDestroyed()) return;
     const origin = this.parent.getContentBounds();
     const { rect } = entry;
-    const width = Math.min(80, rect.width);
-    const height = Math.min(40, rect.height);
+    const width = Math.min(Math.round(80 * this.uiScale), rect.width);
+    const height = Math.min(Math.round(40 * this.uiScale), rect.height);
+    entry.window.webContents.setZoomMode("isolated");
+    entry.window.webContents.setZoomFactor(this.uiScale);
     entry.window.setBounds({
       x: Math.round(
         origin.x +

@@ -68,3 +68,8 @@ Page.pageZoom默认1，存入Snapshot及工作区。BrowserManager按稳定页�
 
 
 缩放反馈由electron/ZoomFeedback.ts管理：BrowserManager在用户缩放后读取getZoomFactor并触发独立提示，后续bounds更新跟随网页实例位置。提示使用不获取焦点且原生鼠标穿透的透明子窗口，避免被WebContentsView遮挡；无额外页面脚本、持久化字段或IPC权限。计时与淡出仅控制提示，不写入缩放状态。
+
+
+## 设置与会话持久化（V0.2.1.0）
+
+preferences独立于工作区Snapshot和Page局部状态；旧配置经schema迁移保持原默认体验。SettingsService负责可信IPC、外观、清理、诊断和固定外部链接；BrowserManager读取权限/重试策略，preload将UI缩放坐标换算为原生DIP。ConfigStore区分运行内存会话和磁盘保存快照，关闭自动保存时继续存其他配置。关闭握手将最新界面快照交给主进程后再确认关闭并记录windowState；超时回退最后确认状态。见[设置分层](SETTINGS.md)。

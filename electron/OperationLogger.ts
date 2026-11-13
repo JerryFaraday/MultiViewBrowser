@@ -1,5 +1,5 @@
 import { closeSync, mkdirSync, openSync, writeSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   sanitizeOperation,
@@ -75,6 +75,11 @@ export class OperationLogger {
   }
 }
 let active: OperationLogger | undefined;
+export function operationLogLocation() {
+  return active
+    ? { folder: dirname(active.file), file: active.file }
+    : undefined;
+}
 export function setOperationLogger(logger: OperationLogger) {
   active = logger;
 }

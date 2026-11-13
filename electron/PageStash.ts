@@ -77,6 +77,7 @@ export class PageStash {
           .parse(raw);
         const origin = this.parent.getContentBounds(),
           bounds = this.popup!.getBounds();
+        const zoom = this.popup!.webContents.getZoomFactor();
         const targets = rows
           .filter((x) => this.read().pageStash.some((i) => i.id === x.id))
           .map((x, i) => ({
@@ -84,8 +85,10 @@ export class PageStash {
             stashId: x.id,
             rect: {
               ...x.rect,
-              x: x.rect.x + bounds.x - origin.x,
-              y: x.rect.y + bounds.y - origin.y,
+              x: x.rect.x * zoom + bounds.x - origin.x,
+              y: x.rect.y * zoom + bounds.y - origin.y,
+              width: x.rect.width * zoom,
+              height: x.rect.height * zoom,
             },
           }));
         beginDrag(id, targets);
@@ -182,7 +185,9 @@ export class PageStash {
     const origin = this.parent.getContentBounds(),
       area = screen.getDisplayMatching(origin).workArea;
     const width = Math.round(rect.width),
-      height = 320;
+      height = Math.round(320 * this.read().preferences.uiScale);
+    this.popup.webContents.setZoomMode("isolated");
+    this.popup.webContents.setZoomFactor(this.read().preferences.uiScale);
     this.popup.setBounds({
       x: Math.max(
         area.x,

@@ -152,8 +152,10 @@ export class ScalePopup {
     const origin = this.parent.getContentBounds();
     const anchor = { x: origin.x + rect.x, y: origin.y + rect.y };
     const work = screen.getDisplayNearestPoint(anchor).workArea;
-    const width = 300,
-      height = 240;
+    popup.webContents.setZoomMode("isolated");
+    popup.webContents.setZoomFactor(config.preferences.uiScale);
+    const width = Math.round(300 * config.preferences.uiScale),
+      height = Math.round(240 * config.preferences.uiScale);
     popup.setBounds({
       x: Math.round(
         Math.max(

@@ -1,9 +1,11 @@
 import { presets } from "./LayoutManager";
 import type { Config } from "./model";
+import { defaultPreferences } from "./Preferences";
 export function defaults(): Config {
   return {
     version: 1,
     revision: 0,
+    preferences: defaultPreferences(),
     restore: true,
     bookmarksBar: false,
     pageStash: [],

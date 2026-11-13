@@ -1,6 +1,11 @@
 import { logOperation } from "./OperationLogger";
 import { nextPageZoom } from "../src/core/PageZoom";
 import { ZoomFeedback } from "./ZoomFeedback";
+import {
+  defaultPreferences,
+  allowPermission,
+  type Preferences,
+} from "../src/core/Preferences";
 import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { join } from "node:path";
@@ -11,6 +16,19 @@ import { fit } from "../src/core/ScaleManager";
 import { isMuted } from "../src/core/AudioManager";
 import type { Rect } from "../src/core/LayoutManager";
 export class BrowserManager {
+  preferences: Preferences = defaultPreferences();
+  private retries = new Map<
+    string,
+    { url: string; count: number; timer?: ReturnType<typeof setTimeout> }
+  >();
+  setPreferences(prefs: Preferences) {
+    this.zoomFeedback.setUiScale(prefs.uiScale);
+    this.preferences = prefs;
+    if (prefs.retryCount === 0) {
+      for (const item of this.retries.values()) clearTimeout(item.timer);
+      this.retries.clear();
+    }
+  }
   private zoomFeedback: ZoomFeedback;
   pageZooms = new Map<string, number>();
   changePageZoom(id: string, direction: "in" | "out" | "reset") {
@@ -80,16 +98,36 @@ export class BrowserManager {
   ) {
     this.zoomFeedback = new ZoomFeedback(window);
     const shared = session.fromPartition("persist:multiview");
-    shared.setPermissionRequestHandler((_wc, _permission, callback) =>
-      callback(false),
+    shared.setPermissionRequestHandler((_wc, permission, callback, details) => {
+      let origin = "";
+      try {
+        origin = new URL(details.requestingUrl).origin;
+      } catch {}
+      callback(
+        allowPermission(
+          this.preferences,
+          origin,
+          permission,
+          "mediaTypes" in details ? details.mediaTypes : [],
+        ),
+      );
+    });
+    shared.setPermissionCheckHandler((_wc, permission, origin, details) =>
+      allowPermission(
+        this.preferences,
+        origin,
+        permission,
+        details.mediaType ? [details.mediaType] : [],
+      ),
     );
-    shared.setPermissionCheckHandler(() => false);
   }
   sync(snapshot: Snapshot, retained: Page[] = []) {
     const entries = [...snapshot.pages, ...retained];
     const ids = new Set(entries.flatMap((p) => (p ? [p.id] : [])));
     for (const [id, v] of this.views)
       if (!ids.has(id)) {
+        clearTimeout(this.retries.get(id)?.timer);
+        this.retries.delete(id);
         logOperation("web.page_closed", { slot: this.slots.get(id) });
         this.window.contentView.removeChildView(v);
         v.webContents.close();
@@ -127,6 +165,13 @@ export class BrowserManager {
         this.window.contentView.addChildView(view);
         view.setVisible(false);
         const wc = view.webContents;
+        wc.on("did-start-navigation", (_event, url, _inPlace, main) => {
+          const state = this.retries.get(p.id);
+          if (main && state && state.url !== url) {
+            clearTimeout(state.timer);
+            this.retries.delete(p.id);
+          }
+        });
         wc.setZoomMode("isolated");
         wc.on("zoom-changed", (event, direction) => {
           event.preventDefault();
@@ -274,11 +319,18 @@ export class BrowserManager {
         };
         wc.on("page-title-updated", publish);
         wc.on("did-navigate", () => {
+          clearTimeout(this.retries.get(p.id)?.timer);
+          this.retries.delete(p.id);
           logOperation("web.navigation_complete", {
             slot: this.slots.get(p.id),
             status: "success",
           });
           publish();
+          if (!this.window.isDestroyed())
+            this.window.webContents.send("page-event", {
+              id: p.id,
+              loaded: true,
+            });
         });
         wc.on("dom-ready", () => {
           const factor =
@@ -291,6 +343,36 @@ export class BrowserManager {
         });
         wc.on("did-navigate-in-page", publish);
         wc.on("did-fail-load", (_e, code, description, _url, main) => {
+          if (main && code === -3 && this.retries.get(p.id)?.url === _url) {
+            clearTimeout(this.retries.get(p.id)?.timer);
+            this.retries.delete(p.id);
+          }
+          if (
+            main &&
+            code !== -3 &&
+            /^https?:\/\//.test(_url) &&
+            this.preferences.retryCount > 0
+          ) {
+            let state = this.retries.get(p.id);
+            if (!state || state.url !== _url) {
+              state = { url: _url, count: 0 };
+              this.retries.set(p.id, state);
+            }
+            clearTimeout(state.timer);
+            if (state.count < this.preferences.retryCount) {
+              state.count++;
+              const attempt = state;
+              state.timer = setTimeout(() => {
+                if (
+                  !wc.isDestroyed() &&
+                  this.views.has(p.id) &&
+                  this.retries.get(p.id) === attempt &&
+                  this.preferences.retryCount > 0
+                )
+                  void wc.loadURL(attempt.url).catch(() => {});
+              }, 1000 * state.count);
+            }
+          }
           if (main && code !== -3)
             logOperation("web.load_failed", {
               slot: this.slots.get(p.id),
@@ -406,6 +488,8 @@ export class BrowserManager {
     }
   }
   navigate(id: string, action: string, url?: string) {
+    clearTimeout(this.retries.get(id)?.timer);
+    this.retries.delete(id);
     const wc = this.views.get(id)?.webContents;
     if (!wc) return;
     logOperation("web.navigate", {
@@ -429,6 +513,8 @@ export class BrowserManager {
     for (const v of this.views.values()) v.setVisible(false);
   }
   destroy() {
+    for (const item of this.retries.values()) clearTimeout(item.timer);
+    this.retries.clear();
     this.zoomFeedback.destroy();
     for (const v of this.views.values())
       if (!v.webContents.isDestroyed()) v.webContents.close();

@@ -124,11 +124,13 @@ export class VolumePopup {
     )
       return;
     const origin = this.parent.getContentBounds();
+    popup.webContents.setZoomMode("isolated");
+    popup.webContents.setZoomFactor(config.preferences.uiScale);
     popup.setBounds({
       x: Math.round(origin.x + rect.x),
       y: Math.round(origin.y + rect.y + rect.height),
       width: Math.round(rect.width),
-      height: 160,
+      height: Math.round(160 * config.preferences.uiScale),
     });
     popup.webContents.send("popup-volume", this.value);
     popup.showInactive();
