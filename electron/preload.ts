@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("browser", {
   hideStash: () => ipcRenderer.invoke("stash-hide"),
-  onStashDrag: (fn: (id: string) => void) => {
-    const h = (_e: unknown, id: string) => fn(id);
+  onStashDrag: (fn: (id: string, targets: unknown) => void) => {
+    const h = (_e: unknown, id: string, targets: unknown) => fn(id, targets);
     ipcRenderer.on("stash-drag-request", h);
     return () => ipcRenderer.removeListener("stash-drag-request", h);
   },

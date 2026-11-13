@@ -10,7 +10,12 @@ declare global {
   interface Window {
     browser: {
       hideStash(): Promise<void>;
-      onStashDrag(fn: (id: string) => void): () => void;
+      onStashDrag(
+        fn: (
+          id: string,
+          targets: { slot: number; rect: Rect; stashId?: string }[],
+        ) => void,
+      ): () => void;
       newPage(url: string): Promise<void>;
       showStash(rect: Rect): Promise<void>;
       zoomPage(id: string, direction: "in" | "out" | "reset"): Promise<void>;
@@ -24,7 +29,7 @@ declare global {
       log(event: string, details: unknown): Promise<void>;
       beginDrag(
         id: string,
-        targets: { slot: number; rect: Rect }[],
+        targets: { slot: number; rect: Rect; stashId?: string }[],
       ): Promise<void>;
       onDragFinished(fn: () => void): () => void;
       endDrag(): Promise<void>;

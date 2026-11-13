@@ -81,7 +81,7 @@ server.listen(0, "127.0.0.1", async () => {
       (x) => x.webContents.getTitle() === "页面暂存区",
     )!;
     const labels = await popup.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('#list button')).map(b=>b.textContent)`,
+      `Array.from(document.querySelectorAll('#list button:not(.stash-close)')).map(b=>b.textContent)`,
     );
     const noHeader = await popup.webContents.executeJavaScript(
       "document.querySelector('p')===null",
@@ -91,7 +91,7 @@ server.listen(0, "127.0.0.1", async () => {
     const hoverClosed = !popup.isVisible();
     await show();
     await popup.webContents.executeJavaScript(
-      `document.querySelector('#list button').dispatchEvent(new MouseEvent('click',{bubbles:true}))`,
+      `document.querySelector('#list button:not(.stash-close)').dispatchEvent(new MouseEvent('click',{bubbles:true}))`,
     );
     await wait(200);
     const fullKeeps = (await load()).pageStash.length === 3;
@@ -100,7 +100,7 @@ server.listen(0, "127.0.0.1", async () => {
     );
     await wait(300);
     await popup.webContents.executeJavaScript(
-      `document.querySelector('#list button').dispatchEvent(new MouseEvent('click',{bubbles:true}))`,
+      `document.querySelector('#list button:not(.stash-close)').dispatchEvent(new MouseEvent('click',{bubbles:true}))`,
     );
     await wait(400);
     c = await load();
@@ -181,6 +181,46 @@ server.listen(0, "127.0.0.1", async () => {
       c.session.pages[0]?.id === saved.page.id &&
       pageNow.id === beforeId &&
       (await pageNow.executeJavaScript("window.stashMarker")) === 456;
+    await show();
+    const idsBefore = c.pageStash.map((x: any) => x.id);
+    const closeRightOnly = await popup.webContents.executeJavaScript(
+      "Array.from(document.querySelectorAll('.stash-row')).every(r=>r.querySelectorAll('.stash-close').length===1&&r.lastElementChild.classList.contains('stash-close'))",
+    );
+    const rowPoint = await popup.webContents.executeJavaScript(
+      "(()=>{const rows=document.querySelectorAll('.stash-row'),r=rows[rows.length-1].getBoundingClientRect();return {x:r.x+5,y:r.y+5}})()",
+    );
+    const pp = popup.getBounds(),
+      origin = w.getContentBounds();
+    await popup.webContents.executeJavaScript(
+      "document.querySelector('.stash-row button:not(.stash-close)').dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:new DataTransfer()}))",
+    );
+    await wait(250);
+    const sortLayer = BrowserWindow.getAllWindows().find(
+      (x) => x.webContents.getTitle() === "窗口交换交互层",
+    )!;
+    sortLayer.webContents.debugger.attach("1.3");
+    for (const type of ["dragEnter", "dragOver", "drop"])
+      await sortLayer.webContents.debugger.sendCommand(
+        "Input.dispatchDragEvent",
+        {
+          type,
+          x: rowPoint.x + pp.x - origin.x,
+          y: rowPoint.y + pp.y - origin.y,
+          data: {
+            items: [{ mimeType: "application/x-mvb-slot", data: "1" }],
+            dragOperationsMask: 16,
+          },
+        },
+      );
+    sortLayer.webContents.debugger.detach();
+    await popup.webContents.executeJavaScript(
+      "document.querySelector('.stash-row button:not(.stash-close)').dispatchEvent(new DragEvent('dragend',{bubbles:true}))",
+    );
+    await wait(250);
+    c = await load();
+    const reordered =
+      c.pageStash[c.pageStash.length - 1].id === idsBefore[0] &&
+      c.pageStash.length === idsBefore.length;
     const incoming = c.pageStash[0].id;
     await drop("stash:" + incoming, 0);
     c = await load();
@@ -197,7 +237,29 @@ server.listen(0, "127.0.0.1", async () => {
     const returned =
       c.session.pages[0]?.id === saved.page.id &&
       (await pageNow.executeJavaScript("window.stashMarker")) === 456;
+    await show();
+    const closingId = c.pageStash[0].id,
+      closingPage = c.pageStash[0].page?.id;
+    await popup.webContents.executeJavaScript(
+      "document.querySelector('.stash-close').click()",
+    );
+    await wait(250);
+    c = await load();
+    const closed =
+      !c.pageStash.some((x: any) => x.id === closingId) &&
+      (!closingPage ||
+        !webContents
+          .getAllWebContents()
+          .some(
+            (x) =>
+              !x.isDestroyed() &&
+              x.id === beforeId &&
+              closingPage === saved.page.id,
+          ));
     Object.assign(result, {
+      reordered,
+      closeRightOnly,
+      closed,
       geometry,
       parked,
       restored,

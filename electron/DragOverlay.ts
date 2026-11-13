@@ -3,7 +3,7 @@ import { BrowserWindow, ipcMain } from "electron";
 import { join } from "node:path";
 import { DragSession } from "../src/core/DragSession";
 import type { Rect } from "../src/core/LayoutManager";
-export type DropTarget = { slot: number; rect: Rect };
+export type DropTarget = { slot: number; rect: Rect; stashId?: string };
 /** A native surface above WebContentsViews; sites never receive the toolbar drag. */
 export class DragOverlay {
   private overlay?: BrowserWindow;
@@ -14,7 +14,7 @@ export class DragOverlay {
   private timer?: ReturnType<typeof setTimeout>;
   constructor(
     private parent: BrowserWindow,
-    private exchange: (source: string, slot: number) => void,
+    private exchange: (source: string, slot: number, stashId?: string) => void,
   ) {
     const trusted = (e: Electron.IpcMainInvokeEvent) => {
       if (
@@ -32,10 +32,11 @@ export class DragOverlay {
     ipcMain.handle("overlay-drop", (e, slot) => {
       trusted(e);
       if (!this.overlay?.isVisible()) return;
-      if (!this.targets.some((t) => t.slot === slot)) return;
+      const target = this.targets.find((t) => t.slot === slot);
+      if (!target) return;
       const source = this.drag.take("slot:" + slot);
       this.hide();
-      if (source) this.exchange(source, slot);
+      if (source) this.exchange(source, slot, target.stashId);
     });
     ipcMain.handle("overlay-cancel", (e) => {
       trusted(e);

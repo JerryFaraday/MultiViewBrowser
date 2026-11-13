@@ -51,7 +51,11 @@ node node_modules/electron-builder/cli.js --win --dir '-c.electronDist=node_modu
 
 ## 版本、隐私与提交
 
-显示版本源为[version.json](../version.json)，当前V0.1.1.8；package.json使用三段semver，buildVersion记录四段，不能把前者直接当完整显示版本。行为修改每个交付任务只运行一次 `node scripts/bump-version.mjs`，默认增加第四段；复测、重打包和文档-only不递增。
+显示版本使用Va.b.c.d，源为[version.json](../version.json)。a/b仅按用户明确要求调整；新增功能递增c并重置d，现有功能优化/UI/交互/小修复递增d。一个任务只按最高适用级别递增一次。审计过程及修复不触发d，仅用户明确确认本轮审计修复结束后递增c一次；纯审计、测试、文档及未完成开发不递增，也不自行认定审计结束。
+
+完成后使用node scripts/bump-version.mjs --kind feature或--kind revision；审计结束需用户已确认，再使用--kind audit --audit-confirmed。重建/复测不重复递增。用户明确指定版本时使用--set a.b.c.d，a/b变更还需--authorized标记已有用户授权，不能把命令标记当作授权本身。本次用户指定V0.2.0.0。高位变化时更低位全部归零。
+
+脚本同步version.json、package.json、package-lock.json、Windows产品版本字段shortVersionWindows、buildVersion、安装包文件名及README/使用指南的当前版本引用。package.json.version因npm/Electron依赖三段semver，映射为a.b.c；完整四段用于界面、Windows文件/产品版本及构建版本。历史CHANGELOG版本不回写。
 
 日志只能使用允许的事件标识及受控数值/布尔元数据，禁止网址、标题、输入、名称、凭据和原始错误。详细约束见[AGENTS](../AGENTS.md)。
 

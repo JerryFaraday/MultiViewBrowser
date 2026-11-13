@@ -1,8 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { defaults } from "../src/core/WorkspaceManager";
 import { newPage } from "../src/core/model";
-import { parkPage, placeStashed } from "../src/core/PageStash";
+import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 describe("page stash transfers", () => {
+  it("moves entries both directions without changing instances", () => {
+    const c = defaults();
+    c.pageStash = ["a", "b", "c"].map((id) => ({
+      id,
+      title: id,
+      url: "https://example.com/" + id,
+    }));
+    expect(reorderStash(c, "a", "c")).toBe(true);
+    expect(c.pageStash.map((x) => x.id)).toEqual(["b", "c", "a"]);
+    expect(reorderStash(c, "a", "b")).toBe(true);
+    expect(c.pageStash.map((x) => x.id)).toEqual(["a", "b", "c"]);
+    expect(reorderStash(c, "missing", "c")).toBe(false);
+  });
   it("parks and restores the same page even with empty slots", () => {
     const c = defaults();
     c.session.tree = { kind: "leaf", slot: 0 };

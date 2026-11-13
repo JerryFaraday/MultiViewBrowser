@@ -2,6 +2,8 @@ import { BrowserWindow, WebContentsView, ipcMain, screen } from "electron";
 import { join } from "node:path";
 import type { Config } from "../src/core/model";
 import type { Rect } from "../src/core/LayoutManager";
+import type { DropTarget } from "./DragOverlay";
+import { z } from "zod";
 
 export class PageStash {
   private popup?: BrowserWindow;
@@ -31,8 +33,9 @@ export class PageStash {
     private read: () => Config,
     private updateTitle: (id: string, title: string) => void,
     open: (id: string) => boolean,
-    beginDrag: (id: string) => void,
+    beginDrag: (id: string, targets: DropTarget[]) => void,
     endDrag: () => void,
+    close: (id: string) => void,
   ) {
     const trusted = (e: Electron.IpcMainInvokeEvent) =>
       this.popup &&
@@ -44,7 +47,13 @@ export class PageStash {
         else this.closeSoon();
       }
     });
-    ipcMain.handle("stash-drag", (e, id) => {
+    ipcMain.handle("stash-close", (e, id) => {
+      if (trusted(e) && typeof id === "string") {
+        close(id);
+        this.refresh();
+      }
+    });
+    ipcMain.handle("stash-drag", (e, id, raw) => {
       if (
         trusted(e) &&
         typeof id === "string" &&
@@ -52,7 +61,34 @@ export class PageStash {
       ) {
         this.dragging = true;
         this.cancel();
-        beginDrag(id);
+        const rows = z
+          .array(
+            z.object({
+              id: z.string().max(100),
+              rect: z.object({
+                x: z.number().finite(),
+                y: z.number().finite(),
+                width: z.number().positive().max(20000),
+                height: z.number().positive().max(1000),
+              }),
+            }),
+          )
+          .max(5000)
+          .parse(raw);
+        const origin = this.parent.getContentBounds(),
+          bounds = this.popup!.getBounds();
+        const targets = rows
+          .filter((x) => this.read().pageStash.some((i) => i.id === x.id))
+          .map((x, i) => ({
+            slot: -2 - i,
+            stashId: x.id,
+            rect: {
+              ...x.rect,
+              x: x.rect.x + bounds.x - origin.x,
+              y: x.rect.y + bounds.y - origin.y,
+            },
+          }));
+        beginDrag(id, targets);
       }
     });
     ipcMain.handle("stash-drag-end", (e) => {
@@ -60,7 +96,16 @@ export class PageStash {
         this.dragging = false;
         this.refresh();
         endDrag();
-        this.closeSoon();
+        const p = screen.getCursorScreenPoint(),
+          r = this.popup!.getBounds();
+        if (
+          p.x >= r.x &&
+          p.x < r.x + r.width &&
+          p.y >= r.y &&
+          p.y < r.y + r.height
+        )
+          this.cancel();
+        else this.closeSoon();
       }
     });
     ipcMain.handle("stash-open", (event, id) => {
@@ -118,7 +163,7 @@ export class PageStash {
       this.loading = this.popup.loadURL(
         "data:text/html;charset=utf-8," +
           encodeURIComponent(
-            `<!doctype html><title>页面暂存区</title><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><style>*{box-sizing:border-box;user-select:none}body{margin:0;padding:10px;background:#242424;color:#ddd;font:14px 'Segoe UI',sans-serif;border:1px solid #444;height:100vh;overflow:auto}p{margin:0 0 8px;color:#aaa;font-size:12px}button{display:block;width:100%;text-align:left;padding:9px;border:0;border-radius:4px;background:transparent;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:inherit}button:hover,button:focus{background:#38404b;outline:none}</style><div id="list"></div>`,
+            `<!doctype html><title>页面暂存区</title><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><style>*{box-sizing:border-box;user-select:none}body{margin:0;padding:10px;background:#242424;color:#ddd;font:14px 'Segoe UI',sans-serif;border:1px solid #444;height:100vh;overflow:auto}p{margin:0 0 8px;color:#aaa;font-size:12px}button{display:block;width:100%;text-align:left;padding:9px;border:0;border-radius:4px;background:transparent;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:inherit}button:hover,button:focus{background:#38404b;outline:none}.stash-row{display:flex;align-items:center;gap:3px}.stash-row>button:not(.stash-close){flex:1;min-width:0}.stash-close{width:22px;flex:0 0 22px;text-align:center;padding:4px;font-size:17px;color:#9baac0}.stash-close:hover{background:#55404a;color:#fff}</style><div id="list"></div>`,
           ),
       );
     }

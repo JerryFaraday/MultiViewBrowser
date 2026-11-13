@@ -2,9 +2,13 @@
 
 - After each completed update, validate and scan the staged changes, commit them and run a normal git push to origin on the current branch. Never force push or overwrite remote history. Report authentication or network blockers explicitly.
 
-- Current display version is stored in `version.json` (four numeric components).
-- For each future delivered task that changes application behavior, run `node scripts/bump-version.mjs` once before building. Increment only the fourth component unless the user explicitly requests another component change.
-- Rebuilding, testing, formatting, reviewing, or packaging the same change must not increment the version again. The initial logging release was V0.1.1.0.
+- Display versions use Va.b.c.d; version.json stores the four numeric components without V. Keep package.json, package-lock.json and build metadata synchronized via scripts/bump-version.mjs.
+- a (major) and b (minor) change only on an explicit user request; reset every lower component to zero.
+- For a completed new feature, increment c once and reset d. For optimization, UI/interaction adjustment or small bug fixes without new functionality, increment d once.
+- Audit findings and their repairs do not trigger d. Only when the USER explicitly confirms that the audit repair round is finished, increment c once; never infer completion yourself.
+- Pure audit, testing, documentation and unfinished development do not bump versions. Rebuilding, packaging and retesting the same delivery do not bump again.
+- A task containing multiple changes receives one bump at the highest applicable priority. Run node scripts/bump-version.mjs --kind feature|revision for normal deliveries; audit requires --kind audit --audit-confirmed with explicit user confirmation. --kind none does not increment. Explicit user version requests use --set a.b.c.d; --authorized is required for user-authorized a/b changes. Do not use these flags as a substitute for actual user authorization.
+- The user explicitly requested V0.2.0.0 for the stash ordering/close release; the initial logging release was V0.1.1.0.
 - Operation logs must never contain URLs, page titles, typed text, favorite/group/workspace names, passwords, cookies, file paths, raw errors, or raw IPC payloads. Use only allowlisted operation identifiers and validated numeric/boolean metadata.
 
 ## Documentation conventions

@@ -50,9 +50,9 @@ export function App() {
     [error, setError] = useState("");
   useEffect(
     () =>
-      window.browser.onStashDrag((id) => {
+      window.browser.onStashDrag((id, targets) => {
         setDrag(true);
-        void window.browser.beginDrag(id, dragTargets(false));
+        void window.browser.beginDrag(id, [...targets, ...dragTargets(false)]);
       }),
     [],
   );

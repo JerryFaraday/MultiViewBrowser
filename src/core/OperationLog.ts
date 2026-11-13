@@ -119,6 +119,8 @@ const actions = new Set([
   "stash.add",
   "stash.show",
   "stash.open",
+  "stash.close",
+  "stash.reorder",
   "layout.open",
   "layout.apply",
   "layout.save",

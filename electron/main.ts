@@ -1,4 +1,4 @@
-import { parkPage, placeStashed } from "../src/core/PageStash";
+import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 import version from "../version.json";
 import { PageStash } from "./PageStash";
 import {
@@ -163,9 +163,19 @@ app.whenReady().then(async () => {
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     window.webContents.send("session-update", c.session, c);
   }
-  const overlay = new DragOverlay(window, (source, slot) => {
+  const overlay = new DragOverlay(window, (source, slot, targetId) => {
     const c = store.load();
     if (source.startsWith("stash:")) {
+      if (targetId) {
+        if (reorderStash(c, source.slice(6), targetId)) {
+          commitStash(c);
+          logOperation("ui.drop", {
+            action: "stash.reorder",
+            count: c.pageStash.length,
+          });
+        }
+        return;
+      }
       const id = placeStashed(c, source.slice(6), slot);
       if (id) {
         logOperation("ui.change", { action: "stash.open", status: "success" });
@@ -278,8 +288,20 @@ app.whenReady().then(async () => {
       manager.focusAfterExchange(idOpened);
       return true;
     },
-    (id) => window.webContents.send("stash-drag-request", "stash:" + id),
+    (id, targets) =>
+      window.webContents.send("stash-drag-request", "stash:" + id, targets),
     () => overlay.end(),
+    (id) => {
+      const c = store.load(),
+        index = c.pageStash.findIndex((x) => x.id === id);
+      if (index < 0) return;
+      c.pageStash.splice(index, 1);
+      commitStash(c);
+      logOperation("ui.click", {
+        action: "stash.close",
+        count: c.pageStash.length,
+      });
+    },
   );
   function commitStash(c: import("../src/core/model").Config) {
     for (const p of [...c.session.pages, ...c.pageStash.map((x) => x.page)]) {
@@ -364,7 +386,8 @@ app.whenReady().then(async () => {
     const targets = z
       .array(
         z.object({
-          slot: z.number().int().min(-1).max(8),
+          slot: z.number().int().min(-5001).max(8),
+          stashId: z.string().max(100).optional(),
           rect: z.object({
             x: z.number().min(0),
             y: z.number().min(0),
@@ -373,7 +396,7 @@ app.whenReady().then(async () => {
           }),
         }),
       )
-      .max(10)
+      .max(5010)
       .parse(raw);
     logOperation("drag.begin", {
       slot: store.load().session.pages.findIndex((p) => p?.id === source),

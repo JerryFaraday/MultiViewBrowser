@@ -1,5 +1,13 @@
 import { newPage, type Config } from "./model";
 import { slots } from "./LayoutManager";
+export function reorderStash(c: Config, source: string, target: string) {
+  const from = c.pageStash.findIndex((x) => x.id === source),
+    to = c.pageStash.findIndex((x) => x.id === target);
+  if (from < 0 || to < 0 || from === to) return false;
+  const [item] = c.pageStash.splice(from, 1);
+  c.pageStash.splice(to, 0, item);
+  return true;
+}
 export function parkPage(c: Config, id: string) {
   const slot = c.session.pages.findIndex((p) => p?.id === id),
     page = c.session.pages[slot];
