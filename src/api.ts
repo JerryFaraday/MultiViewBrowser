@@ -9,6 +9,8 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      hideStash(): Promise<void>;
+      onStashDrag(fn: (id: string) => void): () => void;
       newPage(url: string): Promise<void>;
       showStash(rect: Rect): Promise<void>;
       zoomPage(id: string, direction: "in" | "out" | "reset"): Promise<void>;

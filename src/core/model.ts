@@ -82,6 +82,7 @@ export const configSchema = z.object({
         id: z.string().max(100),
         url: pageSchema.shape.url,
         title: z.string().max(1000),
+        page: pageSchema.optional(),
       }),
     )
     .max(5000)

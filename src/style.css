@@ -395,6 +395,7 @@ p {
   scrollbar-width: thin;
 }
 .page-stash {
+  width: var(--stash-width, 180px);
   flex-shrink: 0;
   margin-left: 12px;
   white-space: nowrap;

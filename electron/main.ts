@@ -1,3 +1,4 @@
+import { parkPage, placeStashed } from "../src/core/PageStash";
 import version from "../version.json";
 import { PageStash } from "./PageStash";
 import {
@@ -116,7 +117,10 @@ app.whenReady().then(async () => {
     }
     c.session = updated;
     store.save(c);
-    manager.sync(c.session);
+    manager.sync(
+      c.session,
+      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+    );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     window.webContents.send("session-update", c.session, c);
   }
@@ -152,12 +156,41 @@ app.whenReady().then(async () => {
     if (!p) return;
     setPageVolume(p, value, userInitiated);
     store.save(c);
-    manager.sync(c.session);
+    manager.sync(
+      c.session,
+      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+    );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     window.webContents.send("session-update", c.session, c);
   }
   const overlay = new DragOverlay(window, (source, slot) => {
     const c = store.load();
+    if (source.startsWith("stash:")) {
+      const id = placeStashed(c, source.slice(6), slot);
+      if (id) {
+        logOperation("ui.change", { action: "stash.open", status: "success" });
+        commitStash(c);
+        manager.focusAfterExchange(id);
+      }
+      return;
+    }
+    if (slot === -1) {
+      const p = c.session.pages.find((p) => p?.id === source),
+        wc = manager.views.get(source)?.webContents;
+      if (p && wc && /^https?:\/\//.test(wc.getURL())) {
+        p.url = wc.getURL();
+        p.title = wc.getTitle() || p.url;
+        manager.requested.set(p.id, p.url);
+      }
+      if (parkPage(c, source)) {
+        logOperation("ui.change", {
+          action: "stash.add",
+          count: c.pageStash.length,
+        });
+        commitStash(c);
+      }
+      return;
+    }
     const from = c.session.pages.findIndex((p) => p?.id === source);
     if (from < 0) return;
     logOperation("drag.drop", { from, to: slot, status: "success" });
@@ -172,7 +205,10 @@ app.whenReady().then(async () => {
     if (!source || from === slot) return;
     c.session.pages = swapPages(c.session.pages, from, slot);
     store.save(c);
-    manager.sync(c.session);
+    manager.sync(
+      c.session,
+      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+    );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     manager.focusAfterExchange(
       (from === 0 || slot === 0 ? c.session.pages[0]?.id : source) ?? source,
@@ -205,7 +241,10 @@ app.whenReady().then(async () => {
       });
     page.scale = scale;
     store.save(c);
-    manager.sync(c.session);
+    manager.sync(
+      c.session,
+      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+    );
     scalePopup.update(c);
     window.webContents.send("session-update", c.session, c);
   });
@@ -228,24 +267,48 @@ app.whenReady().then(async () => {
       window.webContents.send("session-update", c.session, c);
     },
     (id) => {
-      const c = store.load(),
-        item = c.pageStash.find((x) => x.id === id);
-      if (!item) return false;
-      const updated = openInEmptySlot(c.session, item.url);
-      logOperation("ui.double_click", {
+      const c = store.load();
+      const idOpened = placeStashed(c, id);
+      logOperation("ui.click", {
         action: "stash.open",
-        status: updated ? "success" : "cancelled",
+        status: idOpened ? "success" : "cancelled",
       });
-      if (!updated) return false;
-      c.session = updated;
-      c.pageStash = c.pageStash.filter((x) => x.id !== id);
-      store.save(c);
-      manager.sync(c.session);
-      manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
-      window.webContents.send("session-update", c.session, c);
+      if (!idOpened) return false;
+      commitStash(c);
+      manager.focusAfterExchange(idOpened);
       return true;
     },
+    (id) => window.webContents.send("stash-drag-request", "stash:" + id),
+    () => overlay.end(),
   );
+  function commitStash(c: import("../src/core/model").Config) {
+    for (const p of [...c.session.pages, ...c.pageStash.map((x) => x.page)]) {
+      if (!p) continue;
+      const wc = manager.views.get(p.id)?.webContents;
+      if (wc && !wc.isDestroyed() && /^https?:\/\//.test(wc.getURL())) {
+        p.url = wc.getURL();
+        p.title = wc.getTitle() || p.url;
+        manager.requested.set(p.id, p.url);
+      }
+    }
+    for (const item of c.pageStash)
+      if (item.page) {
+        item.url = item.page.url;
+        item.title = item.page.title;
+      }
+    store.save(c);
+    manager.sync(
+      c.session,
+      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+    );
+    manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
+    stash.refresh();
+    window.webContents.send("session-update", c.session, c);
+  }
+  ipcMain.handle("stash-hide", (e) => {
+    trusted(e);
+    stash.closeSoon();
+  });
   ipcMain.handle("page-new", (e, url) => {
     trusted(e);
     openRequested(normalizeUrl(z.string().max(8192).parse(url)));
@@ -301,7 +364,7 @@ app.whenReady().then(async () => {
     const targets = z
       .array(
         z.object({
-          slot: z.number().int().min(0).max(8),
+          slot: z.number().int().min(-1).max(8),
           rect: z.object({
             x: z.number().min(0),
             y: z.number().min(0),
@@ -310,12 +373,16 @@ app.whenReady().then(async () => {
           }),
         }),
       )
-      .max(9)
+      .max(10)
       .parse(raw);
     logOperation("drag.begin", {
       slot: store.load().session.pages.findIndex((p) => p?.id === source),
     });
-    if (manager.views.has(source)) {
+    if (
+      manager.views.has(source) ||
+      (source.startsWith("stash:") &&
+        store.load().pageStash.some((x) => x.id === source.slice(6)))
+    ) {
       popup.hide();
       scalePopup.hide();
       return overlay.begin(source, targets);
@@ -387,7 +454,10 @@ app.whenReady().then(async () => {
         c.session = defaults().session;
         store.save(c);
       }
-      manager.sync(c.session);
+      manager.sync(
+        c.session,
+        c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      );
       manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     }
     return c;
@@ -400,7 +470,10 @@ app.whenReady().then(async () => {
     logOperation("config.save", {
       count: c.session.pages.filter(Boolean).length,
     });
-    manager.sync(c.session);
+    manager.sync(
+      c.session,
+      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+    );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     popup.update(c);
     scalePopup.update(c);
@@ -471,7 +544,10 @@ app.whenReady().then(async () => {
           JSON.parse(readFileSync(r.filePaths[0], "utf8")),
         );
         store.save(c);
-        manager.sync(c.session);
+        manager.sync(
+          c.session,
+          c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+        );
         logOperation("data.import", { status: "success" });
         return c;
       }

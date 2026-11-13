@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("browser", {
+  hideStash: () => ipcRenderer.invoke("stash-hide"),
+  onStashDrag: (fn: (id: string) => void) => {
+    const h = (_e: unknown, id: string) => fn(id);
+    ipcRenderer.on("stash-drag-request", h);
+    return () => ipcRenderer.removeListener("stash-drag-request", h);
+  },
   newPage: (url: string) => ipcRenderer.invoke("page-new", url),
   showStash: (rect: unknown) => ipcRenderer.invoke("stash-show", rect),
   zoomPage: (id: string, direction: string) =>

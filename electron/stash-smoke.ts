@@ -80,8 +80,15 @@ server.listen(0, "127.0.0.1", async () => {
     const labels = await popup.webContents.executeJavaScript(
       `Array.from(document.querySelectorAll('#list button')).map(b=>b.textContent)`,
     );
+    const noHeader = await popup.webContents.executeJavaScript(
+      "document.querySelector('p')===null",
+    );
+    await root.executeJavaScript("window.browser.hideStash()");
+    await wait(250);
+    const hoverClosed = !popup.isVisible();
+    await show();
     await popup.webContents.executeJavaScript(
-      `document.querySelector('#list button').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`,
+      `document.querySelector('#list button').dispatchEvent(new MouseEvent('click',{bubbles:true}))`,
     );
     await wait(200);
     const fullKeeps = (await load()).pageStash.length === 3;
@@ -90,7 +97,7 @@ server.listen(0, "127.0.0.1", async () => {
     );
     await wait(300);
     await popup.webContents.executeJavaScript(
-      `document.querySelector('#list button').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`,
+      `document.querySelector('#list button').dispatchEvent(new MouseEvent('click',{bubbles:true}))`,
     );
     await wait(400);
     c = await load();
@@ -105,6 +112,90 @@ server.listen(0, "127.0.0.1", async () => {
       fullKeeps,
       opened,
     };
+    const geometry = await root.executeJavaScript(
+      "(()=>{const a=document.querySelector('.page-stash').getBoundingClientRect(),b=document.querySelector('.toolbar button[title^=\"放大主窗口\"]').getBoundingClientRect();return Math.abs(a.x-b.x)<2})()",
+    );
+    const pageNow = webContents
+      .getAllWebContents()
+      .find((x) => x.getURL().endsWith("/target"))!;
+    const beforeId = pageNow.id;
+    await pageNow.executeJavaScript("window.stashMarker=456");
+    const rects = await root.executeJavaScript(
+      "Array.from(document.querySelectorAll('.pane')).map(el=>{const r=el.getBoundingClientRect();return {slot:Number(el.dataset.slot),rect:{x:r.x,y:r.y,width:r.width,height:r.height}}})",
+    );
+    rects.push({ slot: -1, rect: { x: 0, y: 0, width: 100, height: 30 } });
+    const drop = async (source: string, slot: number) => {
+      await root.executeJavaScript(
+        "window.browser.beginDrag(" +
+          JSON.stringify(source) +
+          "," +
+          JSON.stringify(rects) +
+          ")",
+      );
+      const layer = BrowserWindow.getAllWindows().find(
+        (x) => x.webContents.getTitle() === "窗口交换交互层",
+      )!;
+      const target = rects.find((x: any) => x.slot === slot)!.rect,
+        wc = layer.webContents;
+      wc.debugger.attach("1.3");
+      for (const type of ["dragEnter", "dragOver", "drop"])
+        await wc.debugger.sendCommand("Input.dispatchDragEvent", {
+          type,
+          x: target.x + 5,
+          y: target.y + 5,
+          data: {
+            items: [{ mimeType: "application/x-mvb-slot", data: "1" }],
+            dragOperationsMask: 16,
+          },
+        });
+      wc.debugger.detach();
+      await wait(350);
+    };
+    await drop(c.session.pages[0].id, -1);
+
+    c = await load();
+    const parked =
+      c.session.pages[0] === null &&
+      c.pageStash.some(
+        (x: any) =>
+          x.page?.id === c.pageStash.find((x: any) => x.page)?.page.id,
+      ) &&
+      !pageNow.isDestroyed() &&
+      pageNow.isAudioMuted();
+    const saved = c.pageStash.find(
+      (x: any) => x.page?.id === c.pageStash.find((x: any) => x.page)?.page.id,
+    );
+    await drop("stash:" + saved.id, 0);
+    c = await load();
+    const restored =
+      c.session.pages[0]?.id === saved.page.id &&
+      pageNow.id === beforeId &&
+      (await pageNow.executeJavaScript("window.stashMarker")) === 456;
+    const incoming = c.pageStash[0].id;
+    await drop("stash:" + incoming, 0);
+    c = await load();
+    const displaced = c.pageStash.find(
+      (x: any) => x.page?.id === saved.page.id,
+    );
+    const occupiedSwap =
+      !!displaced &&
+      c.session.pages[0]?.id !== saved.page.id &&
+      !pageNow.isDestroyed() &&
+      pageNow.isAudioMuted();
+    await drop("stash:" + displaced.id, 0);
+    c = await load();
+    const returned =
+      c.session.pages[0]?.id === saved.page.id &&
+      (await pageNow.executeJavaScript("window.stashMarker")) === 456;
+    Object.assign(result, {
+      geometry,
+      parked,
+      restored,
+      noHeader,
+      hoverClosed,
+      occupiedSwap,
+      returned,
+    });
     const pass = Object.values(result).every(Boolean);
     writeFileSync(
       "stash-smoke-results.json",

@@ -5,16 +5,64 @@ import type { Rect } from "../src/core/LayoutManager";
 
 export class PageStash {
   private popup?: BrowserWindow;
+  private loading?: Promise<void>;
   private pending: string[] = [];
   private working = false;
   private disposed = false;
   private probe?: WebContentsView;
+  private timer?: ReturnType<typeof setTimeout>;
+  private dragging = false;
+  private generation = 0;
+  hide() {
+    this.generation++;
+    clearTimeout(this.timer);
+    if (this.popup && !this.popup.isDestroyed()) this.popup.hide();
+  }
+  closeSoon() {
+    if (this.dragging) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.hide(), 180);
+  }
+  cancel() {
+    clearTimeout(this.timer);
+  }
   constructor(
     private parent: BrowserWindow,
     private read: () => Config,
     private updateTitle: (id: string, title: string) => void,
     open: (id: string) => boolean,
+    beginDrag: (id: string) => void,
+    endDrag: () => void,
   ) {
+    const trusted = (e: Electron.IpcMainInvokeEvent) =>
+      this.popup &&
+      e.sender === this.popup.webContents &&
+      e.senderFrame === this.popup.webContents.mainFrame;
+    ipcMain.handle("stash-hover", (e, inside) => {
+      if (trusted(e)) {
+        if (inside) this.cancel();
+        else this.closeSoon();
+      }
+    });
+    ipcMain.handle("stash-drag", (e, id) => {
+      if (
+        trusted(e) &&
+        typeof id === "string" &&
+        this.read().pageStash.some((x) => x.id === id)
+      ) {
+        this.dragging = true;
+        this.cancel();
+        beginDrag(id);
+      }
+    });
+    ipcMain.handle("stash-drag-end", (e) => {
+      if (trusted(e)) {
+        this.dragging = false;
+        this.refresh();
+        endDrag();
+        this.closeSoon();
+      }
+    });
     ipcMain.handle("stash-open", (event, id) => {
       if (
         !this.popup ||
@@ -25,10 +73,10 @@ export class PageStash {
         return;
       const opened = open(id);
       this.refresh();
-      if (opened) this.popup.hide();
+      if (opened) this.hide();
     });
     for (const event of ["move", "resize", "minimize", "hide"] as const)
-      parent.on(event as "move", () => this.popup?.hide());
+      parent.on(event as "move", () => this.hide());
     parent.on("closed", () => {
       this.disposed = true;
       if (this.probe && !this.probe.webContents.isDestroyed())
@@ -36,6 +84,7 @@ export class PageStash {
     });
   }
   refresh() {
+    if (this.dragging) return;
     if (this.popup && !this.popup.isDestroyed())
       this.popup.webContents.send(
         "stash-items",
@@ -43,10 +92,8 @@ export class PageStash {
       );
   }
   async show(rect: Rect) {
-    if (this.popup && !this.popup.isDestroyed() && this.popup.isVisible()) {
-      this.popup.hide();
-      return;
-    }
+    this.cancel();
+    const generation = ++this.generation;
     if (!this.popup || this.popup.isDestroyed()) {
       this.popup = new BrowserWindow({
         parent: this.parent,
@@ -65,20 +112,31 @@ export class PageStash {
         },
       });
       this.popup.setMenu(null);
-      this.popup.on("blur", () => this.popup?.hide());
+      this.popup.on("blur", () => this.closeSoon());
       this.popup.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
       this.popup.webContents.on("will-navigate", (e) => e.preventDefault());
-      await this.popup.loadURL(
+      this.loading = this.popup.loadURL(
         "data:text/html;charset=utf-8," +
           encodeURIComponent(
-            `<!doctype html><title>页面暂存区</title><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><style>*{box-sizing:border-box;user-select:none}body{margin:0;padding:10px;background:#242424;color:#ddd;font:14px 'Segoe UI',sans-serif;border:1px solid #444;height:100vh;overflow:auto}p{margin:0 0 8px;color:#aaa;font-size:12px}button{display:block;width:100%;text-align:left;padding:9px;border:0;border-radius:4px;background:transparent;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:inherit}button:hover,button:focus{background:#38404b;outline:none}</style><p>页面暂存区 · 有空位时双击打开</p><div id="list"></div>`,
+            `<!doctype html><title>页面暂存区</title><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><style>*{box-sizing:border-box;user-select:none}body{margin:0;padding:10px;background:#242424;color:#ddd;font:14px 'Segoe UI',sans-serif;border:1px solid #444;height:100vh;overflow:auto}p{margin:0 0 8px;color:#aaa;font-size:12px}button{display:block;width:100%;text-align:left;padding:9px;border:0;border-radius:4px;background:transparent;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:inherit}button:hover,button:focus{background:#38404b;outline:none}</style><div id="list"></div>`,
           ),
       );
     }
-    if (this.parent.isDestroyed() || this.popup.isDestroyed()) return;
+    try {
+      await this.loading;
+    } catch {
+      this.hide();
+      return;
+    }
+    if (
+      generation !== this.generation ||
+      this.parent.isDestroyed() ||
+      this.popup.isDestroyed()
+    )
+      return;
     const origin = this.parent.getContentBounds(),
       area = screen.getDisplayMatching(origin).workArea;
-    const width = 300,
+    const width = Math.round(rect.width),
       height = 320;
     this.popup.setBounds({
       x: Math.max(
@@ -99,7 +157,7 @@ export class PageStash {
       height,
     });
     this.refresh();
-    this.popup.show();
+    this.popup.showInactive();
   }
   resolveTitle(id: string) {
     this.pending.push(id);

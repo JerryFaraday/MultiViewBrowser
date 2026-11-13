@@ -85,8 +85,9 @@ export class BrowserManager {
     );
     shared.setPermissionCheckHandler(() => false);
   }
-  sync(snapshot: Snapshot) {
-    const ids = new Set(snapshot.pages.flatMap((p) => (p ? [p.id] : [])));
+  sync(snapshot: Snapshot, retained: Page[] = []) {
+    const entries = [...snapshot.pages, ...retained];
+    const ids = new Set(entries.flatMap((p) => (p ? [p.id] : [])));
     for (const [id, v] of this.views)
       if (!ids.has(id)) {
         logOperation("web.page_closed", { slot: this.slots.get(id) });
@@ -102,7 +103,8 @@ export class BrowserManager {
         this.frameZoomFactors.delete(id);
         this.zoomFeedback.remove(id);
       }
-    snapshot.pages.forEach((p, slot) => {
+    entries.forEach((p, index) => {
+      const slot = index < snapshot.pages.length ? index : -1;
       if (!p) return;
       this.slots.set(p.id, slot);
       this.pageZooms.set(p.id, p.pageZoom ?? 1);
@@ -309,11 +311,12 @@ export class BrowserManager {
           void view.webContents.loadURL(normalizeUrl(p.url)).catch(() => {});
       }
       this.pageVolumes.set(p.id, p.volume);
-      this.muted.set(p.id, isMuted(p, slot));
+      this.muted.set(p.id, slot < 0 || isMuted(p, slot));
       const previousMute = view.webContents.isAudioMuted();
       view.webContents.setAudioMuted(
         (this.presentationMuted && slot !== 0) ||
           this.volume === 0 ||
+          slot < 0 ||
           isMuted(p, slot),
       );
       if (previousMute !== view.webContents.isAudioMuted())

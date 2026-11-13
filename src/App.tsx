@@ -18,6 +18,26 @@ import {
 import { presets, slots } from "./core/LayoutManager";
 import { isMuted, snapVolume, stepVolume } from "./core/AudioManager";
 import { LayoutView, Thumbnail } from "./components/LayoutView";
+function dragTargets(includeStash = true) {
+  const result = Array.from(
+    document.querySelectorAll<HTMLElement>(".pane"),
+  ).map((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      slot: Number(el.dataset.slot),
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+    };
+  });
+  const button = document.querySelector(".page-stash");
+  if (includeStash && button) {
+    const r = button.getBoundingClientRect();
+    result.push({
+      slot: -1,
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+    });
+  }
+  return result;
+}
 export function App() {
   const [config, setConfig] = useState<Config>(),
     [panel, setPanel] = useState(""),
@@ -28,6 +48,34 @@ export function App() {
     [drag, setDrag] = useState(false),
     [target, setTarget] = useState<number | null>(null),
     [error, setError] = useState("");
+  useEffect(
+    () =>
+      window.browser.onStashDrag((id) => {
+        setDrag(true);
+        void window.browser.beginDrag(id, dragTargets(false));
+      }),
+    [],
+  );
+  useEffect(() => {
+    const align = () => {
+      const bar = document.querySelector(".bookmarks-bar"),
+        button = document.querySelector('.toolbar button[title^="放大主窗口"]');
+      if (bar && button)
+        document.documentElement.style.setProperty(
+          "--stash-width",
+          Math.max(
+            100,
+            bar.getBoundingClientRect().right -
+              button.getBoundingClientRect().left -
+              10,
+          ) + "px",
+        );
+    };
+    align();
+    const observer = new ResizeObserver(align);
+    observer.observe(document.body);
+    return () => observer.disconnect();
+  }, [config, max, side]);
   const areas = useRef(new Map<number, HTMLDivElement>()),
     current = useRef(config),
     currentMax = useRef(max),
@@ -352,15 +400,7 @@ export function App() {
               e.dataTransfer.setData("slot", String(slot));
               e.dataTransfer.setData("application/x-mvb-slot", "1");
               e.dataTransfer.effectAllowed = "move";
-              const targets = [
-                ...document.querySelectorAll<HTMLElement>(".pane"),
-              ].map((el) => {
-                const r = el.getBoundingClientRect();
-                return {
-                  slot: Number(el.dataset.slot),
-                  rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-                };
-              });
+              const targets = dragTargets();
               void window.browser.beginDrag(p!.id, targets).catch(fail);
               setDrag(true);
             }}
@@ -603,8 +643,9 @@ export function App() {
           </div>
           <button
             className="page-stash"
-            title="页面暂存区：有空位时双击条目打开"
-            onClick={(e) => {
+            title="页面暂存区"
+            onMouseLeave={() => void window.browser.hideStash()}
+            onMouseEnter={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
               void window.browser
                 .showStash({ x: r.x, y: r.y, width: r.width, height: r.height })
