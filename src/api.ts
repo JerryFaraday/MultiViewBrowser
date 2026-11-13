@@ -10,6 +10,8 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      settingsView(active: boolean, id?: string): Promise<void>;
+      onSettingsEscape(fn: () => void): () => void;
       settingsAction(action: string): Promise<Record<string, unknown>>;
       onCloseFlush(fn: () => void): () => void;
       closeReady(config: Config): Promise<void>;

@@ -1,3 +1,4 @@
+import { SettingsIcon } from "./components/SettingsIcon";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { mergeConfig } from "./core/ConfigMerge";
 import { newPageDefaults } from "./core/Preferences";
@@ -17,7 +18,7 @@ import {
   newPage,
   normalizeUrl,
 } from "./core/model";
-import { presets, slots } from "./core/LayoutManager";
+import { presets } from "./core/LayoutManager";
 import { isMuted, snapVolume, stepVolume } from "./core/AudioManager";
 import { LayoutView, Thumbnail } from "./components/LayoutView";
 function dragTargets(includeStash = true) {
@@ -41,10 +42,10 @@ function dragTargets(includeStash = true) {
   return result;
 }
 export function App() {
+  const returnFocus = useRef<string | undefined>(undefined);
   const failedPage = useRef<string | undefined>(undefined);
   const [config, setConfig] = useState<Config>(),
     [panel, setPanel] = useState(""),
-    [query, setQuery] = useState(""),
     [selected, setSelected] = useState(0),
     [max, setMax] = useState<number | null>(null),
     [drag, setDrag] = useState(false),
@@ -92,6 +93,10 @@ export function App() {
     ready = useRef(false),
     acknowledged = useRef<Config | undefined>(undefined);
   current.current = config;
+  useEffect(() => {
+    void window.browser.settingsView(panel === "settings", returnFocus.current);
+  }, [panel]);
+  useEffect(() => window.browser.onSettingsEscape(() => setPanel("")), []);
   useEffect(
     () =>
       window.browser.onCloseFlush(() => {
@@ -558,7 +563,7 @@ export function App() {
   }
   return (
     <div className="app">
-      <nav className="toolbar">
+      <nav className="toolbar" inert={panel === "settings"}>
         <strong>
           <span className="logo">▦</span> MultiView Browser
           <small style={{ marginLeft: 6, opacity: 0.65 }}>
@@ -630,15 +635,26 @@ export function App() {
         </button>
         <button onClick={() => setPanel("workspaces")}>工作区</button>
         <button onClick={() => saveNamed("workspaces")}>保存工作区</button>
-        <button onClick={() => setPanel("settings")}>设置</button>
+        <button
+          onClick={() => {
+            returnFocus.current = current.current?.session.pages[selected]?.id;
+            setPanel("settings");
+          }}
+        >
+          设置
+        </button>
       </nav>
       {c.bookmarksBar && (
-        <nav className="bookmarks-bar" aria-label="收藏栏">
+        <nav
+          inert={panel === "settings"}
+          className="bookmarks-bar"
+          aria-label="收藏栏"
+        >
           <div className="bookmarks-links">
             <FavoritesList {...favoriteListProps} bar />
             {!c.favorites.length && (
               <span className="bookmark-empty">
-                在设置的收藏管理中添加网站后，将按分组顺序显示在这里
+                在设置的收藏栏中添加网站后，将按分组顺序显示在这里
               </span>
             )}
           </div>
@@ -688,7 +704,7 @@ export function App() {
           </button>
         </nav>
       )}
-      <div className="body">
+      <div className="body" inert={panel === "settings"}>
         <main>
           {max !== null ? (
             renderPage(max)
@@ -706,7 +722,7 @@ export function App() {
           )}
         </main>
       </div>
-      <footer>
+      <footer inert={panel === "settings"}>
         <span>{s.pages.filter(Boolean).length} 个网页 · 共享登录会话</span>
         <span>
           {error ? (
@@ -718,17 +734,40 @@ export function App() {
           )}
         </span>
       </footer>
-      {panel && (
-        <div
-          className={
-            "modal-cover " + (panel === "settings" ? "settings-cover" : "")
-          }
-        >
-          <section
-            className={
-              "modal " + (panel === "settings" ? "settings-modal" : "")
+      {panel === "settings" && (
+        <section className="settings-page" aria-label="设置">
+          <header className="settings-page-header">
+            <button className="settings-back" onClick={() => setPanel("")}>
+              <SettingsIcon name="arrow-left" />
+              返回浏览器
+            </button>
+            <h1>
+              <SettingsIcon name="settings" />
+              设置
+            </h1>
+          </header>
+          <SettingsPanel
+            favoritesEditor={
+              <>
+                <div className="side-title">
+                  收藏夹 <button onClick={() => favorite()}>＋</button>
+                </div>
+                <FavoritesList {...favoriteListProps} />
+              </>
             }
-          >
+            config={c}
+            edit={edit}
+            onImported={(value) => {
+              acknowledged.current = value;
+              setConfig(value);
+              setMax(null);
+            }}
+          />
+        </section>
+      )}
+      {panel && panel !== "settings" && (
+        <div className="modal-cover">
+          <section className="modal">
             <div className="modal-title">
               <h2>
                 {
@@ -846,55 +885,6 @@ export function App() {
                   </div>
                 ))}
               </>
-            )}
-            {panel === "settings" && (
-              <SettingsPanel
-                favoritesEditor={
-                  <>
-                    <div className="side-title">
-                      收藏夹 <button onClick={() => favorite()}>＋</button>
-                    </div>
-                    <input
-                      placeholder="搜索名称、地址、备注"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                    />
-                    <label>
-                      打开位置{" "}
-                      <select
-                        value={selected}
-                        onChange={(e) => setSelected(+e.target.value)}
-                      >
-                        {slots(s.tree).map((i) => (
-                          <option key={i} value={i}>
-                            {windowName(i)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      onClick={async () => {
-                        const name = await ask("新分组名称");
-                        if (name)
-                          edit((d) => {
-                            if (!d.groups.includes(name)) d.groups.push(name);
-                          });
-                      }}
-                    >
-                      新建分组
-                    </button>
-                    <FavoritesList {...favoriteListProps} query={query} />
-                    <button onClick={() => favorite()}>☆ 收藏当前网页</button>
-                  </>
-                }
-                config={c}
-                edit={edit}
-                onImported={(value) => {
-                  acknowledged.current = value;
-                  setConfig(value);
-                  setMax(null);
-                }}
-              />
             )}
           </section>
         </div>

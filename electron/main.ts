@@ -109,6 +109,7 @@ app.whenReady().then(async () => {
     },
   });
   window.setMenu(null);
+  let settingsVisible = false;
   window.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
     if (input.control && !input.alt && !input.meta) {
@@ -124,6 +125,11 @@ app.whenReady().then(async () => {
         window.webContents.send("page-zoom-shortcut", direction);
         return;
       }
+    }
+    if (input.key === "Escape" && settingsVisible) {
+      event.preventDefault();
+      window.webContents.send("settings-escape");
+      return;
     }
     if (input.key === "F11") {
       event.preventDefault();
@@ -303,6 +309,19 @@ app.whenReady().then(async () => {
     )
       throw Error("拒绝 IPC 来源");
   };
+  ipcMain.handle("settings-view", (e, active, id) => {
+    trusted(e);
+    const was = settingsVisible;
+    settingsVisible = z.boolean().parse(active);
+    if (settingsVisible) window.webContents.focus();
+    if (was && !settingsVisible) {
+      const c = store.load(),
+        target =
+          c.session.pages.find((p) => p?.id === id) ??
+          c.session.pages.find(Boolean);
+      if (target) manager.focusAfterExchange(target.id);
+    }
+  });
   const stash = new PageStash(
     window,
     () => store.load(),

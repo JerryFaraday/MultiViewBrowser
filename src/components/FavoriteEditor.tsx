@@ -15,6 +15,8 @@ export function FavoriteEditor({
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(initial),
+    [creatingGroup, setCreatingGroup] = useState(false),
+    [newGroup, setNewGroup] = useState(""),
     [error, setError] = useState("");
   return (
     <form
@@ -22,11 +24,15 @@ export function FavoriteEditor({
       onSubmit={(e) => {
         e.preventDefault();
         try {
+          if (creatingGroup && !newGroup.trim()) {
+            setError("请输入新分组名称。");
+            return;
+          }
           onSave(
             favoriteSchema.parse({
               ...draft,
               name: draft.name.trim(),
-              group: draft.group.trim() || "常用",
+              group: (creatingGroup ? newGroup : draft.group).trim() || "常用",
               url: normalizeUrl(draft.url.trim()),
             }),
           );
@@ -64,18 +70,43 @@ export function FavoriteEditor({
       </label>
       <label>
         分组
-        <input
-          list="favorite-groups"
-          maxLength={100}
+        <select
+          aria-label="收藏分组"
+          disabled={creatingGroup}
           value={draft.group}
           onChange={(e) => setDraft({ ...draft, group: e.target.value })}
-        />
-        <datalist id="favorite-groups">
-          {groups.map((g) => (
-            <option key={g} value={g} />
+        >
+          {[...new Set([...groups, draft.group].filter(Boolean))].map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
           ))}
-        </datalist>
+        </select>
       </label>
+      <div className="favorite-group-actions">
+        <button
+          type="button"
+          onClick={() => {
+            setCreatingGroup(!creatingGroup);
+            setError("");
+          }}
+        >
+          {creatingGroup ? "使用已有分组" : "新建分组"}
+        </button>
+      </div>
+      {creatingGroup && (
+        <label>
+          新分组名称
+          <input
+            autoFocus
+            aria-label="新分组名称"
+            required
+            maxLength={100}
+            value={newGroup}
+            onChange={(e) => setNewGroup(e.target.value)}
+          />
+        </label>
+      )}
       <label>
         备注
         <textarea

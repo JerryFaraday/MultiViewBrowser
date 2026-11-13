@@ -32,7 +32,7 @@ app.whenReady().then(async () => {
       wc.setZoomFactor(zoom);
       await wait(120);
       const result = await wc.executeJavaScript(
-        `(()=>{const modal=document.querySelector('.settings-modal'),r=modal.getBoundingClientRect(),nav=document.querySelector('.settings-tabs'),content=document.querySelector('.settings-content');return {fits:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,centered:Math.abs((r.left+r.right)/2-innerWidth/2)<1&&Math.abs((r.top+r.bottom)/2-innerHeight/2)<1,size:Math.abs(r.width-Math.min(900,innerWidth-32))<1&&Math.abs(r.height-Math.min(600,innerHeight-32))<1,nav:nav.scrollHeight<=nav.clientHeight+1&&getComputedStyle(nav).overflowY==='hidden',scroll:getComputedStyle(content).overflowY==='auto'&&getComputedStyle(modal).overflowY==='hidden',aligned:Array.from(document.querySelectorAll('.setting-row')).every(row=>{const a=row.firstElementChild.getBoundingClientRect(),b=row.lastElementChild.getBoundingClientRect();return a.right<=b.left+1&&b.right<=content.getBoundingClientRect().right+1}),fonts:getComputedStyle(modal.querySelector('h2')).fontSize==='18px'&&getComputedStyle(nav.querySelector('button')).fontSize==='13px'}})()`,
+        `(()=>{const modal=document.querySelector('.settings-page'),r=modal.getBoundingClientRect(),nav=document.querySelector('.settings-tabs'),content=document.querySelector('.settings-content');return {fits:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,centered:Math.abs((r.left+r.right)/2-innerWidth/2)<1&&Math.abs((r.top+r.bottom)/2-innerHeight/2)<1,size:Math.abs(r.width-innerWidth)<1&&Math.abs(r.height-innerHeight)<1,nav:nav.scrollHeight<=nav.clientHeight+1&&getComputedStyle(nav).overflowY==='hidden',scroll:getComputedStyle(content).overflowY==='auto'&&getComputedStyle(modal).overflowY==='hidden',aligned:Array.from(document.querySelectorAll('.setting-row')).every(row=>{const a=row.firstElementChild.getBoundingClientRect(),b=row.lastElementChild.getBoundingClientRect();return a.right<=b.left+1&&b.right<=content.getBoundingClientRect().right+1}),fonts:getComputedStyle(modal.querySelector('h1')).fontSize==='18px'&&getComputedStyle(nav.querySelector('button')).fontSize==='13px'}})()`,
       );
       cases.push({ width, height, dpi, zoom, ...result });
     }
@@ -74,11 +74,11 @@ app.whenReady().then(async () => {
     await wc.debugger.sendCommand("Emulation.clearDeviceMetricsOverride");
     wc.debugger.detach();
     await wc.executeJavaScript(
-      "document.querySelector('.settings-modal .modal-title button').click()",
+      "document.querySelector('.settings-back').click()",
     );
     await wait(60);
     const closed = await wc.executeJavaScript(
-      "!document.querySelector('.settings-modal')",
+      "!document.querySelector('.settings-page')",
     );
     const pass =
       cases.every(

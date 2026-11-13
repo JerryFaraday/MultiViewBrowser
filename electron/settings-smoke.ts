@@ -236,7 +236,7 @@ server.listen(0, "127.0.0.1", async () => {
     );
     await wait(200);
     const categories = await root.executeJavaScript(
-      "document.querySelectorAll('.settings-tabs button').length===7",
+      "document.querySelectorAll('.settings-tabs button').length===6",
     );
     try {
       writeFileSync("settings-smoke.png", (await root.capturePage()).toPNG());
@@ -253,11 +253,42 @@ server.listen(0, "127.0.0.1", async () => {
       "document.querySelectorAll('[role=switch]').length===2&&document.querySelectorAll('.settings-content select').length===0",
     );
     await root.executeJavaScript(
-      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏管理').click()",
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
     );
     const editor = await root.executeJavaScript(
-      "!!document.querySelector('input[placeholder=\"搜索名称、地址、备注\"]')",
+      "!!document.querySelector('.side-title button')&&!document.querySelector('input[placeholder=\"搜索名称、地址、备注\"]')&&!Array.from(document.querySelectorAll('.settings-content button')).some(b=>['新建分组','☆ 收藏当前网页'].includes(b.textContent))",
     );
+    await root.executeJavaScript(
+      "document.querySelector('.side-title button').click()",
+    );
+    await wait(80);
+    const groupsVisible = await root.executeJavaScript(
+      "Array.from(document.querySelector('[aria-label=\"收藏分组\"]').options).some(o=>o.value==='常用')",
+    );
+    await root.executeJavaScript(
+      "document.querySelector('.favorite-group-actions button').click()",
+    );
+    await wait(50);
+    root.debugger.attach("1.3");
+    for (const [selector, text] of [
+      [".favorite-editor input", "测试收藏"],
+      [".favorite-editor input[placeholder]", "http://127.0.0.1"],
+      ['[aria-label="新分组名称"]', "测试新分组"],
+    ]) {
+      await root.executeJavaScript(
+        "document.querySelector(" + JSON.stringify(selector) + ").select()",
+      );
+      await root.debugger.sendCommand("Input.insertText", { text });
+    }
+    root.debugger.detach();
+    await root.executeJavaScript(
+      "document.querySelector('.favorite-editor').requestSubmit()",
+    );
+    await wait(350);
+    const afterFavorite = await load(),
+      newGroupSaved =
+        afterFavorite.groups.includes("测试新分组") &&
+        afterFavorite.favorites.some((f: any) => f.group === "测试新分组");
     await edit(
       "c.preferences.newPageUrl=" +
         JSON.stringify(base + "/custom") +
@@ -268,10 +299,51 @@ server.listen(0, "127.0.0.1", async () => {
     );
     await wait(450);
     const customUrl = (await load()).session.pages[1]?.url === base + "/custom";
+    const savedZoom = original.getZoomFactor(),
+      savedMute = original.isAudioMuted(),
+      windows = BrowserWindow.getAllWindows().length;
+    original.focus();
+    const enter = async () => {
+      await root.executeJavaScript(
+        "Array.from(document.querySelectorAll('.toolbar>button')).find(b=>b.textContent==='设置').click()",
+      );
+      await wait(120);
+    };
+    await enter();
+    const icons = await root.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs svg')).map(x=>x.dataset.icon).join(',')==='sliders-horizontal,globe,star,palette,database,info'&&Array.from(document.querySelectorAll('.settings-page svg')).every(x=>x.getAttribute('width')==='16'&&x.getAttribute('stroke-width')==='1.8')",
+    );
+    root.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+    root.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+    await wait(250);
+    const esc = await root.executeJavaScript(
+      "!document.querySelector('.settings-page')",
+    );
+    const preserved =
+      original.isFocused() &&
+      original.getZoomFactor() === savedZoom &&
+      original.isAudioMuted() === savedMute &&
+      (await original.executeJavaScript("window.marker")) === identity;
+    await enter();
+    await root.executeJavaScript(
+      "document.querySelector('.settings-back').click()",
+    );
+    await wait(200);
+    const returned = await root.executeJavaScript(
+      "!document.querySelector('.settings-page')",
+    );
+    const sameWindow = BrowserWindow.getAllWindows().length === windows;
     const result = {
+      icons,
+      esc,
+      preserved,
+      returned,
+      sameWindow,
       removedTools,
       switches,
       editor,
+      groupsVisible,
+      newGroupSaved,
       customUrl,
       startup,
       appearance,

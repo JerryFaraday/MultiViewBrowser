@@ -189,7 +189,7 @@ app.whenReady().then(async () => {
     );
     await new Promise((r) => setTimeout(r, 100));
     await w.webContents.executeJavaScript(
-      "document.querySelector('[role=switch][aria-label=\"显示收藏栏\"]').click();document.querySelector('.modal-title button').click()",
+      "document.querySelector('[role=switch][aria-label=\"显示收藏栏\"]').click();document.querySelector('.settings-back').click()",
     );
     await w.webContents.executeJavaScript(
       `document.querySelector('.web-area').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`,
@@ -263,7 +263,7 @@ app.whenReady().then(async () => {
     );
     await new Promise((r) => setTimeout(r, 150));
     await w.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏管理').click()`,
+      `Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()`,
     );
     await new Promise((r) => setTimeout(r, 100));
     await w.webContents.executeJavaScript(
