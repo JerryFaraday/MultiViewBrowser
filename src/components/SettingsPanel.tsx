@@ -1,4 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { normalizeUrl, type Config } from "../core/model";
 import { SettingSwitch } from "./SettingSwitch";
 import type { Preferences } from "../core/Preferences";
@@ -22,6 +28,10 @@ export function SettingsPanel({
     [origin, setOrigin] = useState(""),
     [busy, setBusy] = useState(false);
   const p = c.preferences;
+  const content = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (content.current) content.current.scrollTop = 0;
+  }, [tab]);
   useEffect(() => {
     void window.browser
       .settingsAction("info")
@@ -136,7 +146,7 @@ export function SettingsPanel({
           </button>
         ))}
       </nav>
-      <section className="settings-content" aria-label={tab}>
+      <section ref={content} className="settings-content" aria-label={tab}>
         <h3>{tab}</h3>
         {tab === "常规" && (
           <>

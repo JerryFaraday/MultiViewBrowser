@@ -598,55 +598,188 @@ footer {
   background: #194d6b;
 }
 
+.settings-cover {
+  inset: 0;
+  padding: 16px;
+}
 .settings-modal {
-  width: min(950px, 94vw) !important;
-  max-width: 950px !important;
+  width: min(900px, 100%) !important;
+  height: min(600px, 100%);
+  max-width: 900px !important;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.settings-modal > .modal-title {
+  flex: 0 0 64px;
+  margin: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid #34405880;
+}
+.settings-modal > .modal-title h2 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+}
+.settings-modal > .modal-title button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  background: transparent;
+  border-color: transparent;
 }
 .settings-system {
   display: flex;
-  gap: 20px;
-  min-height: 420px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
 }
 .settings-tabs {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 0 0 120px;
+  gap: 4px;
+  flex: 0 0 180px;
+  padding: 16px 12px;
+  border-right: 1px solid #34405860;
+  overflow: hidden;
 }
 .settings-tabs button {
   text-align: left;
+  font-size: 13px;
+  line-height: 20px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.settings-tabs button:hover {
+  background: #293449;
 }
 .settings-tabs button[aria-pressed="true"] {
-  background: #34425d;
+  background: #30415b;
+  color: #e1ebfb;
 }
 .settings-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 28px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.settings-content h3 {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  margin: 0 0 24px;
+}
+.settings-content h4 {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+}
+.settings-content p {
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 .setting-row {
-  display: flex !important;
-  justify-content: space-between;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 220px);
   align-items: center;
-  gap: 18px;
-  margin: 0 !important;
-  padding: 14px 0;
-  border-bottom: 1px solid #344058;
+  gap: 24px;
+  margin: 0 0 20px !important;
+  padding: 0;
+  min-height: 36px;
+  border: 0;
+  font-size: 14px;
+  line-height: 1.5;
 }
 .setting-row > span {
-  max-width: 58%;
+  max-width: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 500;
 }
 .setting-row small {
   display: block;
-  opacity: 0.7;
-  line-height: 1.6;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.72;
+  line-height: 1.65;
   margin-top: 5px;
 }
-.setting-row select {
-  max-width: 260px;
+.setting-row > :not(span) {
+  justify-self: end;
+  max-width: 220px;
+  min-width: 0;
+}
+.settings-content select,
+.settings-content input:not([type="checkbox"]),
+.settings-content button:not(.setting-switch) {
+  font-size: 13px;
+  min-height: 32px;
+}
+.setting-row > select,
+.setting-row > input {
+  width: 100%;
+  height: 32px;
+}
+.setting-row > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.setting-row > div select {
+  max-width: 130px;
+  min-width: 0;
+  flex: 1;
 }
 .setting-row input[type="number"] {
-  width: 85px;
-  margin-left: 6px;
+  width: 76px;
+  margin-left: 0;
+}
+.settings-content .settings-actions > * {
+  max-width: 220px;
+  min-width: 0;
+}
+.settings-content .settings-actions input {
+  width: 220px;
+}
+@media (max-width: 720px) {
+  .settings-content {
+    padding: 20px;
+  }
+  .setting-row {
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 180px);
+    gap: 16px;
+  }
+  .settings-tabs {
+    flex-basis: 180px;
+  }
+}
+@media (max-height: 520px) {
+  .settings-tabs {
+    padding: 10px 12px;
+    gap: 2px;
+  }
+  .settings-tabs button {
+    min-height: 28px;
+    padding: 4px 12px;
+  }
+  .settings-modal > .modal-title {
+    flex-basis: 52px;
+  }
 }
 .settings-actions {
   display: flex;

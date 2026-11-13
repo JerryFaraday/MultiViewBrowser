@@ -719,7 +719,11 @@ export function App() {
         </span>
       </footer>
       {panel && (
-        <div className="modal-cover">
+        <div
+          className={
+            "modal-cover " + (panel === "settings" ? "settings-cover" : "")
+          }
+        >
           <section
             className={
               "modal " + (panel === "settings" ? "settings-modal" : "")
@@ -732,7 +736,7 @@ export function App() {
                     {
                       layouts: "选择布局",
                       workspaces: "工作区",
-                      settings: "设置与数据",
+                      settings: "设置",
                     } as Record<string, string>
                   )[panel]
                 }
