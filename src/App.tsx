@@ -60,16 +60,24 @@ export function App() {
     const align = () => {
       const bar = document.querySelector(".bookmarks-bar"),
         button = document.querySelector('.toolbar button[title^="放大主窗口"]');
-      if (bar && button)
+      const last = document.querySelector(".toolbar > button:last-child");
+      if (bar && button && last) {
         document.documentElement.style.setProperty(
           "--stash-width",
+          last.getBoundingClientRect().right -
+            button.getBoundingClientRect().left +
+            "px",
+        );
+        document.documentElement.style.setProperty(
+          "--stash-inset",
           Math.max(
-            100,
+            0,
             bar.getBoundingClientRect().right -
-              button.getBoundingClientRect().left -
-              10,
+              10 -
+              last.getBoundingClientRect().right,
           ) + "px",
         );
+      }
     };
     align();
     const observer = new ResizeObserver(align);
@@ -643,7 +651,8 @@ export function App() {
           </div>
           <button
             className="page-stash"
-            title="页面暂存区"
+            title="页面暂存"
+            aria-label={`页面暂存，${c.pageStash.length} 个页面`}
             onMouseLeave={() => void window.browser.hideStash()}
             onMouseEnter={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
@@ -652,7 +661,37 @@ export function App() {
                 .catch(fail);
             }}
           >
-            暂存区 ({c.pageStash.length}) ▾
+            <svg
+              className="stash-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18" />
+            </svg>
+            <span>页面暂存</span>
+            <span className="stash-count">{c.pageStash.length}</span>
+            <svg
+              className="stash-chevron"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </button>
         </nav>
       )}

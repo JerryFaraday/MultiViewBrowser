@@ -395,10 +395,36 @@ p {
   scrollbar-width: thin;
 }
 .page-stash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   width: var(--stash-width, 180px);
   flex-shrink: 0;
   margin-left: 12px;
+  margin-right: var(--stash-inset, 4px);
   white-space: nowrap;
+}
+.stash-icon,
+.stash-chevron {
+  flex-shrink: 0;
+}
+.stash-chevron {
+  opacity: 0.75;
+}
+.stash-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: #30445d;
+  color: #c4d5ec;
+  font-size: 10px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
 }
 .bookmark {
   display: flex;

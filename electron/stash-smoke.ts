@@ -36,6 +36,9 @@ server.listen(0, "127.0.0.1", async () => {
       .getAllWebContents()
       .find((x) => x.getURL() === "http://127.0.0.1:" + port + "/")!;
     const load = () => root.executeJavaScript("window.browser.load()");
+    const zeroBadge = await root.executeJavaScript(
+      "document.querySelector('.stash-count').textContent==='0'",
+    );
     const middle = async () => {
       // Exercise the authenticated middle-link request route; OS input is a separate check.
       const url = await page.executeJavaScript(
@@ -114,6 +117,13 @@ server.listen(0, "127.0.0.1", async () => {
     };
     const geometry = await root.executeJavaScript(
       "(()=>{const a=document.querySelector('.page-stash').getBoundingClientRect(),b=document.querySelector('.toolbar button[title^=\"放大主窗口\"]').getBoundingClientRect();return Math.abs(a.x-b.x)<2})()",
+    );
+    const visual = await root.executeJavaScript(
+      `(()=>{const a=document.querySelector('.page-stash'),b=document.querySelector('.toolbar button[title^="放大主窗口"]'),last=document.querySelector('.toolbar > button:last-child'),r=a.getBoundingClientRect(),first=b.getBoundingClientRect();return {exactWidth:Math.abs(r.width-(last.getBoundingClientRect().right-first.left))<.01,height:r.height===first.height,icons:a.querySelector('.stash-icon').getBoundingClientRect().width===16&&a.querySelector('.stash-chevron').getBoundingClientRect().width===12,badge:a.querySelector('.stash-count').textContent==='2',rect:{x:Math.floor(first.x-20),y:0,width:Math.ceil(r.width+40),height:90}}})()`,
+    );
+    writeFileSync(
+      "stash-smoke.png",
+      (await root.capturePage(visual.rect)).toPNG(),
     );
     const pageNow = webContents
       .getAllWebContents()
@@ -195,6 +205,11 @@ server.listen(0, "127.0.0.1", async () => {
       hoverClosed,
       occupiedSwap,
       returned,
+      zeroBadge,
+      visualWidth: visual.exactWidth,
+      visualHeight: visual.height,
+      visualIcons: visual.icons,
+      visualBadge: visual.badge,
     });
     const pass = Object.values(result).every(Boolean);
     writeFileSync(
