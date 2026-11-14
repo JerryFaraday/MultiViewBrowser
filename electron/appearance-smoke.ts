@@ -149,6 +149,28 @@ server.listen(0, "127.0.0.1", async () => {
           return {accent,primary:primary.backgroundColor,primaryText:primary.color,nav:tab.backgroundColor,navText:tab.color,toggle:toggle.backgroundColor,focus,checks:[...document.querySelectorAll('#appearance-probes input:not([type=text])')].map(e=>style(e).accentColor),master:style(pick('.master-volume input[type=range]')).accentColor,
             scheme:style(document.documentElement).colorScheme,background:style(document.documentElement).backgroundColor,text:style(document.documentElement).color,toolbar:style(pick('.toolbar')).backgroundColor,settings:style(pick('.settings-page')).backgroundColor,
             rects:[pick('.settings-tabs'),pick('.settings-content'),pick('.setting-switch')].map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})};})()`);
+        const switches = [];
+        for (let i = 0; i < 2; i++) {
+          switches.push(
+            await root.executeJavaScript(`(()=>{
+              const e=document.querySelector('.setting-switch'),b=e.getBoundingClientRect(),k=e.firstElementChild.getBoundingClientRect(),on=e.getAttribute('aria-checked')==='true';
+              return {on,width:b.width,height:b.height,knobWidth:k.width,knobHeight:k.height,left:k.left-b.left,right:b.right-k.right,inset:2+parseFloat(getComputedStyle(e).borderLeftWidth),centerY:(k.top+k.bottom-b.top-b.bottom)/2};
+            })()`),
+          );
+          await root.executeJavaScript(
+            "document.querySelector('.setting-switch').click()",
+          );
+          await wait(200);
+        }
+        const switchAligned = switches.every(
+          (x) =>
+            Math.abs(x.centerY) < 0.1 &&
+            Math.abs((x.on ? x.right : x.left) - x.inset) < 0.1 &&
+            x.knobWidth === 16 &&
+            x.knobHeight === 16 &&
+            x.width === 40 &&
+            x.height === 22,
+        );
         stage = 10;
         const volume = await show(
           `showVolume('${pageId}',{x:50,y:120,width:34,height:34})`,
@@ -211,6 +233,8 @@ server.listen(0, "127.0.0.1", async () => {
           theme,
           accent,
           state,
+          switches,
+          switchAligned,
           volume: v,
           scale: s,
           stash: parked,
@@ -337,7 +361,7 @@ server.listen(0, "127.0.0.1", async () => {
       ]),
     );
     const pass =
-      outcomes.every((x) => x.pass) &&
+      outcomes.every((x) => x.pass && x.switchAligned) &&
       persisted &&
       statePreserved &&
       geometry &&
@@ -370,7 +394,7 @@ server.listen(0, "127.0.0.1", async () => {
       JSON.stringify({
         cases: outcomes.length,
         failed: outcomes
-          .filter((x) => !x.pass)
+          .filter((x) => !x.pass || !x.switchAligned)
           .map((x) => ({ theme: x.theme, accent: x.accent })),
         persisted,
         statePreserved,

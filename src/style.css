@@ -629,9 +629,11 @@ footer {
 .settings-back {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 4px 10px;
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-color: transparent;
   background: transparent;
   font-size: 13px;
@@ -655,7 +657,7 @@ footer {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 0 0 232px;
+  flex: 0 0 256px;
   padding: 16px 12px;
   border-right: 1px solid var(--ui-62, #34405860);
   overflow: hidden;
@@ -666,10 +668,10 @@ footer {
   gap: 8px;
   color: var(--ui-63, #aab8cf);
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
-  min-height: 36px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 12px 16px;
   border: 0;
   background: transparent;
   border-radius: 6px;
@@ -791,7 +793,7 @@ footer {
     gap: 2px;
   }
   .settings-tabs button {
-    min-height: 28px;
+    min-height: 32px;
     padding: 4px 12px;
   }
   .settings-page-header {
@@ -831,6 +833,7 @@ footer {
 }
 
 .setting-switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto !important;
@@ -842,19 +845,23 @@ footer {
   border: 1px solid var(--ui-69, #607086);
 }
 .setting-switch span {
+  position: absolute;
+  top: 50%;
+  left: 2px;
   display: block;
   width: 16px;
   height: 16px;
   border-radius: 50%;
   background: var(--ui-70, #e9eff9);
-  transition: transform 120ms;
+  transform: translateY(-50%);
+  transition: left 120ms;
 }
 .setting-switch[aria-checked="true"] {
   background: var(--ui-71, #0087bd);
   border-color: var(--ui-71, #0087bd);
 }
 .setting-switch[aria-checked="true"] span {
-  transform: translateX(16px);
+  left: calc(100% - 18px);
 }
 .setting-switch:focus-visible {
   outline: 2px solid var(--ui-72, #9bbdff);

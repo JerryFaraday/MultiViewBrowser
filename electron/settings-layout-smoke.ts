@@ -32,7 +32,7 @@ app.whenReady().then(async () => {
       wc.setZoomFactor(zoom);
       await wait(120);
       const result = await wc.executeJavaScript(
-        `(()=>{const modal=document.querySelector('.settings-page'),r=modal.getBoundingClientRect(),nav=document.querySelector('.settings-tabs'),content=document.querySelector('.settings-content');return {fits:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,centered:Math.abs((r.left+r.right)/2-innerWidth/2)<1&&Math.abs((r.top+r.bottom)/2-innerHeight/2)<1,size:Math.abs(r.width-innerWidth)<1&&Math.abs(r.height-innerHeight)<1,nav:nav.scrollHeight<=nav.clientHeight+1&&getComputedStyle(nav).overflowY==='hidden',scroll:getComputedStyle(content).overflowY==='auto'&&getComputedStyle(modal).overflowY==='hidden',aligned:Array.from(document.querySelectorAll('.setting-row')).every(row=>{const a=row.firstElementChild.getBoundingClientRect(),b=row.lastElementChild.getBoundingClientRect();return a.right<=b.left+1&&b.right<=content.getBoundingClientRect().right+1}),fonts:getComputedStyle(modal.querySelector('h1')).fontSize==='18px'&&getComputedStyle(nav.querySelector('button')).fontSize==='13px'}})()`,
+        `(()=>{const modal=document.querySelector('.settings-page'),r=modal.getBoundingClientRect(),nav=document.querySelector('.settings-tabs'),content=document.querySelector('.settings-content');return {fits:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,centered:Math.abs((r.left+r.right)/2-innerWidth/2)<1&&Math.abs((r.top+r.bottom)/2-innerHeight/2)<1,size:Math.abs(r.width-innerWidth)<1&&Math.abs(r.height-innerHeight)<1,nav:nav.scrollHeight<=nav.clientHeight+1&&getComputedStyle(nav).overflowY==='hidden',scroll:getComputedStyle(content).overflowY==='auto'&&getComputedStyle(modal).overflowY==='hidden',aligned:Array.from(document.querySelectorAll('.setting-row')).every(row=>{const a=row.firstElementChild.getBoundingClientRect(),b=row.lastElementChild.getBoundingClientRect();return a.right<=b.left+1&&b.right<=content.getBoundingClientRect().right+1}),fonts:getComputedStyle(modal.querySelector('h1')).fontSize==='18px'&&getComputedStyle(nav.querySelector('button')).fontSize==='14px',navigation:nav.getBoundingClientRect().width===(innerWidth<=720?220:256)&&Array.from(nav.querySelectorAll('button')).every(e=>e.getBoundingClientRect().height>=(innerHeight<=520?32:44)),back:(()=>{const e=document.querySelector('.settings-back'),r=e.getBoundingClientRect();return e.textContent.trim()===''&&e.getAttribute('aria-label')==='返回浏览器'&&r.width===36&&r.height===36&&!!e.querySelector('svg')})()}})()`,
       );
       cases.push({ width, height, dpi, zoom, ...result });
     }
@@ -89,7 +89,9 @@ app.whenReady().then(async () => {
           x.nav &&
           x.scroll &&
           x.aligned &&
-          x.fonts,
+          x.fonts &&
+          x.navigation &&
+          x.back,
       ) &&
       scrolled &&
       reset &&

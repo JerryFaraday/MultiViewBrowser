@@ -737,9 +737,13 @@ export function App() {
       {panel === "settings" && (
         <section className="settings-page" aria-label="设置">
           <header className="settings-page-header">
-            <button className="settings-back" onClick={() => setPanel("")}>
+            <button
+              className="settings-back"
+              aria-label="返回浏览器"
+              title="返回浏览器（Esc）"
+              onClick={() => setPanel("")}
+            >
               <SettingsIcon name="arrow-left" />
-              返回浏览器
             </button>
             <h1>
               <SettingsIcon name="settings" />
