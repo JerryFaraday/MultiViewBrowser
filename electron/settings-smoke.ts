@@ -1,4 +1,11 @@
-import { app, BrowserWindow, session, dialog, webContents } from "electron";
+import {
+  app,
+  BrowserWindow,
+  session,
+  dialog,
+  webContents,
+  nativeTheme,
+} from "electron";
 import { createServer } from "node:http";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -29,6 +36,8 @@ server.listen(0, "127.0.0.1", async () => {
   const base = "http://127.0.0.1:" + (server.address() as any).port,
     seed = defaults(),
     folder = app.getPath("userData");
+  seed.masterMuted = true;
+  nativeTheme.themeSource = "light";
   seed.bookmarksBar = true;
   seed.favorites = [
     {
@@ -66,6 +75,8 @@ server.listen(0, "127.0.0.1", async () => {
         (x) => x.webContents.getTitle() === "MultiView Browser",
       )!,
       root = w.webContents;
+    w.setAlwaysOnTop(true);
+    root.setBackgroundThrottling(false);
     const load = () => root.executeJavaScript("window.browser.load()");
     const edit = async (expression: string) => {
       await root.executeJavaScript(
@@ -269,6 +280,9 @@ server.listen(0, "127.0.0.1", async () => {
       "document.querySelector('.favorite-group-actions button').click()",
     );
     await wait(50);
+    w.focus();
+    root.focus();
+    await wait(100);
     root.debugger.attach("1.3");
     for (const [selector, text] of [
       [".favorite-editor input", "测试收藏"],
@@ -276,9 +290,12 @@ server.listen(0, "127.0.0.1", async () => {
       ['[aria-label="新分组名称"]', "测试新分组"],
     ]) {
       await root.executeJavaScript(
-        "document.querySelector(" + JSON.stringify(selector) + ").select()",
+        "(()=>{const el=document.querySelector(" +
+          JSON.stringify(selector) +
+          ");el.focus();el.select()})()",
       );
       await root.debugger.sendCommand("Input.insertText", { text });
+      await wait(50);
     }
     root.debugger.detach();
     await root.executeJavaScript(
@@ -297,12 +314,28 @@ server.listen(0, "127.0.0.1", async () => {
     await root.executeJavaScript(
       "document.querySelector('.pane[data-slot=\"1\"] .web-area button').click()",
     );
-    await wait(450);
-    const customUrl = (await load()).session.pages[1]?.url === base + "/custom";
+    let afterCustom = await load();
+    for (
+      let i = 0;
+      i < 40 && afterCustom.session.pages[1]?.url !== base + "/custom";
+      i++
+    ) {
+      await wait(50);
+      afterCustom = await load();
+    }
+    const customUrl = afterCustom.session.pages[1]?.url === base + "/custom";
     const savedZoom = original.getZoomFactor(),
       savedMute = original.isAudioMuted(),
       windows = BrowserWindow.getAllWindows().length;
+    w.focus();
+    root.focus();
+    // Earlier programmatic clicks bypass the pane's pointer-selection handler.
+    await root.executeJavaScript(
+      `document.querySelector('.pane[data-slot="0"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))`,
+    );
+    await wait(100);
     original.focus();
+    await wait(100);
     const enter = async () => {
       await root.executeJavaScript(
         "Array.from(document.querySelectorAll('.toolbar>button')).find(b=>b.textContent==='设置').click()",
@@ -313,9 +346,13 @@ server.listen(0, "127.0.0.1", async () => {
     const icons = await root.executeJavaScript(
       "Array.from(document.querySelectorAll('.settings-tabs svg')).map(x=>x.dataset.icon).join(',')==='sliders-horizontal,globe,star,palette,database,info'&&Array.from(document.querySelectorAll('.settings-page svg')).every(x=>x.getAttribute('width')==='16'&&x.getAttribute('stroke-width')==='1.8')",
     );
+    w.focus();
+    root.focus();
+    await wait(100);
     root.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
     root.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
     await wait(250);
+    for (let i = 0; i < 20 && !original.isFocused(); i++) await wait(50);
     const esc = await root.executeJavaScript(
       "!document.querySelector('.settings-page')",
     );
@@ -348,7 +385,27 @@ server.listen(0, "127.0.0.1", async () => {
       "({color:getComputedStyle(document.body).backgroundColor,dark:matchMedia('(prefers-color-scheme:dark)').matches,marker:window.marker})",
     );
     const webUntouched = JSON.stringify(webBefore) === JSON.stringify(webAfter);
+    let nativePreference = String(nativeTheme.themeSource) === "dark";
+    w.focus();
+    original.focus();
+    await wait(100);
+    let themeFocusPreserved = original.isFocused();
+    for (const theme of ["gray", "black", "dark"]) {
+      await root.executeJavaScript(
+        `window.browser.load().then(c=>{c.preferences.theme='${theme}';return window.browser.save(c)})`,
+      );
+      await wait(150);
+      nativePreference &&=
+        String(nativeTheme.themeSource) === "dark" &&
+        (await original.executeJavaScript(
+          "matchMedia('(prefers-color-scheme:dark)').matches&&window.marker===" +
+            identity,
+        ));
+      themeFocusPreserved &&= original.isFocused();
+    }
     const result = {
+      nativePreference,
+      themeFocusPreserved,
       black,
       navy,
       webUntouched,

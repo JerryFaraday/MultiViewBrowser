@@ -109,3 +109,7 @@ README转为MultiView Browser项目首页，版本历史、用户指南、开发
 ## V0.2.1.5（2026-11-14）
 
 大合集屏外条目的排版成本经移除列表的隔离实验及性能指标对照确认；未找到主窗口切换的1000ms等待，也未证明近期某次提交引入回归。最终只在Bilibili视频页顶层文档安装紧凑合集列表的原生content-visibility兼容规则，保持浏览器布局与交互模块不变。未采用重置设备模拟或删除条目的方案。详见[分析与交付证据](reviews/BILIBILI_COLLECTION_LAYOUT_2026-11-14.md)。
+
+## V0.2.1.6（2026-11-14）
+
+用户以Chrome Just Black对照指出Bilibili仍可保持浅色页面并显示暗色滚动条。进一步查明Chromium独立根滚动条偏好与网页偏好是双重条件，Electron45未同步前者，仅设置nativeTheme不充分。补足原生Blink根滚动条提示并集中同步应用偏好，不采用网站CSS兜底。见[分析与验证](reviews/NATIVE_SCROLLBAR_THEME_2026-11-14.md)。

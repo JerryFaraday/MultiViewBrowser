@@ -1,4 +1,5 @@
 import { themeCSS } from "../src/core/Theme";
+import { applyNativeTheme } from "./NativeTheme";
 import { pruneLogs } from "./LogRetention";
 import {
   app,
@@ -111,6 +112,7 @@ export class SettingsService {
   }
   apply(force = false) {
     const p = this.read().preferences;
+    applyNativeTheme(p.theme);
     this.manager.setPreferences(p);
     const key = JSON.stringify(p);
     if (!force && key === this.previous) return;

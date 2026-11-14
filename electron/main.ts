@@ -2,6 +2,7 @@ import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 import version from "../version.json";
 import { PageStash } from "./PageStash";
 import { SettingsService } from "./SettingsService";
+import { applyNativeTheme, initializeNativeScrollbars } from "./NativeTheme";
 import {
   OperationLogger,
   setOperationLogger,
@@ -23,6 +24,7 @@ import { swapPages, setPageVolume } from "../src/core/AudioManager";
 import { sanitizeOperation } from "../src/core/OperationLog";
 import { normalizeUrl } from "../src/core/model";
 import { defaults } from "../src/core/WorkspaceManager";
+initializeNativeScrollbars();
 // Preserve the previous packaged profile after changing productName.
 if (
   app.isPackaged &&
@@ -60,11 +62,12 @@ app.whenReady().then(async () => {
   }
   logOperation("app.ready");
   store = new ConfigStore(app.getPath("userData"));
-  const initial = store.load(),
-    savedWindow =
-      initial.preferences.startupWindow === "last"
-        ? initial.windowState
-        : undefined;
+  const initial = store.load();
+  applyNativeTheme(initial.preferences.theme);
+  const savedWindow =
+    initial.preferences.startupWindow === "last"
+      ? initial.windowState
+      : undefined;
   const area = savedWindow
     ? screen.getDisplayMatching(savedWindow).workArea
     : undefined;
