@@ -384,6 +384,22 @@ export function App() {
     onGroupDelete: deleteGroup,
     onDrag: setDrag,
   };
+  const showScale = (id: string, slot: number, button: HTMLButtonElement) => {
+    const r = button.getBoundingClientRect();
+    void window.browser
+      .showScale(
+        id,
+        { x: r.x, y: r.y, width: r.width, height: r.height },
+        max === 0 && slot === 0,
+      )
+      .catch(fail);
+  };
+  const showStash = (button: HTMLButtonElement) => {
+    const r = button.getBoundingClientRect();
+    void window.browser
+      .showStash({ x: r.x, y: r.y, width: r.width, height: r.height })
+      .catch(fail);
+  };
   function renderPage(slot: number) {
     const p = s.pages[slot];
     return (
@@ -501,16 +517,8 @@ export function App() {
               </button>
               <button
                 title="缩放设置"
-                onMouseEnter={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  void window.browser
-                    .showScale(
-                      p.id,
-                      { x: r.x, y: r.y, width: r.width, height: r.height },
-                      max === 0 && slot === 0,
-                    )
-                    .catch(fail);
-                }}
+                onMouseEnter={(e) => showScale(p.id, slot, e.currentTarget)}
+                onClick={(e) => showScale(p.id, slot, e.currentTarget)}
                 onMouseLeave={() => void window.browser.hideScale()}
               >
                 ⚙
@@ -663,12 +671,8 @@ export function App() {
             title="页面暂存"
             aria-label={`页面暂存，${c.pageStash.length} 个页面`}
             onMouseLeave={() => void window.browser.hideStash()}
-            onMouseEnter={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              void window.browser
-                .showStash({ x: r.x, y: r.y, width: r.width, height: r.height })
-                .catch(fail);
-            }}
+            onMouseEnter={(e) => showStash(e.currentTarget)}
+            onClick={(e) => showStash(e.currentTarget)}
           >
             <svg
               className="stash-icon"

@@ -1,5 +1,6 @@
 import { defaults } from "../src/core/WorkspaceManager";
 import { app, BrowserWindow, webContents } from "electron";
+import { withPopupPointer } from "./smoke-popup-pointer";
 import { writeFileSync, mkdirSync } from "node:fs";
 app.setPath(
   "userData",
@@ -55,8 +56,15 @@ app.whenReady().then(async () => {
 
     const pause = (ms = 250) => new Promise((r) => setTimeout(r, ms));
     const openScale = async () => {
-      await w.webContents.executeJavaScript(
-        `document.querySelector('[title="缩放设置"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true,relatedTarget:document.body}))`,
+      const rect = await w.webContents.executeJavaScript(
+        "(()=>{const r=document.querySelector('[title=\"缩放设置\"]').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()",
+      );
+      w.focus();
+      w.webContents.focus();
+      await withPopupPointer(w, rect, () =>
+        w.webContents.executeJavaScript(
+          `document.querySelector('[title="缩放设置"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true,relatedTarget:document.body}))`,
+        ),
       );
       await pause(350);
       return BrowserWindow.getAllWindows().find((v) =>

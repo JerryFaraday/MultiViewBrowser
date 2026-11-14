@@ -4,6 +4,7 @@ import type { Config } from "../src/core/model";
 import type { Rect } from "../src/core/LayoutManager";
 import type { DropTarget } from "./DragOverlay";
 import { z } from "zod";
+import { canOpenHoverPopup, isHoverPopupOwnerActive } from "./HoverPopup";
 
 export class PageStash {
   private popup?: BrowserWindow;
@@ -125,6 +126,9 @@ export class PageStash {
     });
     for (const event of ["move", "resize", "minimize", "hide"] as const)
       parent.on(event as "move", () => this.hide());
+    parent.on("blur", () => {
+      if (!isHoverPopupOwnerActive(parent)) this.hide();
+    });
     parent.on("closed", () => {
       this.disposed = true;
       if (this.probe && !this.probe.webContents.isDestroyed())
@@ -140,6 +144,7 @@ export class PageStash {
       );
   }
   async show(rect: Rect) {
+    if (!canOpenHoverPopup(this.parent, rect)) return;
     this.cancel();
     const generation = ++this.generation;
     if (!this.popup || this.popup.isDestroyed()) {
@@ -160,7 +165,10 @@ export class PageStash {
         },
       });
       this.popup.setMenu(null);
-      this.popup.on("blur", () => this.closeSoon());
+      this.popup.on("blur", () => {
+        if (isHoverPopupOwnerActive(this.parent)) this.closeSoon();
+        else this.hide();
+      });
       this.popup.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
       this.popup.webContents.on("will-navigate", (e) => e.preventDefault());
       this.loading = this.popup.loadURL(
@@ -178,7 +186,7 @@ export class PageStash {
     }
     if (
       generation !== this.generation ||
-      this.parent.isDestroyed() ||
+      !canOpenHoverPopup(this.parent, rect) ||
       this.popup.isDestroyed()
     )
       return;

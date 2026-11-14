@@ -63,10 +63,10 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "buildVersion": "0.2.1.8",
+    "buildVersion": "0.2.1.9",
     "executableName": "MultiViewBrowser",
-    "artifactName": "MultiViewBrowser-V0.2.1.8-${arch}.${ext}"
+    "artifactName": "MultiViewBrowser-V0.2.1.9-${arch}.${ext}"
   },
   "type": "module",
-  "shortVersionWindows": "0.2.1.8"
+  "shortVersionWindows": "0.2.1.9"
 }

@@ -2,10 +2,18 @@ import { it, expect, vi, beforeEach } from "vitest";
 import type { BrowserWindow } from "electron";
 import { defaults } from "../src/core/WorkspaceManager";
 import { newPage } from "../src/core/model";
-const state = vi.hoisted(() => ({ created: 0, shown: 0, ready: () => {} }));
+const state = vi.hoisted(() => ({
+  created: 0,
+  shown: 0,
+  ready: () => {},
+  active: undefined as unknown,
+}));
 vi.mock("electron", () => ({
   ipcMain: { handle() {} },
   BrowserWindow: class {
+    static getFocusedWindow() {
+      return state.active;
+    }
     webContents = { setWindowOpenHandler() {}, on() {}, send() {} };
     constructor() {
       state.created++;
@@ -27,6 +35,7 @@ vi.mock("electron", () => ({
       });
     }
   },
+  screen: { getCursorScreenPoint: () => ({ x: 10, y: 10 }) },
 }));
 import { VolumePopup } from "../electron/VolumePopup";
 import { ScalePopup } from "../electron/ScalePopup";
@@ -42,6 +51,7 @@ const parent = {
   getContentBounds: () => ({ x: 0, y: 0 }),
 } as unknown as BrowserWindow;
 beforeEach(() => {
+  state.active = parent;
   state.created = 0;
   state.shown = 0;
 });

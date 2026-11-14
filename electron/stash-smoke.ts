@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { defaults } from "../src/core/WorkspaceManager";
 import { newPage } from "../src/core/model";
+import { withPopupPointer } from "./smoke-popup-pointer";
 app.setPath("userData", app.getPath("temp") + "/mvb-stash-" + Date.now());
 const wait = (n: number) => new Promise((r) => setTimeout(r, n));
 const server = createServer((q, r) => {
@@ -18,6 +19,7 @@ const server = createServer((q, r) => {
 server.listen(0, "127.0.0.1", async () => {
   const port = (server.address() as any).port;
   const seed = defaults();
+  seed.masterMuted = true;
   seed.bookmarksBar = true;
   seed.session.tree = { kind: "leaf", slot: 0 };
   seed.session.pages = [newPage("http://127.0.0.1:" + port)];
@@ -71,8 +73,15 @@ server.listen(0, "127.0.0.1", async () => {
     const fallback =
       c.pageStash.length === 3 && c.pageStash[2].title === c.pageStash[2].url;
     const show = async () => {
-      await root.executeJavaScript(
-        `(()=>{const r=document.querySelector('.page-stash').getBoundingClientRect();return window.browser.showStash({x:r.x,y:r.y,width:r.width,height:r.height})})()`,
+      const rect = await root.executeJavaScript(
+        "(()=>{const r=document.querySelector('.page-stash').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()",
+      );
+      w.focus();
+      root.focus();
+      await withPopupPointer(w, rect, () =>
+        root.executeJavaScript(
+          `window.browser.showStash(${JSON.stringify(rect)})`,
+        ),
       );
       await wait(150);
     };

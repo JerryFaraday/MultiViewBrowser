@@ -5,6 +5,7 @@ import { defaults } from "../src/core/WorkspaceManager";
 import { newPage } from "../src/core/model";
 import { accentPresets } from "../src/core/Accent";
 import { ConfigStore } from "./storage";
+import { withPopupPointer } from "./smoke-popup-pointer";
 app.setPath(
   "userData",
   process.env.MVB_APPEARANCE_PROFILE ??
@@ -93,7 +94,18 @@ server.listen(0, "127.0.0.1", async () => {
         (x) => x.webContents.getTitle() === title,
       )!;
     const show = async (call: string, title: string) => {
-      await root.executeJavaScript("window.browser." + call);
+      const invoke = () => root.executeJavaScript("window.browser." + call);
+      if (title === "网页缩放" || title === "页面暂存区") {
+        w.focus();
+        root.focus();
+        await withPopupPointer(
+          w,
+          title === "网页缩放"
+            ? { x: 100, y: 120, width: 34, height: 34 }
+            : { x: 150, y: 80, width: 180, height: 30 },
+          invoke,
+        );
+      } else await invoke();
       await wait(100);
       const p = popup(title);
       p.webContents.setBackgroundThrottling(false);

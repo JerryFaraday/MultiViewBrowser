@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { displayScale, resolutions } from "../src/core/ScaleManager";
 import type { Config, Page } from "../src/core/model";
+import { canOpenHoverPopup, isHoverPopupOwnerActive } from "./HoverPopup";
 
 export class ScalePopup {
   private popup?: BrowserWindow;
@@ -67,6 +68,9 @@ export class ScalePopup {
     });
     for (const event of ["move", "resize", "minimize", "hide"] as const)
       parent.on(event as "move", () => this.hide());
+    parent.on("blur", () => {
+      if (!isHoverPopupOwnerActive(parent)) this.hide();
+    });
   }
   private create() {
     const popup = new BrowserWindow({
@@ -89,7 +93,10 @@ export class ScalePopup {
     popup.setMenu(null);
     popup.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     popup.webContents.on("will-navigate", (e) => e.preventDefault());
-    popup.on("blur", () => this.closeSoon());
+    popup.on("blur", () => {
+      if (isHoverPopupOwnerActive(this.parent)) this.closeSoon();
+      else this.hide();
+    });
     this.loading = popup.loadFile(join(__dirname, "scale.html"));
     return popup;
   }
@@ -115,12 +122,7 @@ export class ScalePopup {
   ) {
     const slot = config.session.pages.findIndex((p) => p?.id === id),
       page = config.session.pages[slot];
-    if (
-      !page ||
-      this.parent.isDestroyed() ||
-      !this.parent.isVisible() ||
-      this.parent.isMinimized()
-    ) {
+    if (!page || !canOpenHoverPopup(this.parent, rect)) {
       this.hide();
       return;
     }
@@ -144,9 +146,7 @@ export class ScalePopup {
     if (
       generation !== this.generation ||
       popup.isDestroyed() ||
-      this.parent.isDestroyed() ||
-      !this.parent.isVisible() ||
-      this.parent.isMinimized()
+      !canOpenHoverPopup(this.parent, rect)
     )
       return;
     const origin = this.parent.getContentBounds();
