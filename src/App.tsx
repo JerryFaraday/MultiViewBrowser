@@ -564,7 +564,6 @@ export function App() {
               ＋ 添加网页
             </button>
           )}
-          {drag && !p && <span className="drop-hint">拖拽至此处交换</span>}
         </div>
       </section>
     );

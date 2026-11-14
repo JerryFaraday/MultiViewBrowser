@@ -303,7 +303,7 @@ app.whenReady().then(async () => {
       result.drag.sameBounds &&
       result.resolution.pass &&
       result.drag.addButtons === 0 &&
-      result.drag.hints === 3 &&
+      result.drag.hints === 0 &&
       !result.drag.occupiedHints &&
       result.drag.sliderColor === "rgb(0, 135, 189)" &&
       result.drag.audioColor === "rgb(41, 182, 255)" &&

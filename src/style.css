@@ -167,11 +167,6 @@ h4 button:first-of-type {
   padding: 14px 28px;
   color: var(--ui-16, #98accf);
 }
-.drop-hint {
-  color: var(--accent-label-ink, var(--ui-17, #9ebaff));
-  background: var(--accent-label-surface, transparent);
-  font-size: 18px;
-}
 footer button {
   font-size: 11px;
   padding: 1px 6px;

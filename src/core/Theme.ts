@@ -131,7 +131,7 @@ export function themeCSS(
     )
     .join(";");
   return (
-    `:root{${vars};--app-color-scheme:${theme === "light" ? "light" : "dark"};color-scheme:var(--app-color-scheme);--audible-ink:var(--${theme === "light" ? "accent-on" : "accent"});--audible-surface:var(--${theme === "light" ? "accent" : "accent-soft"});--accent-label-ink:var(--${theme === "light" ? "accent-on" : "accent"});--accent-label-surface:${theme === "light" ? "var(--accent)" : "transparent"};--focus-contrast:${theme === "light" ? "var(--ui-0)" : "transparent"}}` +
+    `:root{${vars};--app-color-scheme:${theme === "light" ? "light" : "dark"};color-scheme:var(--app-color-scheme);--audible-ink:var(--${theme === "light" ? "accent-on" : "accent"});--audible-surface:var(--${theme === "light" ? "accent" : "accent-soft"});--focus-contrast:${theme === "light" ? "var(--ui-0)" : "transparent"}}` +
     (overlay
       ? ""
       : `:root{background:${feedback ? "transparent" : popup ? (theme === "dark" ? navyTokens.tone73 : p.title) : p.background}}.settings-page-header{background:${p.title}}.settings-tabs{background:${p.title}}*{scrollbar-color:${theme === "dark" || theme === "light" ? "auto" : p.border + " " + p.background}}`)
