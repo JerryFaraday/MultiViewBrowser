@@ -11,7 +11,9 @@ app.setPath(
 app.whenReady().then(async () => {
   const server = createServer((_q, res) => {
     res.setHeader("Content-Type", "text/html");
-    res.end('<a target="_blank" href="/child">new page</a>');
+    res.end(
+      '<a target="_blank" href="/child">new page</a><a target="_blank" href="/video"><button id="later">Watch later</button></a><script>window.saved=0;document.querySelector("#later").onclick=e=>{e.preventDefault();e.stopPropagation();window.saved++}</script>',
+    );
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   try {
@@ -42,6 +44,11 @@ app.whenReady().then(async () => {
     m.sync(snapshot);
     await new Promise((r) => setTimeout(r, 700));
     const wc = m.views.get(source.id)!.webContents;
+    await wc.executeJavaScript('document.querySelector("#later").click()');
+    await new Promise((r) => setTimeout(r, 150));
+    const nestedAction =
+      wc.getURL().endsWith("/source") &&
+      (await wc.executeJavaScript("window.saved")) === 1;
     await wc.executeJavaScript('document.querySelector("a").click()');
     await new Promise((r) => setTimeout(r, 300));
     const leftCurrent = wc.getURL().endsWith("/child") && m.views.size === 1;
@@ -81,6 +88,7 @@ app.whenReady().then(async () => {
     const beforeFull = JSON.stringify(snapshot);
     await middle();
     const results = {
+      nestedAction,
       leftCurrent,
       scriptCurrent,
       afterFirst,
@@ -88,6 +96,7 @@ app.whenReady().then(async () => {
       fullIgnored: beforeFull === JSON.stringify(snapshot),
       sourcePreserved: wc.getURL().endsWith("/script"),
       pass:
+        nestedAction &&
         leftCurrent &&
         scriptCurrent &&
         !!afterFirst[0] &&

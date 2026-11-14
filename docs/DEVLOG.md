@@ -2,6 +2,10 @@
 
 本日志按有证据的开发阶段整理。原记录不含精确日期或版本的条目不补造；有编号的版本见[CHANGELOG](../CHANGELOG.md)，原始记录见[映射](DOCUMENTATION_MAP.md)。
 
+## 2026-11-14：B站首页稍后观看点击（V0.2.1.12）
+
+真实主页DOM确认bili-watch-later位于target=_blank的视频封面链接内。media-preload在document捕获阶段stopImmediatePropagation并location.assign，阻止内部按钮先执行自身逻辑。嵌套按钮夹具复现修复前nestedAction=false。普通链接的左键策略移至window冒泡阶段并尊重defaultPrevented，保留直播个人主页及占位链接原捕获例外、中键规则。真实未登录主页修复后按钮触发登录提示且不离开主页；未使用用户账号验证实际添加到稍后观看的服务端结果。
+
 ## 2026-11-14：会话恢复时背景闪色（V0.2.1.10）
 
 BrowserManager新建WebContentsView时固定setBackgroundColor("#10141d")，主窗口构造背景也写死深蓝。透明流式本地夹具在首帧已提交、网络仍加载时直接采样网页视图：纯黑配置实际得到BGRA[29,20,16,255]，对应深蓝#10141D；主界面截图不能代表独立WebContentsView的背景像素。修复为创建前从已保存主题读取现有背景令牌，主题变更时同步主窗口与已有视图的原生底色。四主题冷启动、响应式/自动适配、加载期间主题切换及网站自有背景恢复通过，无网页CSS注入、刷新或重建。

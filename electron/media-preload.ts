@@ -33,21 +33,29 @@ document.addEventListener(
       event.preventDefault();
       return;
     }
-    // Preserve ordinary in-page handlers; override browser new-tab modifiers/targets.
-    if (
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey ||
-      event.altKey ||
-      (link.target && link.target !== "_self")
-    ) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      location.assign(url.href);
-    }
   },
   true,
 );
+
+// Let the site's target and delegated handlers consume embedded actions first.
+// Only unhandled link clicks reaching the window use our current-page policy.
+window.addEventListener("click", (event) => {
+  if (event.button !== 0 || event.defaultPrevented) return;
+  const link = clickedLink(event);
+  if (!link) return;
+  const url = new URL(link.href, location.href);
+  if (!["http:", "https:"].includes(url.protocol)) return;
+  if (
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    event.altKey ||
+    (link.target && link.target !== "_self")
+  ) {
+    event.preventDefault();
+    location.assign(url.href);
+  }
+});
 document.addEventListener(
   "auxclick",
   (event) => {
