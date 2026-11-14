@@ -1,60 +1,76 @@
 import { z } from "zod";
-export const preferencesSchema = z.object({
-  newPageUrl: z
-    .string()
-    .max(8192)
-    .refine((x) => {
-      try {
-        return ["http:", "https:"].includes(new URL(x).protocol);
-      } catch {
-        return false;
-      }
-    })
-    .default("https://live.bilibili.com"),
-  startupWindow: z.enum(["maximized", "last", "normal"]).default("maximized"),
-  startupContent: z.enum(["last", "workspace", "blank"]).default("last"),
-  defaultWorkspace: z.string().max(100).default(""),
-  autoSaveSession: z.boolean().default(true),
-  confirmClose: z.enum(["never", "multiple", "always"]).default("never"),
-  resolution: z.enum(["1080", "1440", "2160"]).default("1080"),
-  scaleMode: z.enum(["auto", "responsive"]).default("auto"),
-  pageZoom: z.number().min(0.25).max(5).default(1),
-  retryCount: z.number().int().min(0).max(10).default(0),
-  showGroupNames: z.boolean().default(false),
-  theme: z
-    .enum(["dark", "gray", "black", "light", "system"])
-    .default("dark")
-    .transform((v) => (v === "light" || v === "system" ? "dark" : v)),
-  uiScale: z
-    .union([z.literal(0.9), z.literal(1), z.literal(1.1), z.literal(1.25)])
-    .default(1),
-  tooltips: z.boolean().default(true),
-  accent: z.enum(["blue", "teal", "violet"]).default("blue"),
-  logRetention: z
-    .union([z.literal(0), z.literal(7), z.literal(30), z.literal(90)])
-    .default(0),
-  permissions: z
-    .array(
-      z.object({
-        origin: z
-          .string()
-          .max(2048)
-          .refine((x) => {
-            try {
-              const u = new URL(x);
-              return u.protocol === "https:" && u.origin === x;
-            } catch {
-              return false;
-            }
-          }),
-        camera: z.boolean(),
-        microphone: z.boolean(),
-        notifications: z.boolean(),
-      }),
-    )
-    .max(500)
-    .default([]),
-});
+import { accentNames } from "./Accent";
+export const preferencesSchema = z.preprocess(
+  (raw) => {
+    if (raw && typeof raw === "object") {
+      const value = raw as Record<string, unknown>;
+      return {
+        ...value,
+        accentColor:
+          value.accentColor === undefined
+            ? (value.accent ?? "blue")
+            : value.accentColor,
+      };
+    }
+    return raw;
+  },
+  z.object({
+    newPageUrl: z
+      .string()
+      .max(8192)
+      .refine((x) => {
+        try {
+          return ["http:", "https:"].includes(new URL(x).protocol);
+        } catch {
+          return false;
+        }
+      })
+      .default("https://live.bilibili.com"),
+    startupWindow: z.enum(["maximized", "last", "normal"]).default("maximized"),
+    startupContent: z.enum(["last", "workspace", "blank"]).default("last"),
+    defaultWorkspace: z.string().max(100).default(""),
+    autoSaveSession: z.boolean().default(true),
+    confirmClose: z.enum(["never", "multiple", "always"]).default("never"),
+    resolution: z.enum(["1080", "1440", "2160"]).default("1080"),
+    scaleMode: z.enum(["auto", "responsive"]).default("auto"),
+    pageZoom: z.number().min(0.25).max(5).default(1),
+    retryCount: z.number().int().min(0).max(10).default(0),
+    showGroupNames: z.boolean().default(false),
+    theme: z
+      .enum(["dark", "gray", "black", "light", "system"])
+      .default("dark")
+      .transform((v) => (v === "system" ? "dark" : v)),
+    uiScale: z
+      .union([z.literal(0.9), z.literal(1), z.literal(1.1), z.literal(1.25)])
+      .default(1),
+    tooltips: z.boolean().default(true),
+    accentColor: z.enum(accentNames).default("blue"),
+    logRetention: z
+      .union([z.literal(0), z.literal(7), z.literal(30), z.literal(90)])
+      .default(0),
+    permissions: z
+      .array(
+        z.object({
+          origin: z
+            .string()
+            .max(2048)
+            .refine((x) => {
+              try {
+                const u = new URL(x);
+                return u.protocol === "https:" && u.origin === x;
+              } catch {
+                return false;
+              }
+            }),
+          camera: z.boolean(),
+          microphone: z.boolean(),
+          notifications: z.boolean(),
+        }),
+      )
+      .max(500)
+      .default([]),
+  }),
+);
 export type Preferences = z.infer<typeof preferencesSchema>;
 export const defaultPreferences = () => preferencesSchema.parse({});
 export function newPageDefaults<

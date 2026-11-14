@@ -299,7 +299,7 @@ app.whenReady().then(async () => {
       !result.drag.occupiedHints &&
       result.drag.sliderColor === "rgb(0, 135, 189)" &&
       result.drag.audioColor === "rgb(41, 182, 255)" &&
-      result.pageSlider.accent === "rgb(0, 135, 189)" &&
+      result.pageSlider.accent === "rgb(41, 182, 255)" &&
       Object.values(result.borderClearance).every((v) => (v as number) >= 2) &&
       result.bridge &&
       result.panes === 4 &&

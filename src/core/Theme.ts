@@ -1,6 +1,27 @@
 import { navyTokens } from "./ThemeTokens";
-export type ThemeName = "dark" | "gray" | "black";
+import { accentTokenRoles } from "./Accent";
+export type ThemeName = "dark" | "gray" | "black" | "light";
 export const themePalettes = {
+  dark: {
+    background: "#10141d",
+    title: "#1a2231",
+    toolbar: "#19202e",
+    control: "#222b3d",
+    hover: "#34425d",
+    border: "#344058",
+    text: "#dce3f1",
+    secondary: "#a1aec5",
+  },
+  light: {
+    background: "#f3f6fb",
+    title: "#e8eef6",
+    toolbar: "#e8eef6",
+    control: "#e2eaf5",
+    hover: "#cedbef",
+    border: "#b9c8dc",
+    text: "#243247",
+    secondary: "#56667c",
+  },
   gray: {
     background: "#1e1e1e",
     title: "#242424",
@@ -34,7 +55,6 @@ function neutral(original: string, theme: "gray" | "black") {
   if (["#344058", "#3b4966", "#444", "#555", "#303b52"].includes(c))
     return p.border;
   if (["#aaa", "#aaaaaa", "#a1aec5"].includes(c)) return p.secondary;
-  if (c === "rgb(0, 135, 189)") return "#777777";
   let rgb: number[],
     alpha = 1;
   if (c === "white") rgb = [255, 255, 255];
@@ -74,16 +94,46 @@ function neutral(original: string, theme: "gray" | "black") {
     ? "#" + value.toString(16).padStart(2, "0").repeat(3)
     : `rgba(${value},${value},${value},${alpha})`;
 }
-export function themeCSS(theme: ThemeName, overlay = false, feedback = false) {
-  if (theme === "dark") return "";
+function lightToken(key: string) {
+  const n = Number(key.slice(4)),
+    p = themePalettes.light;
+  if ([1, 53].includes(n)) return p.background;
+  if ([11, 18, 38, 49, 51, 73].includes(n)) return p.title;
+  if ([2, 29, 31, 46, 56, 58, 60, 68].includes(n)) return p.control;
+  if ([7, 44, 76].includes(n)) return "#fbfdff";
+  if ([5, 26, 64, 81, 83].includes(n)) return p.hover;
+  if ([3, 12, 15, 19, 34, 48, 52, 61, 62, 69, 75, 78].includes(n))
+    return p.border;
+  if ([13, 16, 25, 30, 36, 41, 42, 45, 63, 67, 79, 82].includes(n))
+    return p.secondary;
+  if (n === 20) return navyTokens.tone20;
+  if (n === 50) return "#32445a66";
+  if (n === 80) return navyTokens.tone80;
+  if (n === 23) return "#b9c8dc";
+  if (n === 39) return "#c9d9ed";
+  if (n === 40) return "#253c5a";
+  if (n === 4) return "#26364a";
+  if (n === 6) return "#17283f";
+  return p.text;
+}
+export function themeCSS(
+  theme: ThemeName,
+  overlay = false,
+  feedback = false,
+  popup = false,
+) {
   const p = themePalettes[theme];
   const vars = Object.entries(navyTokens)
-    .map(([key, value]) => `--ui-${key.slice(4)}:${neutral(value, theme)}`)
+    .filter(([key]) => !(key in accentTokenRoles))
+    .map(
+      ([key, value]) =>
+        `--ui-${key.slice(4)}:${theme === "dark" ? value : theme === "light" ? lightToken(key) : neutral(value, theme)}`,
+    )
     .join(";");
   return (
-    `:root{${vars};color-scheme:dark}` +
+    `:root{${vars};--app-color-scheme:${theme === "light" ? "light" : "dark"};color-scheme:var(--app-color-scheme);--audible-ink:var(--${theme === "light" ? "accent-on" : "accent"});--audible-surface:var(--${theme === "light" ? "accent" : "accent-soft"});--accent-label-ink:var(--${theme === "light" ? "accent-on" : "accent"});--accent-label-surface:${theme === "light" ? "var(--accent)" : "transparent"};--focus-contrast:${theme === "light" ? "var(--ui-0)" : "transparent"}}` +
     (overlay
       ? ""
-      : `:root{background:${feedback ? "transparent" : p.background}}.settings-page-header{background:${p.title}}.settings-tabs{background:${p.title}}*{scrollbar-color:${p.border} ${p.background}}::-webkit-scrollbar-track{background:${p.background}}::-webkit-scrollbar-thumb{background:${p.border}}`)
+      : `:root{background:${feedback ? "transparent" : popup ? (theme === "dark" ? navyTokens.tone73 : p.title) : p.background}}.settings-page-header{background:${p.title}}.settings-tabs{background:${p.title}}*{scrollbar-color:${theme === "dark" || theme === "light" ? "auto" : p.border + " " + p.background}}`)
   );
 }

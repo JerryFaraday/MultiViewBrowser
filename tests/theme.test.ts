@@ -2,9 +2,9 @@ import { it, expect } from "vitest";
 import { themeCSS, themePalettes } from "../src/core/Theme";
 import { preferencesSchema } from "../src/core/Preferences";
 it("preserves navy and migrates legacy theme values", () => {
-  expect(themeCSS("dark")).toBe("");
+  expect(themeCSS("dark")).toContain("--ui-1:#10141d");
   expect(preferencesSchema.parse({}).theme).toBe("dark");
-  expect(preferencesSchema.parse({ theme: "light" }).theme).toBe("dark");
+  expect(preferencesSchema.parse({ theme: "light" }).theme).toBe("light");
   expect(preferencesSchema.parse({ theme: "gray" }).theme).toBe("gray");
 });
 it("new themes contain neutral colors without layout or zoom overrides", () => {

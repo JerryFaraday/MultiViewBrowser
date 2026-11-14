@@ -8,6 +8,7 @@ import {
 } from "react";
 import { normalizeUrl, type Config } from "../core/model";
 import { SettingSwitch } from "./SettingSwitch";
+import { accentPresets, type AccentName } from "../core/Accent";
 import type { Preferences } from "../core/Preferences";
 import version from "../../version.json";
 type Props = {
@@ -335,6 +336,7 @@ export function SettingsPanel({
                   ["dark", "深蓝（Dark Navy）"],
                   ["gray", "深灰（Dark Gray）"],
                   ["black", "纯黑（Just Black）"],
+                  ["light", "浅色（Light）"],
                 ]),
                 "只影响应用界面，不强制改变网站的主题。",
               )}
@@ -355,11 +357,15 @@ export function SettingsPanel({
               )}
               {row(
                 "强调色",
-                select("accent", [
-                  ["blue", "默认蓝色"],
-                  ["teal", "青绿色"],
-                  ["violet", "紫色"],
-                ]),
+                select(
+                  "accentColor",
+                  (
+                    Object.entries(accentPresets) as [
+                      AccentName,
+                      { name: string },
+                    ][]
+                  ).map(([key, value]) => [key, value.name]),
+                ),
               )}
             </>
           )}

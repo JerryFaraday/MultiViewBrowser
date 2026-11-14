@@ -21,7 +21,7 @@ export function initializeNativeScrollbars() {
 }
 
 /** Theme preference only; never opt a website into a different color scheme. */
-export function applyNativeTheme(theme: ThemeName | "light") {
+export function applyNativeTheme(theme: ThemeName) {
   const source = theme === "light" ? "light" : "dark";
   if (nativeTheme.themeSource !== source) nativeTheme.themeSource = source;
 }

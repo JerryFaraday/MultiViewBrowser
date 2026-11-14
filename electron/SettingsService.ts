@@ -1,4 +1,5 @@
 import { themeCSS } from "../src/core/Theme";
+import { accentCSS } from "../src/core/Accent";
 import { applyNativeTheme } from "./NativeTheme";
 import { pruneLogs } from "./LogRetention";
 import {
@@ -135,10 +136,7 @@ export class SettingsService {
     const overlay = w.webContents.getTitle() === "窗口交换交互层";
     const generation = (this.generations.get(w.id) ?? 0) + 1;
     this.generations.set(w.id, generation);
-    const p = this.read().preferences,
-      color = { blue: "rgb(0, 135, 189)", teal: "#148c83", violet: "#8070c7" }[
-        p.accent
-      ];
+    const p = this.read().preferences;
     try {
       w.webContents.setZoomMode("isolated");
       if (
@@ -147,17 +145,14 @@ export class SettingsService {
       )
         w.webContents.setZoomFactor(p.uiScale);
       const old = this.styles.get(w.id);
-      if (old) await w.webContents.removeInsertedCSS(old).catch(() => {});
       if (this.generations.get(w.id) !== generation) return;
       const css =
         themeCSS(
           p.theme,
           overlay,
           w.webContents.getTitle() === "网页缩放比例",
-        ) +
-        (p.accent !== "blue"
-          ? `input[type=range]{accent-color:${color}!important}.setting-switch[aria-checked=true]{background:${color}!important;border-color:${color}!important}.pane-bar .audio-toggle.audible{color:${color}!important}`
-          : "");
+          w !== this.window,
+        ) + accentCSS(p.accentColor, overlay);
       const inserted = await w.webContents.insertCSS(
         css || "/* default appearance */",
       );
@@ -166,6 +161,7 @@ export class SettingsService {
         return;
       }
       this.styles.set(w.id, inserted);
+      if (old) await w.webContents.removeInsertedCSS(old).catch(() => {});
       await w.webContents.executeJavaScript(
         `(()=>{window.__tooltipObserver?.disconnect();const enabled=${p.tooltips};const sync=()=>{for(const el of document.querySelectorAll(enabled?'[data-hidden-title]':'[title]')){if(enabled){el.title=el.dataset.hiddenTitle;delete el.dataset.hiddenTitle;}else{el.dataset.hiddenTitle=el.title;el.removeAttribute('title');}}};sync();window.__tooltipObserver=new MutationObserver(sync);window.__tooltipObserver.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['title']});})()`,
       );
@@ -293,6 +289,7 @@ export class SettingsService {
         },
         settings: {
           theme: c.preferences.theme,
+          accentColor: c.preferences.accentColor,
           uiScale: c.preferences.uiScale,
           resolution: c.preferences.resolution,
           scaleMode: c.preferences.scaleMode,

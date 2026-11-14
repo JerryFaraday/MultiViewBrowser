@@ -3,7 +3,7 @@
   color: var(--ui-0, #dce3f1);
   background: var(--ui-1, #10141d);
   font-size: 12px;
-  color-scheme: dark;
+  color-scheme: var(--app-color-scheme, dark);
 }
 * {
   box-sizing: border-box;
@@ -168,7 +168,8 @@ h4 button:first-of-type {
   color: var(--ui-16, #98accf);
 }
 .drop-hint {
-  color: var(--ui-17, #9ebaff);
+  color: var(--accent-label-ink, var(--ui-17, #9ebaff));
+  background: var(--accent-label-surface, transparent);
   font-size: 18px;
 }
 footer button {
@@ -275,8 +276,8 @@ p {
   cursor: grabbing;
 }
 .audio-toggle.audible {
-  color: var(--ui-28, #8fe1be);
-  background: var(--ui-29, #1e3a38);
+  color: var(--audible-ink, var(--ui-28, #8fe1be));
+  background: var(--audible-surface, var(--ui-29, #1e3a38));
 }
 .audio-toggle.muted {
   color: var(--ui-30, #8794ad);
@@ -590,12 +591,13 @@ footer {
   box-shadow: inset 0 0 0 1px var(--ui-55, #86a6ff);
 }
 .pane-bar .audio-toggle.audible {
-  color: var(--ui-57, #29b6ff);
-  background: var(--ui-58, #123d55);
+  color: var(--audible-ink, var(--ui-57, #29b6ff));
+  background: var(--audible-surface, var(--ui-58, #123d55));
 }
 .pane-bar .audio-toggle.audible:hover {
-  color: var(--ui-59, #6aceff);
-  background: var(--ui-60, #194d6b);
+  color: var(--audible-ink, var(--ui-59, #6aceff));
+  background: var(--audible-surface, var(--ui-60, #194d6b));
+  box-shadow: inset 0 0 0 1px var(--audible-ink, var(--ui-59, #6aceff));
 }
 
 .settings-page {
