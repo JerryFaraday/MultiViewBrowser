@@ -1,6 +1,7 @@
 import { mediaDocuments } from "./media-documents";
 import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { ipcRenderer } from "electron";
+import { installBilibiliLayoutCompatibility } from "./bilibili-layout";
 
 function clickedLink(event: MouseEvent) {
   return event
@@ -283,7 +284,10 @@ ipcRenderer.on(
     scan();
   },
 );
-window.addEventListener("DOMContentLoaded", scan);
+window.addEventListener("DOMContentLoaded", () => {
+  installBilibiliLayoutCompatibility();
+  scan();
+});
 // Diagnostic only: measure both sides of the master stage without recording audio.
 ipcRenderer.on("audio-probe", async () => {
   const levels = [];

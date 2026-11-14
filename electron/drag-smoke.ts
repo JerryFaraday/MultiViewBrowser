@@ -40,6 +40,7 @@ app.whenReady().then(async () => {
     const w = new BrowserWindow({ show: true, width: 1000, height: 650 }),
       m = new BrowserManager(w),
       port = (server.address() as { port: number }).port;
+    m.setVolume(0);
     const a = newPage(`http://127.0.0.1:${port}/a`),
       b = newPage(`http://127.0.0.1:${port}/b`);
     let pages = [a, b],

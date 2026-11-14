@@ -2,6 +2,12 @@
 
 软件当前版本以 [version.json](version.json) 为准。以下只使用原有记录中明确出现的版本，不为未编号阶段补造版本或发布日期。版本条目的证据见[历史验证原文](docs/reviews/VALIDATION_HISTORY.md)；本次文档整理不递增版本。
 
+## V0.2.1.5
+
+### Fixed
+
+- Bilibili视频页的大合集列表改为按需排版屏外条目，降低主窗口放大/恢复时的尺寸适配延迟，保留原网页实例、合集条目与操作。详见[验证与范围](docs/reviews/BILIBILI_COLLECTION_LAYOUT_2026-11-14.md)。
+
 ## V0.2.1.4
 
 ### Changed

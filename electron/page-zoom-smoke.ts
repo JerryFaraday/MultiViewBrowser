@@ -79,10 +79,17 @@ app.whenReady().then(async () => {
     };
     w.focus();
     a.webContents.focus();
+    await wait(150);
     await key(a.webContents, "+");
     const keyboard =
       a.webContents.getZoomFactor() === 1.1 &&
       b.webContents.getZoomFactor() === 1;
+    for (
+      let i = 0;
+      i < 40 && !feedback().some((child) => child.isVisible());
+      i++
+    )
+      await wait(50);
     const aFeedback = feedback().find((child) => child.isVisible())!;
     const actualPercentage =
       (await label(aFeedback)) ===

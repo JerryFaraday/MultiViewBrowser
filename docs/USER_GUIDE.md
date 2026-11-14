@@ -1,6 +1,6 @@
 # 使用指南
 
-适用V0.2.1.4。下文使用正式名称MultiView Browser，界面及窗口标题已统一为MultiView Browser。首次运行需已有构建，见[开发与打包](DEVELOPMENT.md)。
+适用V0.2.1.5。下文使用正式名称MultiView Browser，界面及窗口标题已统一为MultiView Browser。首次运行需已有构建，见[开发与打包](DEVELOPMENT.md)。
 
 ## 启动、分屏与导航
 
