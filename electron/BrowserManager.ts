@@ -1,4 +1,5 @@
 import { logOperation } from "./OperationLogger";
+import { themePalettes } from "../src/core/Theme";
 import { nextPageZoom } from "../src/core/PageZoom";
 import { ZoomFeedback } from "./ZoomFeedback";
 import {
@@ -22,6 +23,9 @@ export class BrowserManager {
     { url: string; count: number; timer?: ReturnType<typeof setTimeout> }
   >();
   setPreferences(prefs: Preferences) {
+    if (prefs.theme !== this.preferences.theme)
+      for (const view of this.views.values())
+        view.setBackgroundColor(themePalettes[prefs.theme].background);
     this.zoomFeedback.setUiScale(prefs.uiScale);
     this.preferences = prefs;
     if (prefs.retryCount === 0) {
@@ -160,7 +164,9 @@ export class BrowserManager {
             autoplayPolicy: "no-user-gesture-required",
           },
         });
-        view.setBackgroundColor("#10141d");
+        view.setBackgroundColor(
+          themePalettes[this.preferences.theme].background,
+        );
         this.views.set(p.id, view);
         this.window.contentView.addChildView(view);
         view.setVisible(false);

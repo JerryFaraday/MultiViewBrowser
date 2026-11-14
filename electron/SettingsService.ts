@@ -1,4 +1,4 @@
-import { themeCSS } from "../src/core/Theme";
+import { themeCSS, themePalettes } from "../src/core/Theme";
 import { accentCSS } from "../src/core/Accent";
 import { applyNativeTheme } from "./NativeTheme";
 import { pruneLogs } from "./LogRetention";
@@ -114,6 +114,9 @@ export class SettingsService {
   apply(force = false) {
     const p = this.read().preferences;
     applyNativeTheme(p.theme);
+    const background = themePalettes[p.theme].background;
+    if (this.window.getBackgroundColor().toLowerCase() !== background)
+      this.window.setBackgroundColor(background);
     this.manager.setPreferences(p);
     const key = JSON.stringify(p);
     if (!force && key === this.previous) return;

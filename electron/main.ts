@@ -1,5 +1,6 @@
 import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 import version from "../version.json";
+import { themePalettes } from "../src/core/Theme";
 import { PageStash } from "./PageStash";
 import { SettingsService } from "./SettingsService";
 import { applyNativeTheme, initializeNativeScrollbars } from "./NativeTheme";
@@ -103,7 +104,7 @@ app.whenReady().then(async () => {
     ...restoredBounds,
     minWidth: 800,
     minHeight: 600,
-    backgroundColor: "#10141d",
+    backgroundColor: themePalettes[initial.preferences.theme].background,
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),
       nodeIntegration: false,
