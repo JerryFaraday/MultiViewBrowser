@@ -81,8 +81,11 @@ bool digits(const std::wstring& value) {
 int wmain(int argc, wchar_t** argv) {
     if (argc != 3) return 2;
     std::wstring command = argv[1], input = argv[2], path;
-    const bool douyu = command == L"douyu";
-    if (douyu && digits(input)) {
+    const bool douyuBackup = command == L"douyu-room";
+    const bool douyu = command == L"douyu" || douyuBackup;
+    if (douyuBackup && digits(input)) {
+        path = L"/api/RoomApi/room/" + input;
+    } else if (douyu && digits(input)) {
         path = L"/betard/" + input;
     } else if (command == L"room" && digits(input)) {
         path = L"/room/v1/Room/room_init?id=" + input;
@@ -106,7 +109,7 @@ int wmain(int argc, wchar_t** argv) {
         WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
     if (!session) return 3;
     WinHttpSetTimeouts(session, 5000, 5000, 5000, 5000);
-    auto connection = WinHttpConnect(session, douyu ? L"www.douyu.com" : L"api.live.bilibili.com",
+    auto connection = WinHttpConnect(session, douyuBackup ? L"open.douyucdn.cn" : douyu ? L"www.douyu.com" : L"api.live.bilibili.com",
         INTERNET_DEFAULT_HTTPS_PORT, 0);
     auto handle = connection ? WinHttpOpenRequest(connection, L"GET", path.c_str(),
         nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE) : nullptr;

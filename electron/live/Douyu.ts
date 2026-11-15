@@ -16,6 +16,7 @@ export type DouyuResult = {
   status: DouyuStatus;
   reason?: DouyuReason;
   httpStatus?: number;
+  source?: "betard" | "room-api";
 };
 export type DouyuResponse = {
   httpStatus: number;
@@ -92,6 +93,40 @@ export function parseDouyu(roomId: string, body: unknown): DouyuResult {
     status: show !== 1 ? "OFFLINE" : loop === 1 ? "LOOP" : "LIVE",
   };
 }
+export function parseDouyuRoomApi(roomId: string, body: unknown): DouyuResult {
+  const id = normalize(roomId),
+    base: DouyuResult = {
+      platform: "douyu",
+      inputRoomId: id ?? roomId,
+      status: "UNKNOWN",
+      source: "room-api",
+    };
+  if (!id) return { ...base, reason: "invalid-room" };
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return { ...base, reason: "parse" };
+  const raw = body as Record<string, unknown>;
+  if (raw.error !== 0 && raw.error !== "0")
+    return { ...base, reason: raw.error == null ? "parse" : "api" };
+  if (!raw.data || typeof raw.data !== "object" || Array.isArray(raw.data))
+    return { ...base, reason: "parse" };
+  const data = raw.data as Record<string, unknown>,
+    realRoomId = normalize(data.room_id);
+  if (!realRoomId) return { ...base, reason: "parse" };
+  const mapped = { ...base, realRoomId };
+  // RoomApi uses data.room_status, not betard's show_status/videoLoop.
+  // Its 0/2 mean not broadcasting. A 1 cannot exclude replay by itself.
+  if (
+    data.room_status === 0 ||
+    data.room_status === "0" ||
+    data.room_status === 2 ||
+    data.room_status === "2"
+  )
+    return { ...mapped, status: "OFFLINE" };
+  return {
+    ...mapped,
+    reason: data.room_status == null ? "parse" : "indeterminate",
+  };
+}
 function aborted() {
   return new DOMException("Query cancelled", "AbortError");
 }
@@ -130,6 +165,7 @@ export class DouyuAdapter {
   constructor(
     private transport: DouyuTransport,
     options: Options = {},
+    private fallback?: DouyuTransport,
   ) {
     this.concurrency = options.concurrency ?? 3;
     this.intervalMs = options.intervalMs ?? 250;
@@ -205,6 +241,7 @@ export class DouyuAdapter {
   private async attempt(
     id: string,
     signal: AbortSignal,
+    backup = false,
   ): Promise<DouyuResponse> {
     const controller = new AbortController();
     const abort = () => controller.abort();
@@ -220,7 +257,7 @@ export class DouyuAdapter {
       });
       timer = setTimeout(() => controller.abort(), this.timeoutMs);
       return await Promise.race([
-        this.transport(id, controller.signal),
+        (backup ? this.fallback! : this.transport)(id, controller.signal),
         cancelled,
       ]);
     } catch {
@@ -235,15 +272,20 @@ export class DouyuAdapter {
       signal.removeEventListener("abort", abort);
     }
   }
-  private async one(id: string, signal: AbortSignal): Promise<DouyuResult> {
+  private async endpoint(
+    id: string,
+    signal: AbortSignal,
+    backup = false,
+  ): Promise<DouyuResult> {
     const base: DouyuResult = {
       platform: "douyu",
       inputRoomId: id,
       status: "UNKNOWN",
+      source: backup ? "room-api" : "betard",
     };
     for (let attempt = 0; ; attempt++) {
       const response = await this.schedule(
-        () => this.attempt(id, signal),
+        () => this.attempt(id, signal, backup),
         signal,
       );
       signal.throwIfAborted();
@@ -260,8 +302,17 @@ export class DouyuAdapter {
       if (response.error) return { ...base, reason: response.error };
       if (response.httpStatus !== 200)
         return { ...base, reason: "http", httpStatus: response.httpStatus };
-      return parseDouyu(id, response.body);
+      return backup
+        ? parseDouyuRoomApi(id, response.body)
+        : { ...parseDouyu(id, response.body), source: "betard" };
     }
+  }
+  private async one(id: string, signal: AbortSignal) {
+    const primary = await this.endpoint(id, signal);
+    signal.throwIfAborted();
+    return primary.status === "UNKNOWN" && this.fallback
+      ? this.endpoint(id, signal, true)
+      : primary;
   }
   async query(
     roomId: string,

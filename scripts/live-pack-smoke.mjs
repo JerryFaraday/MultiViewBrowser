@@ -33,8 +33,8 @@ const config = {
       id: "douyu",
       name: "douyu fixture",
       category: "douyu-live",
-      roomId: "9999",
-      url: "https://www.douyu.com/9999",
+      roomId: "1667826",
+      url: "https://www.douyu.com/1667826",
       group: "常用",
       note: "",
       created: "",
@@ -43,8 +43,8 @@ const config = {
       id: "douyu-offline",
       name: "offline fixture",
       category: "douyu-live",
-      roomId: "288016",
-      url: "https://www.douyu.com/288016",
+      roomId: "6657",
+      url: "https://www.douyu.com/6657",
       group: "常用",
       note: "",
       created: "",
@@ -117,7 +117,7 @@ try {
   for (let i = 0; i < 100; i++) {
     const r = await command("Runtime.evaluate", {
       expression:
-        'window.browser.liveStatus().then(s=>({status:s["35"]?.status,reason:s["35"]?.reason,douyu:s["douyu:9999"]?.status,douyuReason:s["douyu:9999"]?.reason,secondDouyu:s["douyu:288016"]?.status,secondReason:s["douyu:288016"]?.reason,dots:document.querySelectorAll(".live-dot").length}))',
+        'window.browser.liveStatus().then(s=>({status:s["35"]?.status,reason:s["35"]?.reason,douyu:s["douyu:1667826"]?.status,douyuReason:s["douyu:1667826"]?.reason,secondDouyu:s["douyu:6657"]?.status,secondReason:s["douyu:6657"]?.reason,dots:document.querySelectorAll(".live-dot").length}))',
       awaitPromise: true,
       returnByValue: true,
     });

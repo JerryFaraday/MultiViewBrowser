@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import type { DouyuResponse, DouyuTransport } from "./Douyu";
 // Reuse LiveStatus.exe's WinHTTP async worker, with Douyu-only response framing.
-export function nativeDouyuQuery(executable: string): DouyuTransport {
+export function nativeDouyuQuery(
+  executable: string,
+  endpoint: "betard" | "room-api" = "betard",
+): DouyuTransport {
   return (id, signal) =>
     new Promise((resolve, reject) => {
       signal.throwIfAborted();
@@ -9,11 +12,15 @@ export function nativeDouyuQuery(executable: string): DouyuTransport {
         resolve({ httpStatus: 0, error: "api" });
         return;
       }
-      const child = spawn(executable, ["douyu", id], {
-        windowsHide: true,
-        shell: false,
-        stdio: ["ignore", "pipe", "ignore"],
-      });
+      const child = spawn(
+        executable,
+        [endpoint === "room-api" ? "douyu-room" : "douyu", id],
+        {
+          windowsHide: true,
+          shell: false,
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      );
       let output = "",
         settled = false;
       const finish = (result?: DouyuResponse) => {
@@ -44,6 +51,7 @@ export function nativeDouyuQuery(executable: string): DouyuTransport {
           finish({ httpStatus: 0, error: "network" });
           return;
         }
+        let httpStatus = 0;
         try {
           const end = output.indexOf("\n"),
             meta = JSON.parse(output.slice(0, end));
@@ -55,13 +63,14 @@ export function nativeDouyuQuery(executable: string): DouyuTransport {
             ![null, "network", "timeout"].includes(meta.error)
           )
             throw Error("api");
+          httpStatus = meta.httpStatus;
           const result: DouyuResponse = { httpStatus: meta.httpStatus };
           if (meta.error) result.error = meta.error;
           else if (meta.httpStatus === 200)
             result.body = JSON.parse(output.slice(end + 1));
           finish(result);
         } catch {
-          finish({ httpStatus: 0, error: "parse" });
+          finish({ httpStatus, error: "parse" });
         }
       });
     });

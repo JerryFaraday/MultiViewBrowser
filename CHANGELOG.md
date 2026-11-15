@@ -2,6 +2,13 @@
 
 软件当前版本以 [version.json](version.json) 为准。以下只使用原有记录中明确出现的版本，不为未编号阶段补造版本或发布日期。版本条目的证据见[历史验证原文](docs/reviews/VALIDATION_HISTORY.md)；本次文档整理不递增版本。
 
+## V0.2.5.1
+
+### Fixed
+
+- 斗鱼betard返回HTML或无可靠状态时使用HTTPS RoomApi备用查询，修复6657等未播房间持续未知；备用独立解析error/data.room_status，直播但无法排除轮播仍未知。
+- 两接口共享既有限频、重试、取消及去重机制，不因HTTP200或关闭提示直接判定未播。
+
 ## V0.2.5.0
 
 ### Added

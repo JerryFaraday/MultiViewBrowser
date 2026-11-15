@@ -43,8 +43,9 @@ export class LiveCoordinator {
     douyuQuery: DouyuTransport,
     private publish: (states: LiveStates) => void,
     persist: (updates: CacheUpdate[]) => void = () => {},
+    douyuFallback?: DouyuTransport,
   ) {
-    this.douyu = new DouyuAdapter(douyuQuery);
+    this.douyu = new DouyuAdapter(douyuQuery, {}, douyuFallback);
     this.bili = new LiveMonitor(
       biliQuery,
       () => this.emit(),

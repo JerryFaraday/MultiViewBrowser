@@ -45,6 +45,7 @@ export class SettingsService {
           window.webContents.send("live-status", states);
       },
       persistCache,
+      nativeDouyuQuery(executable, "room-api"),
     );
     window.on("closed", () => this.live.dispose());
     ipcMain.handle("live-status-get", (e) => {

@@ -68,9 +68,30 @@ it.each([
       new AbortController().signal,
     );
     respond(output);
-    expect(await p).toEqual({ httpStatus: 0, error: "parse" });
+    expect(await p).toEqual({
+      httpStatus: output.includes('"error":null}\n<html>') ? 200 : 0,
+      error: "parse",
+    });
   },
 );
+it("backup uses its fixed native command and the same cancellable protocol", async () => {
+  const p = nativeDouyuQuery("worker.exe", "room-api")(
+    "6657",
+    new AbortController().signal,
+  );
+  expect(spawn).toHaveBeenCalledWith(
+    "worker.exe",
+    ["douyu-room", "6657"],
+    expect.objectContaining({ shell: false, windowsHide: true }),
+  );
+  respond(
+    '{"httpStatus":200,"error":null}\n{"error":0,"data":{"room_id":"6657","room_status":"0"}}',
+  );
+  expect(await p).toMatchObject({
+    httpStatus: 200,
+    body: { error: 0, data: { room_status: "0" } },
+  });
+});
 it("bounds output and terminates the helper", async () => {
   const p = nativeDouyuQuery("worker.exe")("123", new AbortController().signal);
   child.stdout.write("x".repeat(1024 * 1024 + 257));
