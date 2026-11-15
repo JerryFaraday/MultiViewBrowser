@@ -136,43 +136,50 @@ export function FavoriteEditor({
       )}
       <label>
         {isLive ? "直播间号" : "网址"}
-        {isLive && (
-          <select
-            aria-label="直播平台"
-            value={draft.category}
-            onChange={(e) => {
+        <div className="live-room-controls">
+          {isLive && (
+            <select
+              aria-label="直播平台"
+              title={
+                draft.category === "douyu-live"
+                  ? "https://www.douyu.com/"
+                  : "https://live.bilibili.com/"
+              }
+              value={draft.category}
+              onChange={(e) => {
+                setDraft({
+                  ...draft,
+                  category: e.target.value as LiveCategory,
+                  roomId: "",
+                  url: "",
+                  liveCache: null,
+                });
+                setError("");
+              }}
+            >
+              <option value="bilibili-live">https://live.bilibili.com/</option>
+              <option value="douyu-live">https://www.douyu.com/</option>
+            </select>
+          )}
+          <input
+            required
+            aria-label={isLive ? "直播间号" : "网址"}
+            inputMode={isLive ? "numeric" : "url"}
+            pattern={isLive ? "[0-9]+" : undefined}
+            placeholder={
+              isLive ? "纯数字直播间号" : "https://live.bilibili.com/…"
+            }
+            value={isLive ? draft.roomId : draft.url}
+            onChange={(e) =>
               setDraft({
                 ...draft,
-                category: e.target.value as LiveCategory,
-                roomId: "",
-                url: "",
-                liveCache: null,
-              });
-              setError("");
-            }}
-          >
-            <option value="bilibili-live">https://live.bilibili.com/</option>
-            <option value="douyu-live">https://www.douyu.com/</option>
-          </select>
-        )}
-        <input
-          required
-          aria-label={isLive ? "直播间号" : "网址"}
-          inputMode={isLive ? "numeric" : "url"}
-          pattern={isLive ? "[0-9]+" : undefined}
-          placeholder={
-            isLive ? "纯数字直播间号" : "https://live.bilibili.com/…"
-          }
-          value={isLive ? draft.roomId : draft.url}
-          onChange={(e) =>
-            setDraft({
-              ...draft,
-              ...(isLive
-                ? { roomId: e.target.value.replace(/^0+(?=\d)/, "") }
-                : { url: e.target.value }),
-            })
-          }
-        />
+                ...(isLive
+                  ? { roomId: e.target.value.replace(/^0+(?=\d)/, "") }
+                  : { url: e.target.value }),
+              })
+            }
+          />
+        </div>
       </label>
       <label>
         所属分组
@@ -213,15 +220,6 @@ export function FavoriteEditor({
           />
         </label>
       )}
-      <label>
-        备注（可选）
-        <textarea
-          rows={3}
-          maxLength={2000}
-          value={draft.note}
-          onChange={(e) => setDraft({ ...draft, note: e.target.value })}
-        />
-      </label>
       {error && <p role="alert">{error}</p>}
       <div className="form-actions">
         <button type="button" onClick={onCancel}>

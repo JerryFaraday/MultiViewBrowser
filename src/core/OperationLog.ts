@@ -54,6 +54,7 @@ export const operationEvents = [
   "drag.cancel",
   "layout.presentation",
   "ipc.failed",
+  "live.detect_error",
 ] as const;
 export type OperationEvent = (typeof operationEvents)[number];
 export type LogDetails = {
@@ -102,6 +103,12 @@ const controls = new Set([
   "navigation",
 ]);
 const statuses = new Set([
+  "network",
+  "api",
+  "parse",
+  "indeterminate",
+  "stale",
+  "unavailable",
   "requested",
   "success",
   "cancelled",
@@ -116,6 +123,8 @@ const statuses = new Set([
   "exit",
 ]);
 const actions = new Set([
+  "live.douyu",
+  "live.bilibili",
   "stash.add",
   "stash.show",
   "stash.open",

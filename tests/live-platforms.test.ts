@@ -136,7 +136,7 @@ it("hiding bar cancels in-flight Douyu and drops late results; enabling starts i
   expect(q).toHaveBeenCalledTimes(2);
   m.dispose();
 });
-it("loop is grey replay and invalid response is unknown, interval changes and removal cancel old schedules", async () => {
+it("loop is red replay, interval changes and removal cancel old schedules", async () => {
   const q = vi.fn<DouyuTransport>(async (id) => ({
     httpStatus: 200,
     body: { room: { room_id: Number(id), show_status: 1, videoLoop: 1 } },
@@ -145,7 +145,7 @@ it("loop is grey replay and invalid response is unknown, interval changes and re
     c = config();
   m.configure(c);
   await vi.advanceTimersByTimeAsync(1);
-  expect(m.states["douyu:35"]).toEqual({ status: "unknown", reason: "replay" });
+  expect(m.states["douyu:35"]).toEqual({ status: "offline", reason: "replay" });
   c.preferences.liveInterval = 30;
   m.configure(c);
   await vi.advanceTimersByTimeAsync(300);
@@ -155,5 +155,45 @@ it("loop is grey replay and invalid response is unknown, interval changes and re
   await vi.advanceTimersByTimeAsync(61000);
   expect(q).toHaveBeenCalledTimes(2);
   expect(m.states["douyu:35"]).toBeUndefined();
+  m.dispose();
+});
+it("both platforms retain during detection and one failed round, become grey after two failed rounds, recover", async () => {
+  const c = config();
+  c.preferences.liveInterval = 30;
+  let failed = false;
+  const b: LiveQuery = async (...args) =>
+    failed ? { code: -412 } : bili(...args);
+  const q: DouyuTransport = async (id, signal) =>
+    failed ? { httpStatus: 200, body: {} } : douyu(id, signal);
+  const m = new LiveCoordinator(b, q, () => {});
+  m.configure(c);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(m.states["35"].status).toBe("live");
+  expect(m.states["douyu:35"].status).toBe("offline");
+  failed = true;
+  await vi.advanceTimersByTimeAsync(33000);
+  expect(m.states["35"].status).toBe("live");
+  expect(m.states["douyu:35"].status).toBe("offline");
+  await vi.advanceTimersByTimeAsync(34000);
+  expect(m.states["35"].status).toBe("unknown");
+  expect(m.states["douyu:35"].status).toBe("unknown");
+  failed = false;
+  await vi.advanceTimersByTimeAsync(34000);
+  expect(m.states["35"].status).toBe("live");
+  expect(m.states["douyu:35"].status).toBe("offline");
+  m.dispose();
+});
+it("expiry timer turns a hanging new poll grey, without awaiting its return", async () => {
+  let requests = 0;
+  const c = config();
+  c.favorites = c.favorites.filter((f) => f.category === "douyu-live");
+  const q: DouyuTransport = async (id, signal) =>
+    ++requests === 1 ? douyu(id, signal) : new Promise(() => {});
+  const m = new LiveCoordinator(bili, q, () => {});
+  m.configure(c);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(m.states["douyu:35"].status).toBe("offline");
+  await vi.advanceTimersByTimeAsync(150000);
+  expect(m.states["douyu:35"].status).toBe("unknown");
   m.dispose();
 });

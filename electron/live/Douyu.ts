@@ -1,7 +1,14 @@
 import { setMaxListeners } from "node:events";
 export type DouyuStatus = "LIVE" | "LOOP" | "OFFLINE" | "UNKNOWN";
 export type DouyuReason =
-  "invalid-room" | "network" | "timeout" | "http" | "api" | "unavailable";
+  | "invalid-room"
+  | "network"
+  | "timeout"
+  | "http"
+  | "api"
+  | "parse"
+  | "indeterminate"
+  | "unavailable";
 export type DouyuResult = {
   platform: "douyu";
   inputRoomId: string;
@@ -13,7 +20,7 @@ export type DouyuResult = {
 export type DouyuResponse = {
   httpStatus: number;
   body?: unknown;
-  error?: "network" | "timeout" | "api" | "unavailable";
+  error?: "network" | "timeout" | "api" | "parse" | "unavailable";
 };
 export type DouyuTransport = (
   roomId: string,
@@ -49,22 +56,40 @@ export function parseDouyu(roomId: string, body: unknown): DouyuResult {
     status: "UNKNOWN",
   };
   if (!inputRoomId) return { ...base, reason: "invalid-room" };
+  if (
+    body &&
+    typeof body === "object" &&
+    "error" in body &&
+    body.error !== 0 &&
+    body.error !== "0" &&
+    body.error != null
+  )
+    return { ...base, reason: "api" };
   const room =
     body && typeof body === "object" && "room" in body ? body.room : undefined;
   if (!room || typeof room !== "object" || Array.isArray(room))
-    return { ...base, reason: "api" };
+    return { ...base, reason: "parse" };
   const data = room as Record<string, unknown>,
     realRoomId = normalize(data.room_id);
-  if (!realRoomId) return { ...base, reason: "api" };
+  if (!realRoomId) return { ...base, reason: "parse" };
   const mapped = { ...base, realRoomId },
-    show = flag(data.show_status),
+    show =
+      data.show_status === 2 || data.show_status === "2"
+        ? 2
+        : flag(data.show_status),
     loop = flag(data.videoLoop);
   // Missing/unsupported flags cannot establish a reliable state, even offline.
   if (show === undefined || loop === undefined)
-    return { ...mapped, reason: "api" };
+    return {
+      ...mapped,
+      reason:
+        data.show_status == null || data.videoLoop == null
+          ? "parse"
+          : "indeterminate",
+    };
   return {
     ...mapped,
-    status: show === 0 ? "OFFLINE" : loop === 1 ? "LOOP" : "LIVE",
+    status: show !== 1 ? "OFFLINE" : loop === 1 ? "LOOP" : "LIVE",
   };
 }
 function aborted() {

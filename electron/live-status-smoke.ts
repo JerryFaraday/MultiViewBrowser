@@ -8,6 +8,7 @@ app.setPath("userData", app.getPath("temp") + "/mvb-live-ui-" + Date.now());
 const c = defaults();
 c.masterMuted = true;
 c.bookmarksBar = true;
+c.groups = ["常用", "Other"];
 c.favorites = [
   ...["35", "35", "6", "7"].map((id, i) =>
     favoriteSchema.parse({
@@ -49,6 +50,8 @@ c.favorites = [
     }),
   ),
 ];
+c.favorites.find((f) => f.id === "bad")!.group = "Other";
+c.favorites.find((f) => f.id === "old")!.note = "legacy note";
 mkdirSync(app.getPath("userData"), { recursive: true });
 writeFileSync(app.getPath("userData") + "/config.json", JSON.stringify(c));
 const requests: any[] = [];
@@ -104,8 +107,17 @@ app.whenReady().then(async () => {
     w.focus();
     root.focus();
     root.setBackgroundThrottling(false);
-    const js = (s: string) => root.executeJavaScript(s),
+    const js = async (s: string) => {
+        try {
+          return await root.executeJavaScript(s);
+        } catch (error) {
+          console.error("Fixture step failed:", s.slice(0, 180));
+          throw error;
+        }
+      },
       load = () => js("window.browser.load()");
+    // Only this disposable fixture accepts destructive confirmations.
+    await js("window.confirm=()=>true;true");
     await js(
       "Array.from(document.querySelectorAll('.toolbar>button')).find(b=>b.textContent==='设置').click()",
     );
@@ -182,13 +194,104 @@ app.whenReady().then(async () => {
       await js("document.querySelector('.favorite-editor').requestSubmit()");
       await wait(300);
     };
+    const click = async (selector: string) => {
+      await js(`document.querySelector(${JSON.stringify(selector)}).click()`);
+      await wait(60);
+    };
+    await click('.settings-content [aria-label="编辑分组"]');
+    const inlineFocus = await js(
+      "(()=>{const e=document.querySelector('[aria-label=\"分组名称\"]');return document.activeElement===e&&e.selectionEnd===e.value.length&&!document.querySelector('.name-editor')})()",
+    );
+    await input('[aria-label="分组名称"]', "Other");
+    await click('[aria-label="保存分组"]');
+    const duplicateBlocked = await js(
+      "!!document.querySelector('.group-error')",
+    );
+    await js(
+      "document.querySelector('[aria-label=\"分组名称\"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))",
+    );
+    await wait(50);
+    const escCancelled = await js(
+      "!document.querySelector('.group-name-input')&&!!document.querySelector('.settings-page')",
+    );
+    await click('.settings-content [aria-label="编辑分组"]');
+    await input('[aria-label="分组名称"]', "  ");
+    await click('[aria-label="保存分组"]');
+    const blankBlocked = await js("!!document.querySelector('.group-error')");
+    await input('[aria-label="分组名称"]', "Renamed");
+    await js(
+      "document.querySelector('[aria-label=\"分组名称\"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))",
+    );
+    await wait(300);
+    const renamed = (await load()).groups[0] === "Renamed";
+    await click('.settings-content [aria-label="编辑分组"]');
+    await input('[aria-label="分组名称"]', "Discard");
+    await click('[aria-label="取消编辑分组"]');
+    await wait(250);
+    const cancelKept = (await load()).groups[0] === "Renamed";
+    const iconSizes = await js(
+      "Array.from(document.querySelectorAll('.settings-content .favorite-action')).every(b=>{const r=b.getBoundingClientRect(),s=b.querySelector('svg');return r.width>=32&&r.height>=32&&s?.getAttribute('width')==='16'&&!!b.title})&&!document.querySelector('.settings-content .favorite-group h4 small')",
+    );
+    await click('[aria-label="显示收藏分组名称"]');
+    const beforeFlat = await js(
+      "Array.from(document.querySelectorAll('.bookmarks-bar .bookmark-name')).map(e=>e.textContent)",
+    );
+    await click('[aria-label="显示收藏栏分组"]');
+    await wait(250);
+    const flat = await js(
+      "!document.querySelector('.bookmarks-bar .bookmark-group-name')&&!document.querySelector('.bookmarks-bar .bookmark-separator')",
+    );
+    const afterFlat = await js(
+      "Array.from(document.querySelectorAll('.bookmarks-bar .bookmark-name')).map(e=>e.textContent)",
+    );
+    await click('[aria-label="显示收藏栏"]');
+    await wait(250);
+    const dependencies = await js(
+      "['显示收藏分组名称','显示收藏栏分组'].every(n=>document.querySelector('[aria-label=\"'+n+'\"]').disabled)",
+    );
+    const hidden = await load();
+    await click('[aria-label="显示收藏分组名称"]');
+    await click('[aria-label="显示收藏栏分组"]');
+    const hiddenAfter = await load();
+    await click('[aria-label="显示收藏栏"]');
+    await wait(250);
+    const restored =
+      (await load()).preferences.showGroupNames === true &&
+      (await load()).preferences.showBookmarkGroups === false;
+    await click('[aria-label="显示收藏栏分组"]');
+    await click('[aria-label="检测直播间开播状态"]');
+    await wait(1100);
+    const uiRepairs =
+      inlineFocus &&
+      duplicateBlocked &&
+      escCancelled &&
+      blankBlocked &&
+      renamed &&
+      cancelKept &&
+      iconSizes &&
+      flat &&
+      JSON.stringify(beforeFlat) === JSON.stringify(afterFlat) &&
+      dependencies &&
+      restored &&
+      hidden.preferences.showGroupNames ===
+        hiddenAfter.preferences.showGroupNames &&
+      hidden.preferences.showBookmarkGroups ===
+        hiddenAfter.preferences.showBookmarkGroups;
     await edit("old");
+    const formLayout = await js(
+      "(()=>{const rows=Array.from(document.querySelectorAll('.favorite-editor label'));return !document.querySelector('.favorite-editor textarea')&&rows.every(l=>getComputedStyle(l).display==='grid')&&rows.map(l=>l.querySelector('input,select')?.getBoundingClientRect().left).every((x,i,a)=>Math.abs(x-a[0])<2)})()",
+    );
+    writeFileSync(
+      "favorites-inline-smoke.png",
+      (await w.capturePage()).toPNG(),
+    );
     await category("live");
     await save();
     let cfg = await load();
 
     const converted =
-      cfg.favorites.find((f: any) => f.id === "old").roomId === "35";
+      cfg.favorites.find((f: any) => f.id === "old").roomId === "35" &&
+      cfg.favorites.find((f: any) => f.id === "old").note === "legacy note";
     await edit("old");
     await category("web");
     await save();
@@ -219,7 +322,9 @@ app.whenReady().then(async () => {
       "!!document.querySelector('.favorite-editor [role=alert]')&&document.querySelector('[aria-label=\"标签类别\"]').value==='web'&&document.querySelector('[aria-label=\"标签类别\"] option[value=live]').disabled",
     );
     await js("document.querySelector('[aria-label=\"关闭收藏编辑\"]').click()");
-    await js("document.querySelector('.side-title button').click()");
+    await js(
+      "Array.from(document.querySelectorAll('.side-title button')).find(b=>b.textContent==='添加收藏').click()",
+    );
     await wait(50);
     await input(".favorite-editor label:first-of-type input", "new");
     await category("live");
@@ -243,7 +348,9 @@ app.whenReady().then(async () => {
     const deleted =
       !(await load()).favorites.some((f: any) => f.name === "new") &&
       !(await js("window.browser.liveStatus()"))["55"];
-    await js("document.querySelector('.side-title button').click()");
+    await js(
+      "Array.from(document.querySelectorAll('.side-title button')).find(b=>b.textContent==='添加收藏').click()",
+    );
     await wait(50);
     await input(".favorite-editor label:first-of-type input", "newDouyu");
     await category("live");
@@ -290,7 +397,13 @@ app.whenReady().then(async () => {
       interval &&
       stopped &&
       noQuery;
-    const platformChecks = autoDouyu && douyuSaved && douyuReversed && newDouyu;
+    const platformChecks =
+      autoDouyu &&
+      douyuSaved &&
+      douyuReversed &&
+      newDouyu &&
+      uiRepairs &&
+      formLayout;
     const result = {
       barStable,
       invalidRoom,
@@ -306,6 +419,18 @@ app.whenReady().then(async () => {
       stopped,
       noQuery,
       platformChecks,
+      uiRepairs,
+      formLayout,
+      inlineFocus,
+      duplicateBlocked,
+      escCancelled,
+      blankBlocked,
+      renamed,
+      cancelKept,
+      iconSizes,
+      flat,
+      dependencies,
+      restored,
       pass: pass && platformChecks,
     };
     writeFileSync("live-ui-diagnostic.json", JSON.stringify(result, null, 2));

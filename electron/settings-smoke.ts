@@ -264,16 +264,16 @@ server.listen(0, "127.0.0.1", async () => {
       "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
     );
     const switches = await root.executeJavaScript(
-      "document.querySelectorAll('[role=switch]').length===3&&document.querySelectorAll('.settings-content select').length===0",
+      "document.querySelectorAll('[role=switch]').length===4&&document.querySelectorAll('.settings-content select').length===0",
     );
     await root.executeJavaScript(
       "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
     );
     const editor = await root.executeJavaScript(
-      "!!document.querySelector('.side-title button')&&!document.querySelector('input[placeholder=\"搜索名称、地址、备注\"]')&&!Array.from(document.querySelectorAll('.settings-content button')).some(b=>['新建分组','☆ 收藏当前网页'].includes(b.textContent))",
+      "!!document.querySelector('.side-title button')&&!document.querySelector('input[placeholder=\"搜索名称、地址、备注\"]')&&!Array.from(document.querySelectorAll('.settings-content button')).some(b=>['☆ 收藏当前网页'].includes(b.textContent))",
     );
     await root.executeJavaScript(
-      "document.querySelector('.side-title button').click()",
+      "Array.from(document.querySelectorAll('.side-title button')).find(b=>b.textContent==='添加收藏').click()",
     );
     await wait(80);
     const groupsVisible = await root.executeJavaScript(

@@ -9,6 +9,7 @@ import {
   type LiveCache,
   type CacheUpdate,
   type LiveStates,
+  type LiveState,
 } from "../src/core/LiveStatus";
 export type LiveQuery = (
   kind: "room" | "uids" | "rooms",
@@ -53,7 +54,7 @@ export function nativeLiveQuery(executable: string): LiveQuery {
           if (code !== 0) throw Error("network");
           finish(undefined, JSON.parse(output));
         } catch {
-          finish(Error("network"));
+          finish(Error(code === 0 ? "parse" : "network"));
         }
       });
     });
@@ -72,7 +73,7 @@ function data(raw: any) {
     typeof raw.data !== "object" ||
     Array.isArray(raw.data)
   )
-    throw Error("api");
+    throw Error("parse");
   return raw.data;
 }
 function numeric(value: unknown) {
@@ -101,12 +102,18 @@ export class LiveMonitor {
     { signal: AbortSignal; token: object }
   >();
   private verifying = false;
+  private round = 0;
   states: LiveStates = {};
   constructor(
     private query: LiveQuery,
     private publish: (states: LiveStates) => void,
     private spacing = 1000,
     private persist: (updates: CacheUpdate[]) => void = () => {},
+    private outcome: (
+      id: string,
+      state: LiveState,
+      round: number,
+    ) => void = () => {},
   ) {}
   configure(config: Config) {
     if (this.disposed) return;
@@ -164,6 +171,10 @@ export class LiveMonitor {
   private emit() {
     this.publish(structuredClone(this.states));
   }
+  private setState(id: string, state: LiveState) {
+    this.states[id] = state;
+    this.outcome(id, state, this.round);
+  }
   private async request(
     kind: "room" | "uids" | "rooms",
     ids: string[],
@@ -216,10 +227,10 @@ export class LiveMonitor {
     const reason =
       error instanceof Error && error.message === "unavailable"
         ? "unavailable"
-        : error instanceof Error && error.message === "api"
-          ? "api"
+        : error instanceof Error && ["api", "parse"].includes(error.message)
+          ? (error.message as "api" | "parse")
           : "network";
-    for (const id of ids) this.states[id] = { status: "unknown", reason };
+    for (const id of ids) this.setState(id, { status: "unknown", reason });
     this.emit();
   }
   private async resolve(id: string, signal: AbortSignal, background = false) {
@@ -246,7 +257,7 @@ export class LiveMonitor {
           try {
             if (!job.signal.aborted) {
               const result = await this.resolve(id, job.signal, true);
-              this.states[id] = result.status;
+              this.setState(id, result.status);
               this.emit();
             }
           } catch (error) {
@@ -255,7 +266,7 @@ export class LiveMonitor {
               error instanceof LiveApiError &&
               [60004, -403].includes(error.code)
             ) {
-              this.states[id] = { status: "unknown", reason: "api" };
+              this.setState(id, { status: "unknown", reason: "api" });
               this.emit();
             }
           } finally {
@@ -309,12 +320,14 @@ export class LiveMonitor {
                 this.remember(id, cached.realRoomId, cached.uid, signal);
                 force.delete(id);
               }
-              this.states[id] =
+              this.setState(
+                id,
                 force.has(id) && !confirms
                   ? { status: "unknown", reason: "api" }
-                  : apiState(item.live_status);
+                  : apiState(item.live_status),
+              );
             } catch {
-              this.states[id] = { status: "unknown", reason: "api" };
+              this.setState(id, { status: "unknown", reason: "api" });
               force.add(id);
             }
           }
@@ -356,6 +369,7 @@ export class LiveMonitor {
       );
   }
   private async cycle(rooms: string[], signal: AbortSignal) {
+    this.round++;
     const fallback: string[] = [],
       force = new Set<string>();
     for (let i = 0; i < rooms.length; i += 50) {
@@ -382,7 +396,7 @@ export class LiveMonitor {
               throw Error("api");
             this.remember(id, real, uid, signal);
             if (typeof item.live_status !== "number") throw Error("api");
-            this.states[id] = apiState(item.live_status);
+            this.setState(id, apiState(item.live_status));
           } catch {
             fallback.push(id);
           }

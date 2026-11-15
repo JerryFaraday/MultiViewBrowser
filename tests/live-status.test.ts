@@ -226,7 +226,10 @@ it("malformed batch is unknown, not offline", async () => {
   );
   monitor.configure(config());
   await vi.advanceTimersByTimeAsync(2100);
-  expect(monitor.states["35"]).toEqual({ status: "unknown", reason: "api" });
+  expect(monitor.states["35"]).toEqual({
+    status: "unknown",
+    reason: "indeterminate",
+  });
   monitor.dispose();
 });
 it("interval changes cancel old timer and apply 30 second cadence", async () => {

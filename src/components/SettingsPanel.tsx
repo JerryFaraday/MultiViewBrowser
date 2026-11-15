@@ -43,6 +43,11 @@ export function SettingsPanel({
   }, []);
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) =>
     edit((d) => {
+      if (
+        !d.bookmarksBar &&
+        (key === "showGroupNames" || key === "showBookmarkGroups")
+      )
+        return;
       d.preferences[key] = value;
     });
   const row = (label: string, control: ReactNode, hint?: string) => (
@@ -69,14 +74,22 @@ export function SettingsPanel({
       ))}
     </select>
   );
-  const toggle = (key: "autoSaveSession" | "showGroupNames" | "tooltips") => (
+  const toggle = (
+    key:
+      "autoSaveSession" | "showGroupNames" | "showBookmarkGroups" | "tooltips",
+  ) => (
     <SettingSwitch
       checked={p[key]}
+      disabled={
+        !c.bookmarksBar &&
+        (key === "showGroupNames" || key === "showBookmarkGroups")
+      }
       onChange={(value) => update(key, value)}
       label={
         {
           autoSaveSession: "关闭时自动保存会话",
           showGroupNames: "显示收藏分组名称",
+          showBookmarkGroups: "显示收藏栏分组",
           tooltips: "鼠标悬停提示",
         }[key]
       }
@@ -322,6 +335,11 @@ export function SettingsPanel({
                 "显示收藏分组名称",
                 toggle("showGroupNames"),
                 "分组顺序与分隔线保持现有规则。",
+              )}
+              {row(
+                "显示收藏栏分组",
+                toggle("showBookmarkGroups"),
+                "仅隐藏收藏栏分组标题与分隔线，不改变分组数据或管理操作。",
               )}
               {row(
                 "检测直播间开播状态",

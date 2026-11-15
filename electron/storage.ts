@@ -41,6 +41,11 @@ export class ConfigStore {
     const base = this.history.get(draft.revision);
     if (!base) throw Error("配置版本已过期，请重新加载后操作");
     const merged = validateConfig(mergeConfig(base, draft, latest));
+    if (!latest.bookmarksBar && !merged.bookmarksBar) {
+      merged.preferences.showGroupNames = latest.preferences.showGroupNames;
+      merged.preferences.showBookmarkGroups =
+        latest.preferences.showBookmarkGroups;
+    }
     this.save(merged);
     return merged;
   }

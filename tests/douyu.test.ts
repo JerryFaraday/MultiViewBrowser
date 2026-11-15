@@ -22,7 +22,7 @@ it.each([
   ["1", "0", "LIVE"],
   ["1", "1", "LOOP"],
   ["0", "0", "OFFLINE"],
-  [2, 0, "UNKNOWN"],
+  [2, 0, "OFFLINE"],
   [1, 2, "UNKNOWN"],
   [null, 0, "UNKNOWN"],
   [1, undefined, "UNKNOWN"],
@@ -51,7 +51,7 @@ it.each([
 ])("invalid response stays unknown", (data) => {
   expect(parseDouyu("123", data)).toMatchObject({
     status: "UNKNOWN",
-    reason: "api",
+    reason: "parse",
   });
 });
 it.each([

@@ -1,4 +1,14 @@
 import type { Config } from "./model";
+export function renameFavoriteGroup(c: Config, group: string, input: string) {
+  const name = input.trim();
+  if (!name || name.length > 100) throw Error("分组名称须为1–100个字符。");
+  if (name !== group && c.groups.includes(name))
+    throw Error("已存在同名分组。");
+  c.groups = c.groups.map((g) => (g === group ? name : g));
+  c.favorites.forEach((f) => {
+    if (f.group === group) f.group = name;
+  });
+}
 export function searchFavorites(items: Config["favorites"], query: string) {
   const q = query.toLowerCase();
   return items.filter((f) =>

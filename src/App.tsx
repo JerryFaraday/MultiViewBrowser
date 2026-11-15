@@ -1,4 +1,5 @@
 import { NameEditor } from "./components/NameEditor";
+import { renameFavoriteGroup } from "./core/FavoritesManager";
 import type { LiveStates } from "./core/LiveStatus";
 import { SettingsIcon } from "./components/SettingsIcon";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -381,16 +382,8 @@ export function App() {
           },
     );
   }
-  const renameGroup = async (group: string) => {
-    const name = await ask("编辑分组", group);
-    if (name)
-      edit((d) => {
-        d.groups = [...new Set(d.groups.map((g) => (g === group ? name : g)))];
-        d.favorites.forEach((f) => {
-          if (f.group === group) f.group = name;
-        });
-      });
-  };
+  const renameGroup = (group: string, name: string) =>
+    edit((d) => renameFavoriteGroup(d, group, name));
   const deleteGroup = (group: string) =>
     edit((d) => {
       d.groups = d.groups.filter((g) => g !== group);

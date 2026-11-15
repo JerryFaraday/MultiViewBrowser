@@ -74,7 +74,7 @@ export const favoriteSchema = z
     name: z.string().min(1).max(200),
     url: pageSchema.shape.url,
     group: z.string().max(100),
-    note: z.string().max(2000),
+    note: z.string().max(2000).default(""),
     created: z.string(),
   })
   .superRefine((f, ctx) => {

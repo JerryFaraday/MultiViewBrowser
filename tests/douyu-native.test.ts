@@ -68,13 +68,13 @@ it.each([
       new AbortController().signal,
     );
     respond(output);
-    expect(await p).toEqual({ httpStatus: 0, error: "api" });
+    expect(await p).toEqual({ httpStatus: 0, error: "parse" });
   },
 );
 it("bounds output and terminates the helper", async () => {
   const p = nativeDouyuQuery("worker.exe")("123", new AbortController().signal);
   child.stdout.write("x".repeat(1024 * 1024 + 257));
-  expect(await p).toEqual({ httpStatus: 0, error: "api" });
+  expect(await p).toEqual({ httpStatus: 0, error: "parse" });
   expect(child.kill).toHaveBeenCalledTimes(1);
 });
 it("parent deadline kills a hung helper", async () => {

@@ -39,6 +39,16 @@ const config = {
       note: "",
       created: "",
     },
+    {
+      id: "douyu-offline",
+      name: "offline fixture",
+      category: "douyu-live",
+      roomId: "288016",
+      url: "https://www.douyu.com/288016",
+      group: "常用",
+      note: "",
+      created: "",
+    },
   ],
   groups: ["常用"],
   layouts: [],
@@ -50,7 +60,7 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const port = server.address().port;
 await new Promise((r) => server.close(r));
 const child = spawn(
-  resolve("release/win-unpacked/MultiViewBrowser.exe"),
+  resolve(process.argv[2] || "release/win-unpacked/MultiViewBrowser.exe"),
   ["--user-data-dir=" + profile, "--remote-debugging-port=" + port],
   { windowsHide: true, stdio: "ignore" },
 );
@@ -107,7 +117,7 @@ try {
   for (let i = 0; i < 100; i++) {
     const r = await command("Runtime.evaluate", {
       expression:
-        'window.browser.liveStatus().then(s=>({status:s["35"]?.status,reason:s["35"]?.reason,douyu:s["douyu:9999"]?.status,douyuReason:s["douyu:9999"]?.reason,dots:document.querySelectorAll(".live-dot").length}))',
+        'window.browser.liveStatus().then(s=>({status:s["35"]?.status,reason:s["35"]?.reason,douyu:s["douyu:9999"]?.status,douyuReason:s["douyu:9999"]?.reason,secondDouyu:s["douyu:288016"]?.status,secondReason:s["douyu:288016"]?.reason,dots:document.querySelectorAll(".live-dot").length}))',
       awaitPromise: true,
       returnByValue: true,
     });
@@ -117,7 +127,9 @@ try {
       result.reason !== "pending" &&
       result.status &&
       result.douyuReason !== "pending" &&
-      result.douyu
+      result.douyu &&
+      result.secondDouyu &&
+      result.secondReason !== "pending"
     )
       break;
     await wait(150);
@@ -132,7 +144,8 @@ try {
     !!result &&
     (["live", "offline"].includes(result.status) ||
       result.reason === "replay") &&
-    result.dots === 2 &&
+    result.dots === 3 &&
+    ["live", "offline"].includes(result.secondDouyu) &&
     ["live", "offline"].includes(result.douyu) &&
     loaded.result?.value?.enabled === true &&
     loaded.result?.value?.category === "bilibili-live";
@@ -150,7 +163,13 @@ try {
     ),
   );
   console.log(
-    JSON.stringify({ status: result?.status, dots: result?.dots, pass }),
+    JSON.stringify({
+      status: result?.status,
+      douyu: result?.douyu,
+      secondDouyu: result?.secondDouyu,
+      dots: result?.dots,
+      pass,
+    }),
   );
   await command("Runtime.evaluate", { expression: "window.close()" }).catch(
     () => {},

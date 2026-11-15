@@ -38,6 +38,7 @@ export const preferencesSchema = z.preprocess(
     liveDetection: z.boolean().default(false),
     liveInterval: z.number().int().min(30).max(1800).default(60),
     showGroupNames: z.boolean().default(false),
+    showBookmarkGroups: z.boolean().default(true),
     theme: z
       .enum(["dark", "gray", "black", "light", "system"])
       .default("dark")

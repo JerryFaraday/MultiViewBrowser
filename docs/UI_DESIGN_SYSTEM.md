@@ -255,5 +255,15 @@ These references inform *principles*, not exact copied measurements:
 - Existing React + CSS stack is retained. Semantic aliases in src/style.css bridge the existing Theme.ts / ThemeTokens.ts theme palettes and Accent.ts choices; no font or UI dependencies are added. Existing navy, gray, black and light themes remain available. Default navy is retained for compatibility; the neutral palette in section 2 remains the direction for future palette changes, not a forced theme migration.
 - SettingsPanel is the settings shell; SettingRow and SettingSwitch implement common preferences. FavoritesList is shared with the bookmarks bar. NameEditor and FavoriteEditor share useModalFocus for Escape, Tab containment and focus restoration. New repeated patterns should extend these implementations.
 - Narrow settings panes stack controls below labels at 760px content width. At 640px window width navigation becomes a horizontally scrolling category strip.
-- Duplicate group names keep existing semantics: rename merges groups, creation reuses the existing name. Deleting a group moves its favorites to 未分组. Confirmation describes this scope.
+- Group creation reuses an existing name. From V0.2.5.0, inline renaming rejects blank or duplicate names; deleting a group still moves its favorites to 未分组 and requires confirmation.
 - Existing instant-save persistence remains owned by App and IPC; this change does not introduce a second settings store. Editor submission preserves existing domain validation and conversion logic.
+
+## 13. Explicit favorites requirements (V0.2.5.0)
+
+The user's newer requirements supersede conflicting examples in sections 4–5 for favorites only:
+
+- Group rename is inline: focus/select the single-line name, pencil → green check, trash → red X (cancel only), Enter saves, Esc cancels; reject blank/duplicate names. New-group creation may retain its existing dialog. No group item counts.
+- Group/favorite management uses the existing linear SVG set, 16px glyphs, equal 32×32px targets and 8px gaps, tooltips and accessible names. Destructive confirmations remain. Semantic success/danger tokens in the current shell are #2a9158/#d04444.
+- Both favorite editors use an 88px label column + flexible control column, 12px horizontal gap, 16px row spacing and 36px controls. Small enum selects cap at 220px; room platform and number share the control area, stacking below 480px window width when needed. Notes have no editing control; retain legacy data and tolerate missing notes.
+- “显示收藏栏分组” defaults on and only hides bar group titles/separators. “显示收藏分组名称” and the new switch are disabled while the bar is hidden, preserving their values; management remains available.
+- Both platforms: normal live green; confirmed not-live or replay red; unavailable/unreliable grey. A first failed round can retain a recent valid result; two failed rounds or expiry make it grey. Status tooltips distinguish replay and error categories. These explicit status rules supersede earlier replay examples.

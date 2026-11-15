@@ -6,8 +6,20 @@ type IconName =
   | "star"
   | "palette"
   | "database"
-  | "info";
+  | "info"
+  | "pencil"
+  | "trash"
+  | "check"
+  | "x";
 const paths: Record<IconName, React.ReactNode> = {
+  pencil: (
+    <>
+      <path d="m16 3 5 5M4 20l4-1L21 6a2 2 0 0 0-3-3L5 16z" />
+    </>
+  ),
+  trash: <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7" />,
+  check: <path d="m5 12 4 4L19 6" />,
+  x: <path d="m6 6 12 12M6 18 18 6" />,
   settings: (
     <>
       <path d="m9.5 3-.6 2.1-2 .9-2-.6-2.5 4.2L4 11v2l-1.6 1.4L5 18.6l2-.6 2 .9.5 2.1h5l.6-2.1 2-.9 2 .6 2.5-4.2L20 13v-2l1.6-1.4L19 5.4l-2 .6-2-.9L14.5 3z" />

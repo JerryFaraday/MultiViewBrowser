@@ -59,7 +59,15 @@ export function liveKey(f: { category: string; roomId: string }) {
 }
 export type LiveState = {
   status: "live" | "offline" | "unknown";
-  reason?: "pending" | "network" | "api" | "replay" | "unavailable";
+  reason?:
+    | "pending"
+    | "network"
+    | "api"
+    | "parse"
+    | "indeterminate"
+    | "stale"
+    | "replay"
+    | "unavailable";
 };
 export type LiveStates = Record<string, LiveState>;
 export function apiState(value: unknown): LiveState {
@@ -67,19 +75,21 @@ export function apiState(value: unknown): LiveState {
     ? { status: "live" }
     : value === 0
       ? { status: "offline" }
-      : { status: "unknown", reason: value === 2 ? "replay" : "api" };
+      : { status: "unknown", reason: value === 2 ? "replay" : "indeterminate" };
 }
 export function liveLabel(state?: LiveState) {
+  if (state?.reason === "replay") return "轮播中（非正常直播）";
+  if (state?.reason === "stale") return "检测结果已过期，等待有效状态";
+  if (state?.reason === "parse") return "状态数据解析失败，等待重试";
+  if (state?.reason === "indeterminate") return "接口状态无法判定，等待重试";
   if (state?.status === "live") return "正在直播";
   if (state?.status === "offline") return "未开播";
   if (state?.reason === "unavailable") return "检测程序不可用，请检查安装文件";
   if (state?.reason === "network") return "网络错误或超时，等待下次重试";
   if (state?.reason === "api") return "接口返回异常，等待下次重试";
-  return state?.reason === "replay"
-    ? "轮播中（非实时开播）"
-    : state?.reason === "pending" || !state
-      ? "尚未获得直播状态"
-      : "检测失败，等待下次重试";
+  return state?.reason === "pending" || !state
+    ? "尚未获得直播状态"
+    : "检测失败，等待下次重试";
 }
 
 const cachedId = z.string().refine((s) => {

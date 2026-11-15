@@ -1,4 +1,7 @@
 import type { Config } from "../../src/core/model";
+import { liveKey } from "../../src/core/LiveStatus";
+import { LiveDisplay } from "./LiveDisplay";
+import { logOperation } from "../OperationLogger";
 import type {
   CacheUpdate,
   LiveState,
@@ -9,13 +12,14 @@ import { DouyuAdapter, type DouyuResult, type DouyuTransport } from "./Douyu";
 function state(result: DouyuResult): LiveState {
   if (result.status === "LIVE") return { status: "live" };
   if (result.status === "OFFLINE") return { status: "offline" };
+  if (result.status === "LOOP") return { status: "offline", reason: "replay" };
   return {
     status: "unknown",
     reason:
-      result.status === "LOOP"
-        ? "replay"
-        : result.reason === "network" || result.reason === "timeout"
-          ? "network"
+      result.reason === "network" || result.reason === "timeout"
+        ? "network"
+        : result.reason === "parse" || result.reason === "indeterminate"
+          ? result.reason
           : result.reason === "unavailable"
             ? "unavailable"
             : "api",
@@ -25,8 +29,10 @@ function state(result: DouyuResult): LiveState {
 export class LiveCoordinator {
   private bili: LiveMonitor;
   private douyu: DouyuAdapter;
-  private biliStates: LiveStates = {};
-  private douyuStates: LiveStates = {};
+  private display = new LiveDisplay();
+  private keys = new Set<string>();
+  private expiry?: ReturnType<typeof setTimeout>;
+  private douyuRound = 0;
   private signature = "";
   private controller?: AbortController;
   private timer?: ReturnType<typeof setTimeout>;
@@ -41,21 +47,42 @@ export class LiveCoordinator {
     this.douyu = new DouyuAdapter(douyuQuery);
     this.bili = new LiveMonitor(
       biliQuery,
-      (states) => {
-        this.biliStates = states;
-        this.emit();
-      },
+      () => this.emit(),
       1000,
       persist,
+      (id, state, round) => this.record(id, state, round),
     );
+  }
+  private record(key: string, state: LiveState, round: number) {
+    if (this.disposed || !this.keys.has(key)) return;
+    if (state.status === "unknown" && state.reason !== "pending")
+      logOperation("live.detect_error", {
+        action: key.startsWith("douyu:") ? "live.douyu" : "live.bilibili",
+        status: state.reason ?? "indeterminate",
+      });
+    this.display.accept(key, state, round);
   }
   private emit() {
     if (this.disposed) return;
-    this.states = { ...this.biliStates, ...this.douyuStates };
+    this.states = this.display.snapshot(this.keys);
     this.publish(structuredClone(this.states));
+    clearTimeout(this.expiry);
+    const next = this.display.nextExpiry();
+    if (Number.isFinite(next))
+      this.expiry = setTimeout(() => this.emit(), Math.max(1, next));
   }
   configure(config: Config) {
     if (this.disposed) return;
+    this.keys = new Set(
+      config.bookmarksBar && config.preferences.liveDetection
+        ? config.favorites.filter((f) => f.category !== "web").map(liveKey)
+        : [],
+    );
+    this.display.retain(this.keys);
+    this.display.validForMs = Math.max(
+      120000,
+      config.preferences.liveInterval * 2000 + 30000,
+    );
     const rooms =
       config.bookmarksBar && config.preferences.liveDetection
         ? [
@@ -71,25 +98,21 @@ export class LiveCoordinator {
       this.signature = signature;
       this.controller?.abort();
       clearTimeout(this.timer);
-      this.douyuStates = Object.fromEntries(
-        rooms.map((id) => [
-          "douyu:" + id,
-          this.douyuStates["douyu:" + id] ?? {
-            status: "unknown",
-            reason: "pending",
-          },
-        ]),
-      );
       this.emit();
       if (rooms.length) {
         const controller = (this.controller = new AbortController());
         const cycle = async () => {
+          const round = ++this.douyuRound;
           try {
             await this.douyu.queryMany(rooms, {
               signal: controller.signal,
               onResult: (result) => {
                 if (controller.signal.aborted || this.disposed) return;
-                this.douyuStates["douyu:" + result.inputRoomId] = state(result);
+                this.record(
+                  "douyu:" + result.inputRoomId,
+                  state(result),
+                  round,
+                );
                 this.emit();
               },
             });
@@ -112,9 +135,10 @@ export class LiveCoordinator {
     this.disposed = true;
     this.controller?.abort();
     clearTimeout(this.timer);
+    clearTimeout(this.expiry);
     this.bili.dispose();
     this.states = {};
-    this.douyuStates = {};
-    this.biliStates = {};
+    this.keys.clear();
+    this.display.retain(this.keys);
   }
 }

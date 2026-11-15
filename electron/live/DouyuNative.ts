@@ -35,7 +35,7 @@ export function nativeDouyuQuery(executable: string): DouyuTransport {
       child.stdout.on("data", (chunk: string) => {
         output += chunk;
         if (output.length > 1024 * 1024 + 256)
-          finish({ httpStatus: 0, error: "api" });
+          finish({ httpStatus: 0, error: "parse" });
       });
       child.on("error", () => finish({ httpStatus: 0, error: "unavailable" }));
       child.on("close", (code) => {
@@ -61,7 +61,7 @@ export function nativeDouyuQuery(executable: string): DouyuTransport {
             result.body = JSON.parse(output.slice(end + 1));
           finish(result);
         } catch {
-          finish({ httpStatus: 0, error: "api" });
+          finish({ httpStatus: 0, error: "parse" });
         }
       });
     });

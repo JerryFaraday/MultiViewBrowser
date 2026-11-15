@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { SettingsIcon } from "./SettingsIcon";
 import type { DragEvent } from "react";
 import type { Config } from "../core/model";
 import { liveKey, liveLabel, type LiveStates } from "../core/LiveStatus";
@@ -6,6 +7,7 @@ import {
   moveItem,
   moveFavorite,
   searchFavorites,
+  renameFavoriteGroup,
 } from "../core/FavoritesManager";
 type Props = {
   config: Config;
@@ -15,7 +17,7 @@ type Props = {
   onEdit: (fn: (c: Config) => void) => void;
   onOpen: (url: string) => void;
   onFavorite: (id: string) => void;
-  onGroupRename: (group: string) => void;
+  onGroupRename: (group: string, name: string) => void;
   onGroupDelete: (group: string) => void;
   onDrag: (value: boolean) => void;
 };
@@ -34,6 +36,26 @@ export function FavoritesList({
   onDrag,
 }: Props) {
   const [over, setOver] = useState("");
+  const [editing, setEditing] = useState<string | null>(null),
+    [name, setName] = useState(""),
+    [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editing !== null) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+  const saveGroup = (group: string) => {
+    try {
+      renameFavoriteGroup(structuredClone(c), group, name);
+      onGroupRename(group, name.trim());
+      setEditing(null);
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "分组名称无效。");
+    }
+  };
   const finish = () => {
     setOver("");
     onDrag(false);
@@ -87,6 +109,7 @@ export function FavoritesList({
           onDrop={(e) => dropGroup(e, group)}
         >
           {bar ? (
+            c.preferences.showBookmarkGroups &&
             i > 0 && (
               <span className="bookmark-separator" aria-hidden="true">
                 |
@@ -94,7 +117,7 @@ export function FavoritesList({
             )
           ) : (
             <h4
-              draggable
+              draggable={editing !== group}
               onDragStart={(e) => {
                 e.dataTransfer.setData(groupType, group);
                 e.dataTransfer.effectAllowed = "move";
@@ -104,34 +127,86 @@ export function FavoritesList({
               title="拖动分组标题调整顺序"
             >
               <span className="group-grip">⠿</span>
-              <span className="group-name" title={group}>
-                {group}
-              </span>
-              <small>
-                {c.favorites.filter((f) => f.group === group).length} 项
-              </small>
+              {editing === group ? (
+                <input
+                  ref={inputRef}
+                  className="group-name-input"
+                  aria-label="分组名称"
+                  maxLength={100}
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing) return;
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      saveGroup(group);
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditing(null);
+                      setError("");
+                    }
+                  }}
+                />
+              ) : (
+                <span className="group-name" title={group}>
+                  {group}
+                </span>
+              )}
               <button
-                aria-label="编辑分组"
-                title="编辑分组"
-                onClick={() => onGroupRename(group)}
+                className={
+                  "favorite-action " + (editing === group ? "save-action" : "")
+                }
+                aria-label={editing === group ? "保存分组" : "编辑分组"}
+                title={editing === group ? "保存分组" : "编辑分组"}
+                onClick={() =>
+                  editing === group
+                    ? saveGroup(group)
+                    : (setEditing(group), setName(group), setError(""))
+                }
               >
-                编辑
+                <SettingsIcon name={editing === group ? "check" : "pencil"} />
               </button>
               <button
-                aria-label="删除分组"
-                title="删除分组，收藏移至未分组"
+                className={
+                  "favorite-action " +
+                  (editing === group ? "cancel-action" : "")
+                }
+                aria-label={editing === group ? "取消编辑分组" : "删除分组"}
+                title={
+                  editing === group
+                    ? "取消编辑分组"
+                    : "删除分组，收藏移至未分组"
+                }
                 onClick={() => {
+                  if (editing === group) {
+                    setEditing(null);
+                    setError("");
+                    return;
+                  }
                   if (window.confirm("删除此分组？其中的收藏将移至未分组。"))
                     onGroupDelete(group);
                 }}
               >
-                删除
+                <SettingsIcon name={editing === group ? "x" : "trash"} />
               </button>
             </h4>
           )}
-          {bar && c.preferences.showGroupNames && (
-            <span className="bookmark-group-name">{group}</span>
+          {!bar && editing === group && error && (
+            <p className="group-error" role="alert">
+              {error}
+            </p>
           )}
+          {bar &&
+            c.preferences.showBookmarkGroups &&
+            c.preferences.showGroupNames && (
+              <span className="bookmark-group-name">{group}</span>
+            )}
           {!bar && !visibleFavorites.some((f) => f.group === group) && (
             <p className="empty-state">
               此分组暂无收藏，可添加收藏或拖入已有收藏。
@@ -206,13 +281,15 @@ export function FavoritesList({
                   <>
                     <button
                       aria-label="编辑收藏"
+                      className="favorite-action"
                       title="编辑收藏"
                       onClick={() => onFavorite(f.id)}
                     >
-                      编辑
+                      <SettingsIcon name="pencil" />
                     </button>
                     <button
                       aria-label="删除收藏"
+                      className="favorite-action"
                       title="删除收藏"
                       onClick={() =>
                         window.confirm(
@@ -225,7 +302,7 @@ export function FavoritesList({
                         })
                       }
                     >
-                      删除
+                      <SettingsIcon name="trash" />
                     </button>
                   </>
                 )}
