@@ -12,6 +12,20 @@ const nativeRect = (r: UiRect) => {
   };
 };
 contextBridge.exposeInMainWorld("browser", {
+  beginResize: (axis: "x" | "y") => ipcRenderer.invoke("resize-start", axis),
+  onResizePointer: (fn: (event: unknown) => void) => {
+    const listener = (
+      _e: unknown,
+      event: { x: number; y: number; done: boolean; cancelled?: boolean },
+    ) => {
+      const scale = webFrame.getZoomFactor();
+      fn({ ...event, x: event.x / scale, y: event.y / scale });
+    };
+    ipcRenderer.on("resize-pointer", listener);
+    return () => ipcRenderer.removeListener("resize-pointer", listener);
+  },
+  resizePreview: (rect: UiRect | null) =>
+    ipcRenderer.invoke("resize-preview", rect ? nativeRect(rect) : null),
   liveStatus: () => ipcRenderer.invoke("live-status-get"),
   onLiveStatus: (fn: (states: unknown) => void) => {
     const h = (_e: unknown, states: unknown) => fn(states);

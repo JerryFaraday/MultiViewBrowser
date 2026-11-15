@@ -250,7 +250,7 @@ server.listen(0, "127.0.0.1", async () => {
     );
     await wait(200);
     const categories = await root.executeJavaScript(
-      "document.querySelectorAll('.settings-tabs button').length===6",
+      "document.querySelectorAll('.settings-tabs button').length===8",
     );
     try {
       writeFileSync("settings-smoke.png", (await root.capturePage()).toPNG());
@@ -347,7 +347,7 @@ server.listen(0, "127.0.0.1", async () => {
     };
     await enter();
     const icons = await root.executeJavaScript(
-      "Array.from(document.querySelectorAll('.settings-tabs svg')).map(x=>x.dataset.icon).join(',')==='sliders-horizontal,globe,star,palette,database,info'&&Array.from(document.querySelectorAll('.settings-page svg')).every(x=>x.getAttribute('width')==='16'&&x.getAttribute('stroke-width')==='1.8')",
+      "Array.from(document.querySelectorAll('.settings-tabs svg')).map(x=>x.dataset.icon).join(',')==='sliders-horizontal,globe,star,gauge,volume-2,palette,database,info'&&Array.from(document.querySelectorAll('.settings-page svg')).every(x=>x.getAttribute('width')==='16'&&x.getAttribute('stroke-width')==='1.8')",
     );
     w.focus();
     root.focus();

@@ -15,6 +15,7 @@ export class ZoomFeedback {
   private entries = new Map<string, Feedback>();
   private uiScale = 1;
   setUiScale(value: number) {
+    if (this.uiScale === value) return;
     this.uiScale = value;
     for (const entry of this.entries.values()) this.position(entry);
   }
@@ -41,7 +42,7 @@ export class ZoomFeedback {
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
-        backgroundThrottling: false,
+        backgroundThrottling: true,
       },
     });
     window.setMenu(null);
@@ -53,7 +54,7 @@ export class ZoomFeedback {
       <title>网页缩放比例</title><style>
       *{box-sizing:border-box;user-select:none;pointer-events:none}
       body{margin:0;background:transparent;overflow:hidden}
-      #zoom{height:36px;display:flex;align-items:center;justify-content:center;
+      #zoom{height:calc(100vh - 4px);display:flex;align-items:center;justify-content:center;
       margin:2px;border:1px solid var(--ui-75,#444);border-radius:6px;background:var(--ui-73,#242424);
       color:var(--ui-77,#eee);font:500 14px "Segoe UI",sans-serif;opacity:0;transition:opacity 180ms ease}
       </style><div id="zoom" role="status" aria-label="网页缩放比例"></div></html>`;
@@ -107,7 +108,8 @@ export class ZoomFeedback {
       return;
     let entry = this.entries.get(id);
     if (!entry) {
-      entry = this.create(rect, factor);
+      entry = this.entries.values().next().value ?? this.create(rect, factor);
+      this.entries.clear();
       this.entries.set(id, entry);
     }
     clearTimeout(entry.timer);
@@ -159,8 +161,8 @@ export class ZoomFeedback {
     if (!entry) return;
     entry.generation++;
     clearTimeout(entry.timer);
-    if (!entry.window.isDestroyed()) entry.window.destroy();
-    this.entries.delete(id);
+    if (!entry.window.isDestroyed() && entry.window.isVisible())
+      entry.window.hide();
   }
   hide() {
     for (const entry of this.entries.values()) {
@@ -170,6 +172,10 @@ export class ZoomFeedback {
     }
   }
   destroy() {
-    for (const id of this.entries.keys()) this.remove(id);
+    for (const [id, entry] of this.entries) {
+      this.remove(id);
+      if (!entry.window.isDestroyed()) entry.window.destroy();
+    }
+    this.entries.clear();
   }
 }

@@ -15,6 +15,16 @@ declare global {
         fn: (states: import("./core/LiveStatus").LiveStates) => void,
       ): () => void;
       settingsView(active: boolean, id?: string): Promise<void>;
+      resizePreview(rect: Rect | null): Promise<void>;
+      beginResize(axis: "x" | "y"): Promise<void>;
+      onResizePointer(
+        fn: (event: {
+          x: number;
+          y: number;
+          done: boolean;
+          cancelled?: boolean;
+        }) => void,
+      ): () => void;
       onSettingsEscape(fn: () => void): () => void;
       settingsAction(action: string): Promise<Record<string, unknown>>;
       onCloseFlush(fn: () => void): () => void;

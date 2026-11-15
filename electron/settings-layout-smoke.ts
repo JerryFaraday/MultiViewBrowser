@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from "electron";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 app.setPath("userData", app.getPath("temp") + "/mvb-layout-" + Date.now());
 void import("./main");
 const wait = (n: number) => new Promise((r) => setTimeout(r, n));
@@ -16,10 +16,13 @@ app.whenReady().then(async () => {
     await wait(150);
     wc.debugger.attach("1.3");
     const cases = [];
+    mkdirSync("out/performance-validation", { recursive: true });
     for (const tab of [
       "常规",
       "网页浏览",
       "收藏栏",
+      "性能",
+      "音频与媒体",
       "外观",
       "数据与隐私",
       "关于与诊断",
@@ -29,7 +32,7 @@ app.whenReady().then(async () => {
       );
       await wait(100);
       writeFileSync(
-        `design-system-${tab}.png`,
+        `out/performance-validation/design-system-${tab}.png`,
         (await wc.capturePage()).toPNG(),
       );
     }
@@ -42,7 +45,7 @@ app.whenReady().then(async () => {
       );
       await wait(100);
       writeFileSync(
-        `design-system-${text}.png`,
+        `out/performance-validation/design-system-${text}.png`,
         (await wc.capturePage()).toPNG(),
       );
       await wc.executeJavaScript(
@@ -51,6 +54,9 @@ app.whenReady().then(async () => {
     }
     await wc.executeJavaScript(
       "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='常规').click()",
+    );
+    await wc.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='性能').click()",
     );
     for (const [width, height, dpi, zoom] of [
       [1920, 1080, 1, 1],

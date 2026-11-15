@@ -6,12 +6,25 @@ type IconName =
   | "star"
   | "palette"
   | "database"
+  | "gauge"
+  | "volume-2"
   | "info"
   | "pencil"
   | "trash"
   | "check"
   | "x";
 const paths: Record<IconName, React.ReactNode> = {
+  gauge: (
+    <>
+      <path d="M3 16a9 9 0 1 1 18 0M12 13l4-5" />
+      <circle cx="12" cy="14" r="2" />
+    </>
+  ),
+  "volume-2": (
+    <>
+      <path d="m11 5-6 4H2v6h3l6 4zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" />
+    </>
+  ),
   pencil: (
     <>
       <path d="m16 3 5 5M4 20l4-1L21 6a2 2 0 0 0-3-3L5 16z" />
@@ -87,6 +100,8 @@ export function SettingsIcon({ name }: { name: IconName }) {
   );
 }
 export const categoryIcons: Record<string, IconName> = {
+  性能: "gauge",
+  音频与媒体: "volume-2",
   常规: "sliders-horizontal",
   网页浏览: "globe",
   收藏栏: "star",

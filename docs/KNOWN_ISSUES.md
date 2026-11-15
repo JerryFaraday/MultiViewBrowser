@@ -67,3 +67,10 @@ V0.1.1.9补充：5E兼容路径边界按“自动适配比例×内容Page Zoom�
 
 - Electron visual acceptance is blocked by local Electron install-directory Windows ACL. Screenshots, real DPI, collection extremes and full keyboard/save-failure paths remain unverified.
 - Remaining design exceptions: rendered contrast matrix, per-field asynchronous save feedback, independent modal body scrolling and discard confirmation. See docs/reviews/UI_DESIGN_SYSTEM_2026-11-15.md.
+
+
+## V0.2.6.0 资源策略与全屏验证边界（2026-11-16）
+
+- P1 / 待实播验证：B站直播1883358196、35、6在隔离配置未生成video元素，未确认站点原因；页面Fullscreen API几何可用不等于直播流验收。B站视频及斗鱼1667826实播原生全屏已通过，不将该局部结果推广到所有播放器按钮。
+- P2 / 持续观察：背景节流同窗口关联、HTML媒体恢复受站点限制、长期暂存释放不能普遍识别所有自建Web Audio和内存状态；默认释放关闭，采用保守检查。短时CPU样本有波动，未证实整体CPU/GPU净收益。
+- 详见[资源策略专项及复跑入口](reviews/PERFORMANCE_2026-11-16.md)；既有低倍率5E输入问题不在本轮自动回避。

@@ -14,6 +14,7 @@ it("旧配置默认 100%，拒绝超过 150% 的配置", () => {
 it("增益支持 150%，保持播放器音量，跨域回退不静音", () => {
   let receive: Function = () => {};
   const media = {
+    tagName: "VIDEO",
     readyState: 4,
     paused: false,
     currentSrc: "https://example.com/video",

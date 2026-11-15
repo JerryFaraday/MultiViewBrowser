@@ -29,6 +29,17 @@ export const preferencesSchema = z.preprocess(
     return raw;
   },
   z.object({
+    backgroundThrottling: z.boolean().default(true),
+    autoReleaseStash: z.boolean().default(false),
+    stashReleaseMinutes: z
+      .union([z.literal(30), z.literal(60), z.literal(120), z.literal(240)])
+      .default(60),
+    muteOnMaximize: z.boolean().default(true),
+    pauseOnMaximize: z.boolean().default(false),
+    pauseInSettings: z.boolean().default(false),
+    autoFetchStashTitle: z.boolean().default(false),
+    liveResize: z.boolean().default(true),
+    logMode: z.enum(["normal", "detailed"]).default("detailed"),
     newPageUrl: z
       .string()
       .max(8192)

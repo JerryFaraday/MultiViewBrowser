@@ -1,4 +1,5 @@
 import { LiveCacheWriter } from "./LiveCacheWriter";
+import { ResizePreview } from "./ResizePreview";
 import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 import version from "../version.json";
 import { themePalettes } from "../src/core/Theme";
@@ -10,6 +11,7 @@ import {
   setOperationLogger,
   logOperation,
   finishOperationLog,
+  finishOperationLogSync,
 } from "./OperationLogger";
 import { logConfigChanges } from "./config-log";
 import { VolumePopup } from "./VolumePopup";
@@ -63,7 +65,7 @@ app.whenReady().then(async () => {
     }
   }
   logOperation("app.ready");
-  store = new ConfigStore(app.getPath("userData"));
+  store = new ConfigStore(app.getPath("userData"), 350);
   const initial = store.load();
   applyNativeTheme(initial.preferences.theme);
   const savedWindow =
@@ -138,10 +140,14 @@ app.whenReady().then(async () => {
     }
     if (input.key === "F11") {
       event.preventDefault();
-      window.setFullScreen(!window.isFullScreen());
-    } else if (input.key === "Escape" && window.isFullScreen()) {
+      manager.toggleApplicationFullscreen();
+    } else if (
+      input.key === "Escape" &&
+      window.isFullScreen() &&
+      !manager.hasHtmlFullscreen()
+    ) {
       event.preventDefault();
-      window.setFullScreen(false);
+      manager.exitApplicationFullscreen();
     }
   });
   function openRequested(url: string) {
@@ -157,15 +163,17 @@ app.whenReady().then(async () => {
       });
       store.save(c);
       window.webContents.send("session-update", c.session, c);
-      stash.refresh();
-      stash.resolveTitle(item.id);
+      stash!.refresh();
+      stash!.resolveTitle(item.id);
       return;
     }
     c.session = updated;
     store.save(c);
     manager.sync(
       c.session,
-      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      c.pageStash.flatMap((x) =>
+        x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+      ),
     );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     window.webContents.send("session-update", c.session, c);
@@ -191,10 +199,12 @@ app.whenReady().then(async () => {
   const cacheWrites = new LiveCacheWriter(store, (c) => {
     if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
       settings.apply();
+      stash?.configure();
       window.webContents.send("session-update", c.session, c);
     }
   });
   window.on("closed", () => cacheWrites.dispose());
+  let stash: PageStash | undefined;
   const settings = new SettingsService(
     window,
     () => store.load(),
@@ -202,6 +212,7 @@ app.whenReady().then(async () => {
     (updates) => cacheWrites.queue(updates),
   );
   settings.apply();
+  stash?.configure();
   function updatePageVolume(
     id: string,
     value: import("../src/core/model").Page["volume"],
@@ -218,7 +229,9 @@ app.whenReady().then(async () => {
     store.save(c);
     manager.sync(
       c.session,
-      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      c.pageStash.flatMap((x) =>
+        x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+      ),
     );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     window.webContents.send("session-update", c.session, c);
@@ -277,7 +290,9 @@ app.whenReady().then(async () => {
     store.save(c);
     manager.sync(
       c.session,
-      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      c.pageStash.flatMap((x) =>
+        x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+      ),
     );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     manager.focusAfterExchange(
@@ -313,7 +328,9 @@ app.whenReady().then(async () => {
     store.save(c);
     manager.sync(
       c.session,
-      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      c.pageStash.flatMap((x) =>
+        x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+      ),
     );
     scalePopup.update(c);
     window.webContents.send("session-update", c.session, c);
@@ -326,10 +343,41 @@ app.whenReady().then(async () => {
     )
       throw Error("拒绝 IPC 来源");
   };
+  const resizePreview = new ResizePreview(
+    window,
+    () => store.load().preferences.accentColor,
+  );
+  if (!initial.preferences.liveResize) resizePreview.prepare();
+  ipcMain.handle("resize-start", (event, axis) => {
+    trusted(event);
+    return resizePreview.begin(z.enum(["x", "y"]).parse(axis));
+  });
+  ipcMain.handle("resize-preview", (event, raw) => {
+    trusted(event);
+    if (raw === null) {
+      resizePreview.show(null);
+      return;
+    }
+    const rect = z
+      .object({
+        x: z.number().int().nonnegative(),
+        y: z.number().int().nonnegative(),
+        width: z.number().int().min(1).max(20000),
+        height: z.number().int().min(1).max(20000),
+      })
+      .parse(raw);
+    const size = window.getContentBounds();
+    if (
+      rect.x + rect.width <= size.width &&
+      rect.y + rect.height <= size.height
+    )
+      resizePreview.show(rect);
+  });
   ipcMain.handle("settings-view", (e, active, id) => {
     trusted(e);
     const was = settingsVisible;
     settingsVisible = z.boolean().parse(active);
+    manager.setSettingsOpen(settingsVisible);
     if (settingsVisible) window.webContents.focus();
     if (was && !settingsVisible) {
       const c = store.load(),
@@ -339,7 +387,7 @@ app.whenReady().then(async () => {
       if (target) manager.focusAfterExchange(target.id);
     }
   });
-  const stash = new PageStash(
+  stash = new PageStash(
     window,
     () => store.load(),
     (id, title) => {
@@ -395,15 +443,17 @@ app.whenReady().then(async () => {
     store.save(c);
     manager.sync(
       c.session,
-      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      c.pageStash.flatMap((x) =>
+        x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+      ),
     );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
-    stash.refresh();
+    stash!.refresh();
     window.webContents.send("session-update", c.session, c);
   }
   ipcMain.handle("stash-hide", (e) => {
     trusted(e);
-    stash.closeSoon();
+    stash!.closeSoon();
   });
   ipcMain.handle("page-new", (e, url) => {
     trusted(e);
@@ -420,7 +470,7 @@ app.whenReady().then(async () => {
         height: z.number().min(1).max(1000),
       })
       .parse(raw);
-    return stash.show(rect);
+    return stash!.show(rect);
   });
   ipcMain.handle("exchange-pages", (e, raw, from, to) => {
     trusted(e);
@@ -430,6 +480,7 @@ app.whenReady().then(async () => {
     const source = draft.session.pages[sourceSlot]?.id;
     const target = draft.session.pages[targetSlot]?.id;
     const c = store.accept(draft);
+    if (!c.preferences.liveResize) resizePreview.prepare();
     const actualFrom = c.session.pages.findIndex((p) => p?.id === source);
     const actualTo = target
       ? c.session.pages.findIndex((p) => p?.id === target)
@@ -559,7 +610,9 @@ app.whenReady().then(async () => {
       }
       manager.sync(
         c.session,
-        c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+        c.pageStash.flatMap((x) =>
+          x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+        ),
       );
       manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     }
@@ -575,6 +628,7 @@ app.whenReady().then(async () => {
       );
     const c = store.accept(draft);
     settings.apply();
+    stash?.configure();
     settings.reloadOrigins(revoked);
     logConfigChanges(before, c);
     logOperation("config.save", {
@@ -582,7 +636,9 @@ app.whenReady().then(async () => {
     });
     manager.sync(
       c.session,
-      c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+      c.pageStash.flatMap((x) =>
+        x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+      ),
     );
     manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
     popup.update(c);
@@ -693,10 +749,13 @@ app.whenReady().then(async () => {
         );
         store.save(c, scope === "all");
         settings.apply();
+        stash?.configure();
         settings.reloadOrigins(revoked);
         manager.sync(
           c.session,
-          c.pageStash.flatMap((x) => (x.page ? [x.page] : [])),
+          c.pageStash.flatMap((x) =>
+            x.page ? [{ ...x.page, parkedAt: x.parkedAt }] : [],
+          ),
         );
         manager.setVolume(c.masterMuted ? 0 : c.masterVolume);
         window.webContents.send("session-update", c.session, c);
@@ -709,11 +768,12 @@ app.whenReady().then(async () => {
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (e) => e.preventDefault());
-  window.on("resize", () => manager.hideViews());
   let closing = false,
     confirmed = false,
     closeTimer: ReturnType<typeof setTimeout> | undefined;
-  const completeClose = () => {
+  let flushingClose = false;
+  const completeClose = async () => {
+    if (flushingClose) return;
     if (confirmed || window.isDestroyed()) return;
     clearTimeout(closeTimer);
     const c = store.load();
@@ -733,12 +793,21 @@ app.whenReady().then(async () => {
       return;
     }
 
-    c.windowState = {
-      ...window.getNormalBounds(),
-      maximized: window.isMaximized(),
-      fullscreen: window.isFullScreen(),
-    };
+    c.windowState = manager.windowState();
     store.save(c);
+    flushingClose = true;
+    try {
+      await store.flush();
+    } catch {
+      flushingClose = false;
+      closing = false;
+      logOperation("app.error", { status: "failed" });
+      dialog.showMessageBoxSync(window, {
+        type: "error",
+        message: "配置保存失败，请检查磁盘空间和目录权限后重试关闭。",
+      });
+      return;
+    }
     confirmed = true;
     window.close();
   };
@@ -754,6 +823,7 @@ app.whenReady().then(async () => {
       );
       const saved = store.accept(draft);
       settings.apply();
+      stash?.configure();
       settings.reloadOrigins(revoked);
       window.webContents.send("session-update", saved.session, saved);
     } finally {
@@ -804,8 +874,31 @@ app.whenReady().then(async () => {
 });
 app.on("window-all-closed", () => app.quit());
 
-app.on("will-quit", finishOperationLog);
-process.on("exit", finishOperationLog);
+let drained = false;
+app.on("will-quit", (event) => {
+  if (drained) return;
+  event.preventDefault();
+  void Promise.all([store?.flush(), finishOperationLog()])
+    .then(() => {
+      drained = true;
+      app.quit();
+    })
+    .catch(async () => {
+      logOperation("app.error", { status: "failed" });
+      const answer = await dialog.showMessageBox({
+        type: "error",
+        title: "保存未完成",
+        message:
+          "配置或操作日志尚未完成写入。请检查磁盘空间与目录权限。重试保存，或退出并接受最后一批修改可能丢失。",
+        buttons: ["重试保存", "退出"],
+        defaultId: 0,
+        cancelId: 0,
+      });
+      if (answer.response === 0) app.quit();
+      else app.exit(1);
+    });
+});
+process.on("exit", finishOperationLogSync);
 process.on("uncaughtExceptionMonitor", () =>
   logOperation("app.error", { status: "failed" }),
 );

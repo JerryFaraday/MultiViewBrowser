@@ -79,3 +79,10 @@ Page.pageZoom默认1，存入Snapshot及工作区。BrowserManager按稳定页�
 ## 设置与会话持久化（V0.2.1.0）
 
 preferences独立于工作区Snapshot和Page局部状态；旧配置经schema迁移保持原默认体验。SettingsService负责可信IPC、外观、清理、诊断和固定外部链接；BrowserManager读取权限/重试策略，preload将UI缩放坐标换算为原生DIP。ConfigStore区分运行内存会话和磁盘保存快照，关闭自动保存时继续存其他配置。关闭握手将最新界面快照交给主进程后再确认关闭并记录windowState；超时回退最后确认状态。见[设置分层](SETTINGS.md)。
+
+
+## V0.2.6.0 性能与运行策略补充
+
+ConfigStore正式运行在内存缓存与异步合并写入模式，AtomicConfigWriter串行维护临时文件/备份/原子替换；正常退出等待flush。OperationLogger统一管理异步批次、模式及容量。BrowserManager保留网页实例身份，缓存原生更新参数，统一管理当前槽位HTML全屏角色、背景节流、MediaSuspension暂停原因和StashRelease保守释放。PageStash仅在用户启用时以net.fetch获取未加载网址标题。ZoomFeedback仅复用一个窗口；ResizePreview是专用原生分屏拖动层，不与网页交换DragOverlay共用状态。
+
+新增偏好、边界和计数证据见[专项报告](reviews/PERFORMANCE_2026-11-16.md)。前文为历史结构；不要再以逐次同步写盘、多缩放浮窗或固定放大静音作为当前唯一实现。

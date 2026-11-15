@@ -1,4 +1,3 @@
-import { mediaDocuments } from "./media-documents";
 import { isLiveProfileLink } from "../src/core/NavigationPolicy";
 import { ipcRenderer } from "electron";
 import { installBilibiliLayoutCompatibility } from "./bilibili-layout";
@@ -79,6 +78,9 @@ let context: AudioContext | undefined;
 const routed = new WeakMap<HTMLMediaElement, GainNode>();
 const sources = new WeakMap<HTMLMediaElement, MediaElementAudioSourceNode>();
 const active = new Set<HTMLMediaElement>();
+const registered = new Set<HTMLMediaElement>();
+const pendingNodes = new Set<Node>();
+let scanTimer: ReturnType<typeof setTimeout> | undefined;
 const applied = new WeakMap<HTMLMediaElement, number>();
 const expected = new WeakMap<HTMLMediaElement, number>();
 let volumeSource: HTMLMediaElement | undefined;
@@ -105,6 +107,7 @@ function report(media: HTMLMediaElement, data: object) {
 function apply(media: HTMLMediaElement) {
   if (!ready) return;
   if (
+    media !== volumeSource &&
     media.isConnected &&
     media.readyState >= 2 &&
     !media.paused &&
@@ -167,13 +170,29 @@ function apply(media: HTMLMediaElement) {
   });
 }
 const watched = new WeakSet<Document>();
+const frameOwners = new WeakMap<Document, HTMLIFrameElement>();
+function connected(media: HTMLMediaElement) {
+  if (!media.isConnected) return false;
+  let doc = media.ownerDocument;
+  while (doc && doc !== document) {
+    const frame = frameOwners.get(doc);
+    if (!frame?.isConnected) return false;
+    doc = frame.ownerDocument;
+  }
+  return true;
+}
 function watch(doc: Document) {
   if (watched.has(doc)) return;
   watched.add(doc);
   let lastInput = 0,
     lastScroll = 0;
+  let dirty = false;
   const interaction = (event: Event) => {
     if (!event.isTrusted) return;
+    if (event.type === "input" && !dirty) {
+      dirty = true;
+      ipcRenderer.send("page-dirty");
+    }
     const mouse = event as MouseEvent,
       element = event.target as Element | null;
     const control = element?.closest?.("a")
@@ -212,7 +231,12 @@ function watch(doc: Document) {
   };
   for (const name of ["pointerdown", "input", "keydown", "scroll"])
     doc.addEventListener(name, interaction, true);
-  new MutationObserver(scan).observe(doc, { childList: true, subtree: true });
+  new MutationObserver((changes) => {
+    for (const change of changes)
+      for (const node of change.addedNodes)
+        if (node.nodeType === 1) pendingNodes.add(node);
+    if (!scanTimer) scanTimer = setTimeout(scan, 50);
+  }).observe(doc, { childList: true, subtree: true });
   doc.addEventListener(
     "volumechange",
     (event) => {
@@ -230,7 +254,7 @@ function watch(doc: Document) {
       expected.set(media, value / 100);
       applied.delete(media);
       publish(value);
-      scan();
+      applyRegistered();
     },
     true,
   );
@@ -251,7 +275,8 @@ function watch(doc: Document) {
         volumeSource = media;
         applied.delete(media);
       }
-      scan();
+      registered.add(media);
+      apply(media);
       void context?.resume().catch(() => {});
     },
     true,
@@ -261,18 +286,60 @@ function watch(doc: Document) {
     () => void context?.resume().catch(() => {}),
     true,
   );
-  doc.addEventListener("loadedmetadata", scan, true);
-  doc.addEventListener("load", scan, true);
+  doc.addEventListener(
+    "loadedmetadata",
+    (event) => {
+      const media = event.target as HTMLMediaElement;
+      registered.add(media);
+      apply(media);
+    },
+    true,
+  );
+  doc.addEventListener(
+    "load",
+    (event) => {
+      const target = event.target as Element;
+      if (target?.tagName === "IFRAME") discover(target);
+    },
+    true,
+  );
+}
+function discover(node: Node) {
+  if (!("querySelectorAll" in node)) return;
+  const root = node as Document | Element;
+  const nodes: Element[] = [...root.querySelectorAll("audio,video,iframe")];
+  if (node.nodeType === 1) nodes.unshift(node as Element);
+  for (const el of nodes) {
+    if (el.tagName === "IFRAME") {
+      try {
+        const child = (el as HTMLIFrameElement).contentDocument;
+        if (child) {
+          frameOwners.set(child, el as HTMLIFrameElement);
+          watch(child);
+          discover(child);
+        }
+      } catch {
+        /* Cross-origin documents retain their security boundary. */
+      }
+    } else if (el.tagName === "AUDIO" || el.tagName === "VIDEO") {
+      const media = el as HTMLMediaElement;
+      if (!registered.has(media)) {
+        registered.add(media);
+        apply(media);
+      }
+    }
+  }
+}
+function applyRegistered() {
+  for (const media of registered) if (connected(media)) apply(media);
 }
 function scan() {
-  for (const doc of mediaDocuments(document)) {
-    watch(doc);
-    doc
-      .querySelectorAll("audio,video")
-      .forEach((el) => apply(el as HTMLMediaElement));
-  }
+  scanTimer = undefined;
+  for (const node of pendingNodes) if (node.isConnected) discover(node);
+  pendingNodes.clear();
+  for (const el of registered) if (!connected(el)) registered.delete(el);
   for (const el of active)
-    if (!el.isConnected) {
+    if (!connected(el)) {
       routed.get(el)?.disconnect();
       active.delete(el);
     }
@@ -289,12 +356,17 @@ ipcRenderer.on(
     master = Math.max(0, Math.min(150, settings.master)) / 100;
     page = snap(settings.page);
     ready = true;
-    scan();
+    if (!watched.has(document)) {
+      watch(document);
+      discover(document);
+    }
+    applyRegistered();
   },
 );
 window.addEventListener("DOMContentLoaded", () => {
   installBilibiliLayoutCompatibility();
-  scan();
+  watch(document);
+  discover(document);
 });
 // Diagnostic only: measure both sides of the master stage without recording audio.
 ipcRenderer.on("audio-probe", async () => {

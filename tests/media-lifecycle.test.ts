@@ -8,6 +8,9 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   const listeners = new Map<string, Function>(),
     sent: unknown[][] = [];
   const media = {
+    tagName: "VIDEO",
+    nodeType: 1,
+    querySelectorAll: () => [],
     readyState: 4,
     paused: false,
     currentSrc: "https://example.com/live",
@@ -15,6 +18,8 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
     crossOrigin: null,
     isConnected: true,
   };
+  const timers: Function[] = [];
+  let queries = 0;
   let sources = 0,
     connections = 0;
   const gain = {
@@ -40,17 +45,22 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   }
   class MutationObserver {
     constructor(fn: Function) {
-      mutate = fn;
+      mutate = (nodes: unknown[] = []) => {
+        fn([{ addedNodes: nodes }]);
+        timers.splice(0).forEach((f) => f());
+      };
     }
     observe() {}
   }
   let extra: typeof media | undefined;
   const childDocument = {
     addEventListener: (name: string, fn: Function) => listeners.set(name, fn),
-    querySelectorAll: (selector: string) =>
-      selector === "iframe"
+    querySelectorAll: (selector: string) => {
+      queries++;
+      return selector === "iframe"
         ? []
-        : [...(media.isConnected ? [media] : []), ...(extra ? [extra] : [])],
+        : [...(media.isConnected ? [media] : []), ...(extra ? [extra] : [])];
+    },
   };
   runInNewContext(
     buildSync({
@@ -70,6 +80,10 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
           send: (...args: unknown[]) => sent.push(args),
         },
       }),
+      setTimeout: (fn: Function) => {
+        timers.push(fn);
+        return timers.length;
+      },
       AudioContext,
       MutationObserver,
       URL,
@@ -82,7 +96,9 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
         addEventListener: (name: string, fn: Function) =>
           listeners.set(name, fn),
         querySelectorAll: (selector: string) =>
-          selector === "iframe" ? [{ contentDocument: childDocument }] : [],
+          selector.includes("iframe")
+            ? [{ tagName: "IFRAME", contentDocument: childDocument }]
+            : [],
       },
     },
   );
@@ -90,6 +106,9 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   receive(null, { master: 100, page: 25 });
   expect(media.volume).toBe(0.25);
   expect(sources).toBe(1);
+  const initialQueries = queries;
+  for (let i = 0; i < 100; i++) mutate();
+  expect(queries).toBe(initialQueries);
   media.volume = 0.75;
   mutate();
   expect(media.volume).toBe(0.75);
@@ -98,7 +117,7 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   media.isConnected = false;
   mutate();
   media.isConnected = true;
-  mutate();
+  mutate([media]);
   expect(sources).toBe(1);
   expect(connections).toBe(2);
   receive(null, { master: 50, page: 75 });
@@ -107,7 +126,7 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   receive(null, { master: 100, page: 100 });
   sent.length = 0;
   extra = { ...media, volume: 0, paused: true };
-  mutate();
+  mutate([extra]);
   expect(media.volume).toBe(1);
   expect(sent).not.toContainEqual(["site-volume", 0]);
   extra.volume = 0;
@@ -117,7 +136,7 @@ it("页面重绘及隐藏零音量媒体不污染主播放器，重挂载复用�
   // Old player remains connected but paused; equally sized replacement takes over.
   media.paused = true;
   extra = { ...media, paused: false, volume: 0.75 };
-  mutate();
+  mutate([extra]);
   receive(null, { master: 100, page: 25 });
   expect(extra.volume).toBe(0.25);
   sent.length = 0;

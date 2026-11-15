@@ -2,6 +2,8 @@ import { logOperation } from "./OperationLogger";
 import { themePalettes } from "../src/core/Theme";
 import { nextPageZoom } from "../src/core/PageZoom";
 import { ZoomFeedback } from "./ZoomFeedback";
+import { MediaSuspension } from "./MediaSuspension";
+import { StashRelease } from "./StashRelease";
 import {
   defaultPreferences,
   allowPermission,
@@ -17,6 +19,7 @@ import { fit } from "../src/core/ScaleManager";
 import { isMuted } from "../src/core/AudioManager";
 import type { Rect } from "../src/core/LayoutManager";
 export class BrowserManager {
+  private disposed = false;
   preferences: Preferences = defaultPreferences();
   private retries = new Map<
     string,
@@ -28,6 +31,21 @@ export class BrowserManager {
         view.setBackgroundColor(themePalettes[prefs.theme].background);
     this.zoomFeedback.setUiScale(prefs.uiScale);
     this.preferences = prefs;
+    if (
+      this.window.webContents.getBackgroundThrottling() !==
+      prefs.backgroundThrottling
+    )
+      this.window.webContents.setBackgroundThrottling(
+        prefs.backgroundThrottling,
+      );
+    for (const v of this.views.values())
+      if (
+        v.webContents.getBackgroundThrottling() !== prefs.backgroundThrottling
+      )
+        v.webContents.setBackgroundThrottling(prefs.backgroundThrottling);
+    this.setVolume(this.volume);
+    this.applyMediaPolicies();
+    this.configureRelease();
     if (prefs.retryCount === 0) {
       for (const item of this.retries.values()) clearTimeout(item.timer);
       this.retries.clear();
@@ -54,6 +72,57 @@ export class BrowserManager {
   private visibleBounds: { id: string; rect: Rect; scale: Page["scale"] }[] =
     [];
   private pendingFocus?: string;
+  private htmlFullscreen = new Set<string>();
+  private monitorOwner?: string;
+  private applicationFullscreen = false;
+  private fullscreenMaximized = false;
+  private fullscreenFocus?: string;
+  toggleApplicationFullscreen() {
+    this.applicationFullscreen = !(this.monitorOwner
+      ? this.applicationFullscreen
+      : this.window.isFullScreen());
+    if (!this.monitorOwner)
+      this.window.setFullScreen(this.applicationFullscreen);
+  }
+  exitApplicationFullscreen() {
+    this.applicationFullscreen = false;
+    if (!this.monitorOwner) this.window.setFullScreen(false);
+  }
+  hasHtmlFullscreen() {
+    return this.htmlFullscreen.size > 0;
+  }
+  windowState() {
+    return {
+      ...this.window.getNormalBounds(),
+      maximized: this.monitorOwner
+        ? this.fullscreenMaximized
+        : this.window.isMaximized(),
+      fullscreen: this.monitorOwner
+        ? this.applicationFullscreen
+        : this.window.isFullScreen(),
+    };
+  }
+  private syncFullscreenRole() {
+    if (this.disposed) return;
+    const owner = [...this.htmlFullscreen].find(
+      (id) => this.slots.get(id) === 0 && this.views.has(id),
+    );
+    if (owner === this.monitorOwner) return;
+    if (owner && !this.monitorOwner) {
+      this.applicationFullscreen = this.window.isFullScreen();
+      this.fullscreenMaximized = this.window.isMaximized();
+      this.fullscreenFocus = [...this.views].find(([, v]) =>
+        v.webContents.isFocused(),
+      )?.[0];
+    }
+    this.monitorOwner = owner;
+    this.window.setFullScreen(!!owner || this.applicationFullscreen);
+    if (!owner && this.fullscreenFocus) {
+      this.pendingFocus ??= this.fullscreenFocus;
+      this.fullscreenFocus = undefined;
+    }
+    this.bounds(this.visibleBounds);
+  }
   focusAfterExchange(id: string) {
     this.pendingFocus = id;
   }
@@ -64,29 +133,70 @@ export class BrowserManager {
   setPresentationMuted(value: boolean) {
     this.presentationMuted = value;
     this.setVolume(this.volume);
+    this.applyMediaPolicies();
+  }
+  private suspension = new MediaSuspension();
+  private release = new StashRelease();
+  private retained: { id: string; parkedAt?: number }[] = [];
+  private settingsOpen = false;
+  setSettingsOpen(active: boolean) {
+    this.settingsOpen = active;
+    this.applyMediaPolicies();
+  }
+  private applyMediaPolicies(refresh = false) {
+    for (const [id, v] of this.views)
+      this.suspension.apply(
+        id,
+        v.webContents,
+        (this.settingsOpen && this.preferences.pauseInSettings) ||
+          (this.presentationMuted &&
+            this.slots.get(id) !== 0 &&
+            this.preferences.pauseOnMaximize),
+        refresh,
+      );
+  }
+  private configureRelease() {
+    this.release.sync(this.preferences, this.retained, this.views, (id, v) => {
+      if (this.views.get(id) !== v) return;
+      this.window.contentView.removeChildView(v);
+      this.views.delete(id);
+      this.requested.delete(id);
+      this.emulations.delete(id);
+      this.sentAudio.delete(id);
+      this.suspension.forget(id);
+      this.zoomFeedback.remove(id);
+    });
   }
 
   muted = new Map<string, boolean>();
+  private sentAudio = new Map<string, string>();
   setVolume(value: number) {
     if (this.volume !== value)
       logOperation("audio.master_change", { previous: this.volume, value });
     this.volume = value;
     for (const [id, view] of this.views) {
       const beforeMuted = view.webContents.isAudioMuted();
-      view.webContents.setAudioMuted(
-        (this.presentationMuted && this.slots.get(id) !== 0) ||
-          value === 0 ||
-          !!this.muted.get(id),
-      );
+      const nextMuted =
+        (this.presentationMuted &&
+          this.preferences.muteOnMaximize &&
+          this.slots.get(id) !== 0) ||
+        value === 0 ||
+        !!this.muted.get(id);
+      if (beforeMuted !== nextMuted) view.webContents.setAudioMuted(nextMuted);
       if (beforeMuted !== view.webContents.isAudioMuted())
         logOperation("audio.native_mute", {
           slot: this.slots.get(id),
           muted: view.webContents.isAudioMuted(),
         });
-      view.webContents.send("audio-settings", {
+      const settings = {
         master: value,
         page: this.pageVolumes.get(id) ?? 100,
-      });
+      };
+      const key = JSON.stringify(settings);
+      if (this.sentAudio.get(id) !== key) {
+        this.sentAudio.set(id, key);
+        view.webContents.send("audio-settings", settings);
+      }
     }
   }
   views = new Map<string, WebContentsView>();
@@ -101,6 +211,14 @@ export class BrowserManager {
     private onPageZoom: (id: string, value: number) => void = () => {},
   ) {
     this.zoomFeedback = new ZoomFeedback(window);
+    for (const event of [
+      "enter-full-screen",
+      "leave-full-screen",
+      "resize",
+    ] as const)
+      window.on(event as "resize", () => {
+        if (this.monitorOwner) this.bounds(this.visibleBounds);
+      });
     const shared = session.fromPartition("persist:multiview");
     shared.setPermissionRequestHandler((_wc, permission, callback, details) => {
       let origin = "";
@@ -108,24 +226,28 @@ export class BrowserManager {
         origin = new URL(details.requestingUrl).origin;
       } catch {}
       callback(
+        permission === "fullscreen" ||
+          allowPermission(
+            this.preferences,
+            origin,
+            permission,
+            "mediaTypes" in details ? details.mediaTypes : [],
+          ),
+      );
+    });
+    shared.setPermissionCheckHandler(
+      (_wc, permission, origin, details) =>
+        permission === "fullscreen" ||
         allowPermission(
           this.preferences,
           origin,
           permission,
-          "mediaTypes" in details ? details.mediaTypes : [],
+          details.mediaType ? [details.mediaType] : [],
         ),
-      );
-    });
-    shared.setPermissionCheckHandler((_wc, permission, origin, details) =>
-      allowPermission(
-        this.preferences,
-        origin,
-        permission,
-        details.mediaType ? [details.mediaType] : [],
-      ),
     );
   }
-  sync(snapshot: Snapshot, retained: Page[] = []) {
+  sync(snapshot: Snapshot, retained: (Page & { parkedAt?: number })[] = []) {
+    this.retained = retained;
     const entries = [...snapshot.pages, ...retained];
     const ids = new Set(entries.flatMap((p) => (p ? [p.id] : [])));
     for (const [id, v] of this.views)
@@ -144,12 +266,19 @@ export class BrowserManager {
         this.frameZoomPages.delete(id);
         this.frameZoomFactors.delete(id);
         this.zoomFeedback.remove(id);
+        this.sentAudio.delete(id);
+        this.htmlFullscreen.delete(id);
+        this.emulations.delete(id);
+        this.suspension.forget(id);
+        this.release.reset(id);
       }
     entries.forEach((p, index) => {
       const slot = index < snapshot.pages.length ? index : -1;
       if (!p) return;
       this.slots.set(p.id, slot);
       this.pageZooms.set(p.id, p.pageZoom ?? 1);
+      if (slot >= 0) this.release.released.delete(p.id);
+      if (slot < 0 && this.release.released.has(p.id)) return;
       let view = this.views.get(p.id);
       if (!view) {
         logOperation("web.page_created", { slot });
@@ -160,7 +289,8 @@ export class BrowserManager {
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: true,
-            backgroundThrottling: false,
+            backgroundThrottling: this.preferences.backgroundThrottling,
+            disableHtmlFullscreenWindowResize: true,
             autoplayPolicy: "no-user-gesture-required",
           },
         });
@@ -171,7 +301,27 @@ export class BrowserManager {
         this.window.contentView.addChildView(view);
         view.setVisible(false);
         const wc = view.webContents;
+        wc.on("enter-html-full-screen", () => {
+          this.htmlFullscreen.add(p.id);
+          this.syncFullscreenRole();
+          this.bounds(this.visibleBounds);
+        });
+        wc.on("leave-html-full-screen", () => {
+          this.htmlFullscreen.delete(p.id);
+          this.syncFullscreenRole();
+          this.bounds(this.visibleBounds);
+        });
+        wc.ipc.on("page-dirty", (event) => {
+          if (event.sender === wc) this.release.markDirty(p.id);
+        });
+        wc.on("did-frame-finish-load", () => this.applyMediaPolicies(true));
         wc.on("did-start-navigation", (_event, url, _inPlace, main) => {
+          if (main && !_inPlace) {
+            this.release.reset(p.id);
+            this.emulations.delete(p.id);
+            this.htmlFullscreen.delete(p.id);
+            this.syncFullscreenRole();
+          }
           const state = this.retries.get(p.id);
           if (main && state && state.url !== url) {
             clearTimeout(state.timer);
@@ -254,10 +404,14 @@ export class BrowserManager {
           }
           if (input.key === "F11") {
             event.preventDefault();
-            this.window.setFullScreen(!this.window.isFullScreen());
-          } else if (input.key === "Escape" && this.window.isFullScreen()) {
+            this.toggleApplicationFullscreen();
+          } else if (
+            input.key === "Escape" &&
+            this.window.isFullScreen() &&
+            !this.htmlFullscreen.has(p.id)
+          ) {
             event.preventDefault();
-            this.window.setFullScreen(false);
+            this.exitApplicationFullscreen();
           }
         });
         let middleUntil = 0;
@@ -313,15 +467,20 @@ export class BrowserManager {
             event.preventDefault();
           }
         });
+        let lastPublished = "";
         const publish = () => {
+          const payload = {
+            id: p.id,
+            title: wc.getTitle(),
+            url: wc.getURL(),
+            back: wc.navigationHistory.canGoBack(),
+            forward: wc.navigationHistory.canGoForward(),
+          };
+          const key = JSON.stringify(payload);
+          if (key === lastPublished) return;
+          lastPublished = key;
           if (!this.window.isDestroyed())
-            this.window.webContents.send("page-event", {
-              id: p.id,
-              title: wc.getTitle(),
-              url: wc.getURL(),
-              back: wc.navigationHistory.canGoBack(),
-              forward: wc.navigationHistory.canGoForward(),
-            });
+            this.window.webContents.send("page-event", payload);
         };
         wc.on("page-title-updated", publish);
         wc.on("did-navigate", () => {
@@ -346,6 +505,8 @@ export class BrowserManager {
             master: this.volume,
             page: this.pageVolumes.get(p.id) ?? 100,
           });
+          if (this.views.get(p.id)?.getVisible())
+            this.bounds(this.visibleBounds);
         });
         wc.on("did-navigate-in-page", publish);
         wc.on("did-fail-load", (_e, code, description, _url, main) => {
@@ -401,12 +562,14 @@ export class BrowserManager {
       this.pageVolumes.set(p.id, p.volume);
       this.muted.set(p.id, slot < 0 || isMuted(p, slot));
       const previousMute = view.webContents.isAudioMuted();
-      view.webContents.setAudioMuted(
-        (this.presentationMuted && slot !== 0) ||
-          this.volume === 0 ||
-          slot < 0 ||
-          isMuted(p, slot),
-      );
+      const nextMute =
+        (this.presentationMuted &&
+          this.preferences.muteOnMaximize &&
+          slot !== 0) ||
+        this.volume === 0 ||
+        slot < 0 ||
+        isMuted(p, slot);
+      if (previousMute !== nextMute) view.webContents.setAudioMuted(nextMute);
       if (previousMute !== view.webContents.isAudioMuted())
         logOperation("audio.native_mute", {
           slot,
@@ -415,14 +578,44 @@ export class BrowserManager {
           status: "success",
         });
     });
+    this.applyMediaPolicies();
+    this.configureRelease();
+    this.syncFullscreenRole();
   }
   bounds(items: { id: string; rect: Rect; scale: Page["scale"] }[]) {
+    if (this.disposed) return;
     this.visibleBounds = items;
+    if (this.monitorOwner) {
+      const view = this.views.get(this.monitorOwner);
+      if (view) {
+        const size = this.window.getContentBounds();
+        this.prepareFullscreen(this.monitorOwner, view);
+        this.setBoundsIfChanged(view, {
+          x: 0,
+          y: 0,
+          width: size.width,
+          height: size.height,
+        });
+        for (const [id, v] of this.views) {
+          const visible = id === this.monitorOwner;
+          if (v.getVisible() !== visible) v.setVisible(visible);
+        }
+        this.zoomFeedback.hide();
+      }
+      return;
+    }
     const visible = new Set(items.map((x) => x.id));
-    for (const [id, v] of this.views) if (!visible.has(id)) v.setVisible(false);
+    for (const [id, v] of this.views)
+      if (!visible.has(id) && v.getVisible()) v.setVisible(false);
     for (const item of items) {
       const v = this.views.get(item.id);
       if (!v) continue;
+      if (this.htmlFullscreen.has(item.id)) {
+        this.prepareFullscreen(item.id, v);
+        this.setBoundsIfChanged(v, item.rect);
+        if (!v.getVisible()) v.setVisible(true);
+        continue;
+      }
       const fitted = fit(item.rect, item.scale);
       const pageZoom = this.pageZooms.get(item.id) ?? 1;
       const combinedZoom = fitted.factor * pageZoom;
@@ -441,25 +634,25 @@ export class BrowserManager {
       )
         v.webContents.setZoomFactor(pageZoom);
       if (item.scale.mode === "responsive") {
-        v.webContents.disableDeviceEmulation();
-        v.setBounds(item.rect);
-        v.setVisible(true);
+        this.emulate(item.id, undefined);
+        this.setBoundsIfChanged(v, item.rect);
+        if (!v.getVisible()) v.setVisible(true);
         continue;
       }
       const { rect, factor } = fitted;
-      v.setBounds(rect);
+      this.setBoundsIfChanged(v, rect);
       if (nativeZoom) {
-        v.webContents.disableDeviceEmulation();
+        this.emulate(item.id, undefined);
         if (!this.frameZoomFactors.has(item.id))
           v.webContents.setZoomMode("isolated");
         if (this.frameZoomFactors.get(item.id) !== combinedZoom) {
           this.frameZoomFactors.set(item.id, combinedZoom);
           v.webContents.setZoomFactor(combinedZoom);
         }
-        v.setVisible(true);
+        if (!v.getVisible()) v.setVisible(true);
         continue;
       }
-      v.webContents.enableDeviceEmulation({
+      this.emulate(item.id, {
         screenPosition: "desktop",
         viewPosition: { x: 0, y: 0 },
         screenSize: { width: item.scale.width, height: item.scale.height },
@@ -467,7 +660,7 @@ export class BrowserManager {
         deviceScaleFactor: 0,
         scale: factor,
       });
-      v.setVisible(true);
+      if (!v.getVisible()) v.setVisible(true);
     }
     this.zoomFeedback.update(
       items.flatMap(({ id }) => {
@@ -493,6 +686,33 @@ export class BrowserManager {
       }
     }
   }
+  private emulations = new Map<string, string>();
+  private prepareFullscreen(id: string, view: WebContentsView) {
+    this.emulate(id, undefined);
+    this.frameZoomFactors.delete(id);
+    const zoom = this.pageZooms.get(id) ?? 1;
+    if (Math.abs(view.webContents.getZoomFactor() - zoom) > 0.0001)
+      view.webContents.setZoomFactor(zoom);
+  }
+  private emulate(id: string, params: Electron.Parameters | undefined) {
+    const v = this.views.get(id);
+    if (!v) return;
+    const key = JSON.stringify(params ?? null);
+    if (this.emulations.get(id) === key) return;
+    this.emulations.set(id, key);
+    if (params) v.webContents.enableDeviceEmulation(params);
+    else v.webContents.disableDeviceEmulation();
+  }
+  private setBoundsIfChanged(v: WebContentsView, rect: Rect) {
+    const before = v.getBounds();
+    if (
+      before.x !== rect.x ||
+      before.y !== rect.y ||
+      before.width !== rect.width ||
+      before.height !== rect.height
+    )
+      v.setBounds(rect);
+  }
   navigate(id: string, action: string, url?: string) {
     clearTimeout(this.retries.get(id)?.timer);
     this.retries.delete(id);
@@ -516,9 +736,14 @@ export class BrowserManager {
   }
   hideViews() {
     this.zoomFeedback.hide();
-    for (const v of this.views.values()) v.setVisible(false);
+    for (const v of this.views.values())
+      if (v.getVisible()) v.setVisible(false);
   }
   destroy() {
+    this.disposed = true;
+    this.htmlFullscreen.clear();
+    this.monitorOwner = undefined;
+    this.release.destroy();
     for (const item of this.retries.values()) clearTimeout(item.timer);
     this.retries.clear();
     this.zoomFeedback.destroy();
@@ -533,5 +758,7 @@ export class BrowserManager {
     this.frameZoomPages.clear();
     this.frameZoomFactors.clear();
     this.visibleBounds = [];
+    this.emulations.clear();
+    this.sentAudio.clear();
   }
 }

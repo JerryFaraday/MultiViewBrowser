@@ -25,17 +25,17 @@ it("日志只允许操作类型和安全元数据，丢弃网址标题及输入�
   });
   expect(sanitizeOperation("https://private", raw)).toBeNull();
 });
-it("每次启动独立文件，版本时间命名，正常结束完整且结束后不再写入", () => {
+it("每次启动独立文件，版本时间命名，正常结束完整且结束后不再写入", async () => {
   const folder = mkdtempSync(join(tmpdir(), "mvb-logs-")),
     a = new OperationLogger(folder, "0.1.1.0"),
     b = new OperationLogger(folder, "0.1.1.0");
   expect(a.file).not.toBe(b.file);
   expect(a.file).toContain("V0.1.1.0_");
   a.write("web.navigate", { url: "https://secret.example", slot: 2 });
-  a.end();
-  a.end();
+  await a.end();
+  await a.end();
   a.write("ui.click", {});
-  b.end();
+  await b.end();
   const text = readFileSync(a.file, "utf8"),
     rows = text
       .trim()

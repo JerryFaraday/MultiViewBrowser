@@ -9,6 +9,7 @@ await build({
     "electron/volume-preload.ts",
     "electron/drag-preload.ts",
     "electron/scale-preload.ts",
+    "electron/resize-preload.ts",
   ],
   bundle: true,
   platform: "node",

@@ -71,6 +71,7 @@ export function App() {
     [selected, setSelected] = useState(0),
     [max, setMax] = useState<number | null>(null),
     [drag, setDrag] = useState(false),
+    [resizing, setResizing] = useState(false),
     [target, setTarget] = useState<number | null>(null),
     [error, setError] = useState("");
   useEffect(
@@ -108,7 +109,7 @@ export function App() {
     const observer = new ResizeObserver(align);
     observer.observe(document.body);
     return () => observer.disconnect();
-  }, [config, max]);
+  }, [config?.bookmarksBar, config?.preferences.uiScale, max]);
   const areas = useRef(new Map<number, HTMLDivElement>()),
     current = useRef(config),
     currentMax = useRef(max),
@@ -168,29 +169,29 @@ export function App() {
         setError("");
         failedPage.current = undefined;
       }
-      setConfig((c) =>
-        c
-          ? {
-              ...c,
-              session: {
-                ...c.session,
-                pages: c.session.pages.map((p) =>
-                  p?.id === e.id
-                    ? {
-                        ...p,
-                        title: e.title || p.title,
-                        url: e.url?.startsWith("http") ? e.url : p.url,
-                      }
-                    : p,
-                ),
-              },
-            }
-          : c,
-      );
+      setConfig((c) => {
+        if (!c) return c;
+        let changed = false;
+        const pages = c.session.pages.map((p) => {
+          if (p?.id !== e.id) return p;
+          const title = e.title || p.title,
+            url = e.url?.startsWith("http") ? e.url : p.url;
+          if (title === p.title && url === p.url) return p;
+          changed = true;
+          return { ...p, title, url };
+        });
+        return changed ? { ...c, session: { ...c.session, pages } } : c;
+      });
     });
   }, []);
   useEffect(() => {
-    if (!config || !ready.current || config === acknowledged.current) return;
+    if (
+      !config ||
+      !ready.current ||
+      resizing ||
+      config === acknowledged.current
+    )
+      return;
     const timer = setTimeout(
       () =>
         window.browser
@@ -205,13 +206,13 @@ export function App() {
                   ? mergeConfig(config, draft, saved)
                   : saved,
             );
-            bounds();
           })
           .catch(fail),
       180,
     );
     return () => clearTimeout(timer);
-  }, [config]);
+  }, [config, resizing]);
+  const boundsSignature = useRef("");
   function bounds() {
     const c = current.current;
     if (!c) return;
@@ -238,21 +239,42 @@ export function App() {
                 ]
               : [];
           });
-    void window.browser.bounds(items).catch(fail);
+    const signature = JSON.stringify(items);
+    if (boundsSignature.current === signature) return;
+    boundsSignature.current = signature;
+    void window.browser.bounds(items).catch((e) => {
+      boundsSignature.current = "";
+      fail(e);
+    });
   }
+  const layoutKey = JSON.stringify(
+    [
+      config?.session.tree,
+      config?.session.pages.map((p) => (p ? [p.id, p.scale] : null)),
+      config?.preferences.uiScale,
+    ],
+    (key, value) => (key === "ratios" ? undefined : value),
+  );
   useEffect(() => {
-    const obs = new ResizeObserver(bounds);
+    let frame = 0;
+    const schedule = () => {
+      if (!frame)
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          bounds();
+        });
+    };
+    const obs = new ResizeObserver(schedule);
     obs.observe(document.body);
     for (const el of areas.current.values()) obs.observe(el);
     bounds();
-    const timer = setTimeout(bounds, 250);
-    window.addEventListener("resize", bounds);
+    window.addEventListener("resize", schedule);
     return () => {
       obs.disconnect();
-      clearTimeout(timer);
-      window.removeEventListener("resize", bounds);
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
     };
-  }, [config, panel, max, question, favoriteDraft]);
+  }, [layoutKey, panel, max, !!question, !!favoriteDraft]);
   useEffect(() => {
     void window.browser.presentation(max !== null).catch(fail);
   }, [max]);
@@ -731,7 +753,11 @@ export function App() {
           ) : (
             <LayoutView
               tree={s.tree}
-              onDrag={setDrag}
+              liveResize={config.preferences.liveResize}
+              onDrag={(v) => {
+                setDrag(v);
+                setResizing(v);
+              }}
               onChange={(tree) =>
                 edit((d) => {
                   d.session.tree = tree;
@@ -748,7 +774,7 @@ export function App() {
           {error ? (
             <button onClick={() => setError("")}>{error} ×</button>
           ) : max !== null ? (
-            "放大模式：非主窗口静音 · 点击恢复分屏退出"
+            "放大模式 · 点击恢复分屏退出"
           ) : (
             "拖动标题栏或双击留白与主窗口换位 · 悬停扬声器调整音量 · 点击切换静音"
           )}

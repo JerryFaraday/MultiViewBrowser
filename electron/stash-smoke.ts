@@ -20,6 +20,7 @@ server.listen(0, "127.0.0.1", async () => {
   const port = (server.address() as any).port;
   const seed = defaults();
   seed.masterMuted = true;
+  seed.preferences.autoFetchStashTitle = true;
   seed.bookmarksBar = true;
   seed.session.tree = { kind: "leaf", slot: 0 };
   seed.session.pages = [newPage("http://127.0.0.1:" + port)];

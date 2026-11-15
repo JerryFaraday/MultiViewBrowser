@@ -18,7 +18,11 @@ import {
 import { writeFileSync, mkdirSync } from "node:fs";
 import { z } from "zod";
 import version from "../version.json";
-import { operationLogLocation, logOperation } from "./OperationLogger";
+import {
+  operationLogLocation,
+  logOperation,
+  setOperationLogMode,
+} from "./OperationLogger";
 import type { Config } from "../src/core/model";
 import type { Preferences } from "../src/core/Preferences";
 import type { BrowserManager } from "./BrowserManager";
@@ -143,6 +147,7 @@ export class SettingsService {
     this.live.configure(this.read());
     const p = this.read().preferences;
     applyNativeTheme(p.theme);
+    setOperationLogMode(p.logMode);
     const background = themePalettes[p.theme].background;
     if (this.window.getBackgroundColor().toLowerCase() !== background)
       this.window.setBackgroundColor(background);
@@ -165,7 +170,9 @@ export class SettingsService {
       !url.startsWith("http://localhost:")
     )
       return;
-    const overlay = w.webContents.getTitle() === "窗口交换交互层";
+    const overlay = ["窗口交换交互层", "分屏线预览"].includes(
+      w.webContents.getTitle(),
+    );
     const generation = (this.generations.get(w.id) ?? 0) + 1;
     this.generations.set(w.id, generation);
     const p = this.read().preferences;

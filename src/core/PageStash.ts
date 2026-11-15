@@ -18,6 +18,7 @@ export function parkPage(c: Config, id: string) {
     url: page.url,
     title: page.title || page.url,
     page,
+    parkedAt: Date.now(),
   });
   c.session.pages[slot] = null;
   return true;
@@ -46,6 +47,7 @@ export function placeStashed(c: Config, id: string, target?: number) {
       url: old.url,
       title: old.title || old.url,
       page: old,
+      parkedAt: Date.now(),
     };
   else c.pageStash.splice(index, 1);
   return page.id;

@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, ipcMain, screen } from "electron";
+import { BrowserWindow, net, ipcMain, screen } from "electron";
 import { join } from "node:path";
 import type { Config } from "../src/core/model";
 import type { Rect } from "../src/core/LayoutManager";
@@ -11,8 +11,9 @@ export class PageStash {
   private loading?: Promise<void>;
   private pending: string[] = [];
   private working = false;
+  private attempted = new Map<string, string>();
   private disposed = false;
-  private probe?: WebContentsView;
+  private request?: AbortController;
   private timer?: ReturnType<typeof setTimeout>;
   private dragging = false;
   private generation = 0;
@@ -131,8 +132,7 @@ export class PageStash {
     });
     parent.on("closed", () => {
       this.disposed = true;
-      if (this.probe && !this.probe.webContents.isDestroyed())
-        this.probe.webContents.close();
+      this.request?.abort();
     });
   }
   refresh() {
@@ -217,60 +217,93 @@ export class PageStash {
     this.refresh();
     this.popup.showInactive();
   }
+  configure() {
+    const ids = new Set(this.read().pageStash.map((x) => x.id));
+    for (const id of this.attempted.keys())
+      if (!ids.has(id)) this.attempted.delete(id);
+    if (!this.read().preferences.autoFetchStashTitle) {
+      this.pending = [];
+      this.request?.abort();
+    }
+  }
   resolveTitle(id: string) {
-    this.pending.push(id);
+    if (!this.read().preferences.autoFetchStashTitle) return;
+    const item = this.read().pageStash.find((x) => x.id === id);
+    if (!item || item.page || this.attempted.get(id) === item.url) return;
+    this.attempted.set(id, item.url);
+    if (!this.pending.includes(id)) this.pending.push(id);
     void this.work();
   }
   private async work() {
     if (this.working || this.disposed) return;
     this.working = true;
     try {
-      while (this.pending.length && !this.disposed) {
+      while (
+        this.pending.length &&
+        !this.disposed &&
+        this.read().preferences.autoFetchStashTitle
+      ) {
         const id = this.pending.shift()!,
           item = this.read().pageStash.find((x) => x.id === id);
-        if (!item) continue;
-        const view = new WebContentsView({
-          webPreferences: {
-            partition: "persist:multiview",
-            sandbox: true,
-            contextIsolation: true,
-            nodeIntegration: false,
-          },
-        });
-        this.probe = view;
-        const wc = view.webContents;
-        wc.setAudioMuted(true);
-        wc.setWindowOpenHandler(() => ({ action: "deny" }));
-        for (const event of ["will-navigate", "will-redirect"] as const)
-          wc.on(event as "will-navigate", (e, url) => {
-            if (!/^https?:\/\//i.test(url)) e.preventDefault();
+        if (!item || item.page || !/^https?:\/\//i.test(item.url)) continue;
+        const controller = new AbortController();
+        this.request = controller;
+        const timer = setTimeout(() => controller.abort(), 8000);
+        try {
+          const response = await net.fetch(item.url, {
+            signal: controller.signal,
+            credentials: "omit",
           });
-        await new Promise<void>((resolve) => {
-          const timer = setTimeout(() => resolve(), 12000);
-          wc.once("destroyed", () => {
-            clearTimeout(timer);
-            resolve();
-          });
-          wc.on("page-title-updated", (_e, title) => {
-            // Never use a URL (Chromium's loading fallback) as a display name.
-            if (
-              title.trim() &&
-              !/https?:\/\//i.test(title) &&
-              title !== new URL(item.url).hostname
-            ) {
-              this.updateTitle(id, title.slice(0, 1000));
-              this.refresh();
-              clearTimeout(timer);
-              resolve();
+          if (
+            !response.ok ||
+            !response.headers.get("content-type")?.includes("text/html")
+          )
+            continue;
+          const reader = response.body?.getReader();
+          if (!reader) continue;
+          const decoder = new TextDecoder();
+          let html = "",
+            size = 0;
+          try {
+            while (size < 512 * 1024) {
+              const chunk = await reader.read();
+              if (chunk.done) break;
+              size += chunk.value.length;
+              html += decoder.decode(chunk.value, { stream: true });
+              if (/<\/title\s*>/i.test(html)) break;
             }
-          });
-          void wc.loadURL(item.url).catch(() => {
-            clearTimeout(timer);
-            resolve();
-          });
-        });
-        if (!wc.isDestroyed()) wc.close();
-        this.probe = undefined;
+          } finally {
+            await reader.cancel().catch(() => {});
+          }
+          const title = html
+            .match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title\s*>/i)?.[1]
+            ?.replace(/\s+/g, " ")
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .trim()
+            .slice(0, 1000);
+          const latest = this.read();
+          if (
+            title &&
+            !controller.signal.aborted &&
+            !this.disposed &&
+            latest.preferences.autoFetchStashTitle &&
+            latest.pageStash.some(
+              (x) => x.id === id && x.url === item.url && !x.page,
+            )
+          ) {
+            this.updateTitle(id, title);
+            this.refresh();
+          }
+        } catch {
+          /* Best effort, no retries and no page instance. */
+        } finally {
+          clearTimeout(timer);
+          if (this.request === controller) this.request = undefined;
+        }
       }
     } finally {
       this.working = false;

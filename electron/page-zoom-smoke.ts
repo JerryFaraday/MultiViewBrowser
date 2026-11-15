@@ -103,9 +103,12 @@ app.whenReady().then(async () => {
     const wheelRequest =
       b.webContents.getZoomFactor() > 1 &&
       a.webContents.getZoomFactor() === 1.1;
-    const bFeedback = feedback().find((child) => child.id !== aFeedback.id)!;
+    const bFeedback = feedback()[0];
     await wait(1100);
-    const independentTimeout = !aFeedback.isVisible() && bFeedback.isVisible();
+    const independentTimeout =
+      feedback().length === 1 &&
+      aFeedback.id === bFeedback.id &&
+      bFeedback.isVisible();
     await wait(1150);
     const dismissed = !bFeedback.isVisible();
     const zoomContainerStable =

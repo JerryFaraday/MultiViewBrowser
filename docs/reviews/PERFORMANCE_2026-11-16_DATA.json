@@ -1,0 +1,396 @@
+{
+  "before": {
+    "label": "before",
+    "fixture": "local DOM changes every 30ms; generated media streams; 3 one-second samples; one-view precise coverage; GPU counter after sampling",
+    "results": [
+      {
+        "name": "four-idle",
+        "mainCpu": 0.06485783596515139,
+        "rendererCpu": 0.026157566911436548,
+        "gpuProcessCpu": 0.005478080052223641,
+        "workingSetMB": 671.58984375,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 101,
+        "actionMs": 0.0009999999999763531,
+        "eventLoopP95Ms": 16.072703,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "four-media",
+        "mainCpu": 0.02763296048927505,
+        "rendererCpu": 0.11112589306484337,
+        "gpuProcessCpu": 0.1676871299417546,
+        "workingSetMB": 737.2890625,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 1
+        },
+        "mediaScans": 101,
+        "actionMs": 0.0015999999995983671,
+        "eventLoopP95Ms": 16.130047,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "max-layout",
+        "mainCpu": 0.05733713656129496,
+        "rendererCpu": 0.05604467157967142,
+        "gpuProcessCpu": 0.0038375457944586386,
+        "workingSetMB": 1278.1315104166667,
+        "webContents": 10,
+        "views": 9,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 101,
+        "actionMs": 0.0011999999987892807,
+        "eventLoopP95Ms": 16.121855,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "twenty-hot-stash",
+        "mainCpu": 0.039068161272475734,
+        "rendererCpu": 0.1562990393774786,
+        "gpuProcessCpu": 0.004198351292624089,
+        "workingSetMB": 2794.484375,
+        "webContents": 25,
+        "views": 24,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 101,
+        "actionMs": 0.0010000000002037268,
+        "eventLoopP95Ms": 16.146431,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "repeated-state-and-bounds",
+        "mainCpu": 0.20215037681808998,
+        "rendererCpu": 0.21082453273704885,
+        "gpuProcessCpu": 0.13925647142475386,
+        "workingSetMB": 823.5169270833334,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 1
+        },
+        "mediaScans": 155,
+        "actionMs": 125.58030000000144,
+        "eventLoopP95Ms": 16.523263,
+        "ipc": {
+          "config-load": 51,
+          "config-save": 50,
+          "operation-log": 1
+        },
+        "outgoing": {
+          "audio-settings": 200
+        },
+        "bounds": 200,
+        "visible": 200,
+        "emulation": 200,
+        "configWrites": 50,
+        "logWrites": 103,
+        "configReads": 351,
+        "syncDiskMs": 70.80490000004647
+      },
+      {
+        "name": "zoom-switch",
+        "mainCpu": 0.21342600490824115,
+        "rendererCpu": 0.39107034288947434,
+        "gpuProcessCpu": 0.38889242763434995,
+        "workingSetMB": 1221.0625,
+        "webContents": 9,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 122,
+        "actionMs": 619.4353999999985,
+        "eventLoopP95Ms": 17.973247,
+        "ipc": {
+          "bounds": 41
+        },
+        "outgoing": {},
+        "bounds": 244,
+        "visible": 244,
+        "emulation": 244,
+        "configWrites": 20,
+        "logWrites": 20,
+        "configReads": 64,
+        "syncDiskMs": 27.995399999996152
+      },
+      {
+        "name": "settings-toggle",
+        "mainCpu": 0.026508929310465796,
+        "rendererCpu": 0.30713300615763245,
+        "gpuProcessCpu": 0.25142921522855455,
+        "workingSetMB": 1223.765625,
+        "webContents": 9,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 1
+        },
+        "mediaScans": 113,
+        "actionMs": 365.7375999999931,
+        "eventLoopP95Ms": 16.105471,
+        "ipc": {
+          "settings-view": 10
+        },
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 1,
+        "configReads": 5,
+        "syncDiskMs": 0.7065000000075088
+      }
+    ]
+  },
+  "after": {
+    "label": "after",
+    "fixture": "local DOM changes every 30ms; generated media streams; 3 one-second samples; one-view precise coverage; GPU counter after sampling",
+    "results": [
+      {
+        "name": "four-idle",
+        "mainCpu": 0.02408310530711119,
+        "rendererCpu": 0.23204440858776632,
+        "gpuProcessCpu": 0.181236236488274,
+        "workingSetMB": 699.7890625,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 34,
+        "actionMs": 0.0009999999999763531,
+        "eventLoopP95Ms": 16.072703,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "four-media",
+        "mainCpu": 0.020013651086225423,
+        "rendererCpu": 0.38528694316749945,
+        "gpuProcessCpu": 0.36383204869566205,
+        "workingSetMB": 770.1341145833334,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 1
+        },
+        "mediaScans": 33,
+        "actionMs": 0.0011999999996987754,
+        "eventLoopP95Ms": 16.072703,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "max-layout",
+        "mainCpu": 0.014738691785757254,
+        "rendererCpu": 0.5242970075523119,
+        "gpuProcessCpu": 0.269924583870844,
+        "workingSetMB": 1311.8997395833333,
+        "webContents": 10,
+        "views": 9,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 33,
+        "actionMs": 0.0010000000002037268,
+        "eventLoopP95Ms": 16.105471,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "twenty-hot-stash",
+        "mainCpu": 0.016436513098854345,
+        "rendererCpu": 0.23468903203534794,
+        "gpuProcessCpu": 0.17290407903401525,
+        "workingSetMB": 2776.61328125,
+        "webContents": 25,
+        "views": 24,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 33,
+        "actionMs": 0.001299999999901047,
+        "eventLoopP95Ms": 16.089087,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "repeated-state-and-bounds",
+        "mainCpu": 0.051759932379544814,
+        "rendererCpu": 0.22943947975090484,
+        "gpuProcessCpu": 0.17207542454577018,
+        "workingSetMB": 837.5260416666666,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 34,
+        "actionMs": 36.17079999999987,
+        "eventLoopP95Ms": 16.072703,
+        "ipc": {
+          "config-load": 51,
+          "config-save": 50
+        },
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 1,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "zoom-switch",
+        "mainCpu": 0.06355952696008639,
+        "rendererCpu": 0.2600859161119045,
+        "gpuProcessCpu": 0.21908943690816454,
+        "workingSetMB": 944.6197916666666,
+        "webContents": 6,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 1
+        },
+        "mediaScans": 39,
+        "actionMs": 466.3355999999985,
+        "eventLoopP95Ms": 16.236543,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 1,
+        "logWrites": 4,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "settings-toggle",
+        "mainCpu": 0.02446058155757684,
+        "rendererCpu": 0.22882292439320664,
+        "gpuProcessCpu": 0.17396380300831957,
+        "workingSetMB": 929.7278645833334,
+        "webContents": 6,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 1
+        },
+        "mediaScans": 38,
+        "actionMs": 325.9653999999973,
+        "eventLoopP95Ms": 16.072703,
+        "ipc": {
+          "settings-view": 10
+        },
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      }
+    ]
+  },
+  "backgroundThrottling": {
+    "throttled": {
+      "ticks": 1,
+      "hidden": true
+    },
+    "unthrottled": {
+      "ticks": 120,
+      "hidden": false
+    }
+  },
+  "workerSpawn": {
+    "samples": 20,
+    "p50Ms": 8.9636,
+    "p95Ms": 13.075699999999998,
+    "allExpectedExit": true,
+    "scope": "process creation + executable entry and argument validation; no network"
+  }
+}

@@ -77,7 +77,14 @@ export function SettingsPanel({
       | "showGroupNames"
       | "showBookmarkGroups"
       | "liveDetection"
-      | "tooltips",
+      | "tooltips"
+      | "backgroundThrottling"
+      | "autoReleaseStash"
+      | "muteOnMaximize"
+      | "pauseOnMaximize"
+      | "pauseInSettings"
+      | "autoFetchStashTitle"
+      | "liveResize",
   ) => (
     <SettingSwitch
       checked={p[key]}
@@ -90,6 +97,13 @@ export function SettingsPanel({
           showBookmarkGroups: "显示收藏栏分组",
           liveDetection: "检测直播间开播状态",
           tooltips: "鼠标悬停提示",
+          backgroundThrottling: "允许后台网页节流",
+          autoReleaseStash: "自动释放长期暂存网页的内存",
+          muteOnMaximize: "放大主窗口时静音副窗口",
+          pauseOnMaximize: "放大主窗口时暂停副窗口媒体",
+          pauseInSettings: "打开设置页面时暂停网页媒体",
+          autoFetchStashTitle: "自动获取新暂存网址的标题",
+          liveResize: "拖动分屏线时实时调整网页",
         }[key]
       }
     />
@@ -136,25 +150,41 @@ export function SettingsPanel({
   return (
     <div className="settings-system">
       <nav className="settings-tabs" aria-label="设置分类">
-        {["常规", "网页浏览", "收藏栏", "外观", "数据与隐私", "关于与诊断"].map(
-          (t) => (
-            <button
-              key={t}
-              aria-pressed={tab === t}
-              onClick={() => {
-                setTab(t);
-                setMessage("");
-              }}
-            >
-              <SettingsIcon name={categoryIcons[t]} />
-              <span>{t}</span>
-            </button>
-          ),
-        )}
+        {[
+          "常规",
+          "网页浏览",
+          "收藏栏",
+          "性能",
+          "音频与媒体",
+          "外观",
+          "数据与隐私",
+          "关于与诊断",
+        ].map((t) => (
+          <button
+            key={t}
+            aria-pressed={tab === t}
+            onClick={() => {
+              setTab(t);
+              setMessage("");
+            }}
+          >
+            <SettingsIcon name={categoryIcons[t]} />
+            <span>{t}</span>
+          </button>
+        ))}
       </nav>
       <section ref={content} className="settings-content" aria-label={tab}>
         <div className="settings-content-inner">
           <h3>{tab}</h3>
+          {tab === "关于与诊断" &&
+            row(
+              "日志模式",
+              select("logMode", [
+                ["normal", "普通日志"],
+                ["detailed", "详细诊断日志"],
+              ]),
+              "默认详细诊断；异步合并写入，每次运行上限 16 MiB。日志不记录网址、标题或输入内容。",
+            )}
           {tab === "常规" && (
             <>
               {row(
@@ -209,6 +239,62 @@ export function SettingsPanel({
                   ["always", "始终"],
                 ]),
                 "页面数包含暂存区。",
+              )}
+            </>
+          )}
+          {tab === "性能" && (
+            <>
+              <h4>后台运行</h4>
+              {row(
+                "允许后台网页节流",
+                toggle("backgroundThrottling"),
+                "允许 Chromium 限制后台网页的动画和计时器；可见网页正常运行。同一应用窗口内的后台节流存在关联。",
+              )}
+              {row(
+                "自动释放长期暂存网页的内存",
+                toggle("autoReleaseStash"),
+                "仅释放符合安全条件的长期暂存网页，恢复时会重新加载，运行状态可能丢失。播放媒体、有输入或无法判断的网页保守保留。",
+              )}
+              {p.autoReleaseStash &&
+                row(
+                  "允许自动释放的暂存时长",
+                  select("stashReleaseMinutes", [
+                    [30, "30 分钟"],
+                    [60, "1 小时"],
+                    [120, "2 小时"],
+                    [240, "4 小时"],
+                  ]),
+                  "达到时长后评估，不强制卸载。",
+                )}
+              <h4>加载与交互</h4>
+              {row(
+                "自动获取新暂存网址的标题",
+                toggle("autoFetchStashTitle"),
+                "对未加载的网址发起有限的额外网络请求；不执行网页脚本，部分动态标题无法获取。",
+              )}
+              {row(
+                "拖动分屏线时实时调整网页",
+                toggle("liveResize"),
+                "关闭后仅预览分割线，释放鼠标时应用最终网页布局。",
+              )}
+            </>
+          )}
+          {tab === "音频与媒体" && (
+            <>
+              {row(
+                "放大主窗口时静音副窗口",
+                toggle("muteOnMaximize"),
+                "副窗口继续加载，但停止输出声音；保留原有静音和音量设置。",
+              )}
+              {row(
+                "放大主窗口时暂停副窗口媒体",
+                toggle("pauseOnMaximize"),
+                "恢复布局后尝试恢复原先正在播放的媒体；播放器权限、直播连接可能限制恢复。",
+              )}
+              {row(
+                "打开设置页面时暂停网页媒体",
+                toggle("pauseInSettings"),
+                "返回浏览器后尝试恢复此前播放的媒体，不销毁网页实例。",
               )}
             </>
           )}

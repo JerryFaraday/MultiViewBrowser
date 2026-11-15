@@ -132,6 +132,7 @@ export const configSchema = z.preprocess(
           url: pageSchema.shape.url,
           title: z.string().max(1000),
           page: pageSchema.optional(),
+          parkedAt: z.number().int().nonnegative().optional(),
         }),
       )
       .max(5000)
