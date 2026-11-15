@@ -41,6 +41,8 @@ server.listen(0, "127.0.0.1", async () => {
   seed.bookmarksBar = true;
   seed.favorites = [
     {
+      category: "web",
+      roomId: "",
       id: "favorite",
       name: "local",
       url: base,
@@ -261,7 +263,7 @@ server.listen(0, "127.0.0.1", async () => {
       "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
     );
     const switches = await root.executeJavaScript(
-      "document.querySelectorAll('[role=switch]').length===2&&document.querySelectorAll('.settings-content select').length===0",
+      "document.querySelectorAll('[role=switch]').length===3&&document.querySelectorAll('.settings-content select').length===0",
     );
     await root.executeJavaScript(
       "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",

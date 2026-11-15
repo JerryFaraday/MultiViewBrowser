@@ -22,3 +22,5 @@ copyFileSync("electron/volume.html", "dist-electron/volume.html");
 
 copyFileSync("electron/drag.html", "dist-electron/drag.html");
 copyFileSync("electron/scale.html", "dist-electron/scale.html");
+
+await import("./build-native.mjs");

@@ -1,3 +1,4 @@
+import type { LiveStates } from "./core/LiveStatus";
 import { SettingsIcon } from "./components/SettingsIcon";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { mergeConfig } from "./core/ConfigMerge";
@@ -42,6 +43,25 @@ function dragTargets(includeStash = true) {
   return result;
 }
 export function App() {
+  const [liveStates, setLiveStates] = useState<LiveStates>({});
+  useEffect(() => {
+    let active = true,
+      version = 0;
+    const unsubscribe = window.browser.onLiveStatus((states) => {
+      version++;
+      if (active) setLiveStates(states);
+    });
+    void window.browser
+      .liveStatus()
+      .then((states) => {
+        if (active && version === 0) setLiveStates(states);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
   const returnFocus = useRef<string | undefined>(undefined);
   const failedPage = useRef<string | undefined>(undefined);
   const [config, setConfig] = useState<Config>(),
@@ -348,6 +368,8 @@ export function App() {
       existing
         ? structuredClone(existing)
         : {
+            category: "web",
+            roomId: "",
             id: crypto.randomUUID(),
             name: page?.title || "",
             url: page?.url || "",
@@ -658,7 +680,7 @@ export function App() {
           aria-label="收藏栏"
         >
           <div className="bookmarks-links">
-            <FavoritesList {...favoriteListProps} bar />
+            <FavoritesList {...favoriteListProps} liveStates={liveStates} bar />
             {!c.favorites.length && (
               <span className="bookmark-empty">
                 在设置的收藏栏中添加网站后，将按分组顺序显示在这里

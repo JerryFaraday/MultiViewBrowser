@@ -10,6 +10,10 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      liveStatus(): Promise<import("./core/LiveStatus").LiveStates>;
+      onLiveStatus(
+        fn: (states: import("./core/LiveStatus").LiveStates) => void,
+      ): () => void;
       settingsView(active: boolean, id?: string): Promise<void>;
       onSettingsEscape(fn: () => void): () => void;
       settingsAction(action: string): Promise<Record<string, unknown>>;

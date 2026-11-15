@@ -316,6 +316,7 @@ export function SettingsPanel({
                   onChange={(value) =>
                     edit((d) => {
                       d.bookmarksBar = value;
+                      if (!value) d.preferences.liveDetection = false;
                     })
                   }
                 />,
@@ -324,6 +325,43 @@ export function SettingsPanel({
                 "显示收藏分组名称",
                 toggle("showGroupNames"),
                 "分组顺序与分隔线保持现有规则。",
+              )}
+              {row(
+                "检测B站直播间开播状态",
+                <SettingSwitch
+                  label="检测B站直播间开播状态"
+                  checked={c.bookmarksBar && p.liveDetection}
+                  disabled={!c.bookmarksBar}
+                  onChange={(value) => update("liveDetection", value)}
+                />,
+                c.bookmarksBar
+                  ? "仅检测B站直播间类别标签，不使用网页或播放流。"
+                  : "请先开启显示收藏栏。",
+              )}
+              {row(
+                "检测间隔",
+                <div>
+                  <input
+                    aria-label="检测间隔"
+                    type="number"
+                    min={30}
+                    max={1800}
+                    step={1}
+                    defaultValue={p.liveInterval}
+                    key={p.liveInterval}
+                    onBlur={(e) => {
+                      const n = Number(e.target.value);
+                      if (Number.isInteger(n) && n >= 30 && n <= 1800)
+                        update("liveInterval", n);
+                      else e.target.value = String(p.liveInterval);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.currentTarget.blur();
+                    }}
+                  />
+                  <span>秒</span>
+                </div>,
+                "30–1800秒；关闭检测时保留间隔，不查询。",
               )}
               {favoritesEditor}
             </>

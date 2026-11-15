@@ -1,3 +1,4 @@
+import { LiveMonitor, nativeLiveQuery, liveExecutable } from "./LiveMonitor";
 import { themeCSS, themePalettes } from "../src/core/Theme";
 import { accentCSS } from "../src/core/Accent";
 import { applyNativeTheme } from "./NativeTheme";
@@ -23,11 +24,30 @@ export class SettingsService {
   private styles = new Map<number, string>();
   private generations = new Map<number, number>();
   private previous = "";
+  private live: LiveMonitor;
   constructor(
     private window: BrowserWindow,
     private read: () => Config,
     private manager: BrowserManager,
   ) {
+    this.live = new LiveMonitor(
+      nativeLiveQuery(
+        liveExecutable(app.isPackaged ? process.resourcesPath : undefined),
+      ),
+      (states) => {
+        if (!window.isDestroyed() && !window.webContents.isDestroyed())
+          window.webContents.send("live-status", states);
+      },
+    );
+    window.on("closed", () => this.live.dispose());
+    ipcMain.handle("live-status-get", (e) => {
+      if (
+        e.sender !== window.webContents ||
+        e.senderFrame !== window.webContents.mainFrame
+      )
+        throw Error("拒绝来源");
+      return this.live.states;
+    });
     window.webContents.setZoomMode("isolated");
     const observe = (w: BrowserWindow) => {
       w.webContents.on("did-finish-load", () => void this.style(w));
@@ -112,6 +132,7 @@ export class SettingsService {
     );
   }
   apply(force = false) {
+    this.live.configure(this.read());
     const p = this.read().preferences;
     applyNativeTheme(p.theme);
     const background = themePalettes[p.theme].background;

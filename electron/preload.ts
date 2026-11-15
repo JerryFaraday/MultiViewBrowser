@@ -12,6 +12,12 @@ const nativeRect = (r: UiRect) => {
   };
 };
 contextBridge.exposeInMainWorld("browser", {
+  liveStatus: () => ipcRenderer.invoke("live-status-get"),
+  onLiveStatus: (fn: (states: unknown) => void) => {
+    const h = (_e: unknown, states: unknown) => fn(states);
+    ipcRenderer.on("live-status", h);
+    return () => ipcRenderer.removeListener("live-status", h);
+  },
   settingsView: (active: boolean, id?: string) =>
     ipcRenderer.invoke("settings-view", active, id),
   onSettingsEscape: (fn: () => void) => {

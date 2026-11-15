@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DragEvent } from "react";
 import type { Config } from "../core/model";
+import { liveLabel, type LiveStates } from "../core/LiveStatus";
 import {
   moveItem,
   moveFavorite,
@@ -10,6 +11,7 @@ type Props = {
   config: Config;
   query?: string;
   bar?: boolean;
+  liveStates?: LiveStates;
   onEdit: (fn: (c: Config) => void) => void;
   onOpen: (url: string) => void;
   onFavorite: (id: string) => void;
@@ -23,6 +25,7 @@ export function FavoritesList({
   config: c,
   query = "",
   bar = false,
+  liveStates = {},
   onEdit,
   onOpen,
   onFavorite,
@@ -163,7 +166,23 @@ export function FavoritesList({
                   title={f.url + "\n" + f.note}
                   onClick={() => onOpen(f.url)}
                 >
-                  {f.name}
+                  <span className={bar ? "bookmark-name" : undefined}>
+                    {f.name}
+                  </span>
+                  {bar &&
+                    c.bookmarksBar &&
+                    c.preferences.liveDetection &&
+                    f.category === "bilibili-live" && (
+                      <span
+                        role="img"
+                        aria-label={liveLabel(liveStates[f.roomId])}
+                        title={liveLabel(liveStates[f.roomId])}
+                        className={
+                          "live-dot " +
+                          (liveStates[f.roomId]?.status ?? "unknown")
+                        }
+                      />
+                    )}
                 </button>
                 {!bar && (
                   <>

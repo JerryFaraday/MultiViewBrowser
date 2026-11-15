@@ -9,6 +9,8 @@ app.setPath(
 const seed = defaults();
 seed.groups = ["A", "B"];
 seed.favorites = ["a", "b", "c"].map((id, i) => ({
+  category: "web" as const,
+  roomId: "",
   id,
   name: id,
   url: "https://example.com/" + id,

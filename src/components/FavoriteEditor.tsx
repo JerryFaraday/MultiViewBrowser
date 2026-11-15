@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { favoriteSchema, normalizeUrl, type Config } from "../core/model";
+import { roomFromUrl, favoriteLiveUrl } from "../core/LiveStatus";
 export type Favorite = Config["favorites"][number];
 export function FavoriteEditor({
   initial,
@@ -33,13 +34,14 @@ export function FavoriteEditor({
               ...draft,
               name: draft.name.trim(),
               group: (creatingGroup ? newGroup : draft.group).trim() || "常用",
-              url: normalizeUrl(draft.url.trim()),
+              url:
+                draft.category === "bilibili-live"
+                  ? favoriteLiveUrl(draft.roomId, draft.url)
+                  : normalizeUrl(draft.url.trim()),
             }),
           );
         } catch {
-          setError(
-            "请填写收藏名称和有效的 HTTP / HTTPS 地址，并检查字段长度。",
-          );
+          setError("请填写名称和有效地址；直播间仅接受有效的纯数字房号。");
         }
       }}
     >
@@ -60,12 +62,72 @@ export function FavoriteEditor({
         />
       </label>
       <label>
-        网址
+        类别
+        <select
+          aria-label="标签类别"
+          value={draft.category}
+          onChange={(e) => {
+            const category = e.target.value as Favorite["category"];
+            try {
+              if (category === "bilibili-live") {
+                let id = "";
+                if (editing) id = roomFromUrl(draft.url);
+                else
+                  try {
+                    id = roomFromUrl(draft.url);
+                  } catch {}
+                setDraft({
+                  ...draft,
+                  category,
+                  roomId: id,
+                  url: editing && id ? draft.url : "",
+                });
+              } else
+                setDraft({
+                  ...draft,
+                  category,
+                  roomId: "",
+                  url: (() => {
+                    try {
+                      return favoriteLiveUrl(draft.roomId, draft.url);
+                    } catch {
+                      return draft.url;
+                    }
+                  })(),
+                });
+              setError("");
+            } catch {
+              setError(
+                "原网址必须是 live.bilibili.com 的数字房号路径，才能转换为B站直播间。",
+              );
+            }
+          }}
+        >
+          <option value="web">普通网页</option>
+          <option value="bilibili-live">B站直播间</option>
+        </select>
+      </label>
+      <label>
+        {draft.category === "bilibili-live" ? "直播间号" : "网址"}
         <input
           required
-          placeholder="https://live.bilibili.com/…"
-          value={draft.url}
-          onChange={(e) => setDraft({ ...draft, url: e.target.value })}
+          aria-label={draft.category === "bilibili-live" ? "直播间号" : "网址"}
+          inputMode={draft.category === "bilibili-live" ? "numeric" : "url"}
+          pattern={draft.category === "bilibili-live" ? "[0-9]+" : undefined}
+          placeholder={
+            draft.category === "bilibili-live"
+              ? "纯数字直播间号"
+              : "https://live.bilibili.com/…"
+          }
+          value={draft.category === "bilibili-live" ? draft.roomId : draft.url}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              ...(draft.category === "bilibili-live"
+                ? { roomId: e.target.value.replace(/^0+(?=\d)/, "") }
+                : { url: e.target.value }),
+            })
+          }
         />
       </label>
       <label>

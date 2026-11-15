@@ -4,6 +4,10 @@
 
 ## 进程与模块
 
+V0.2.2.0补充：直播状态查询独立于BrowserManager和网页实例。SettingsService在配置变化时驱动[LiveMonitor](../electron/LiveMonitor.ts)，读取全局检测偏好与收藏标签类别；原生[C++ WinHTTP](../native/live-status.cpp)进程执行HTTPS异步请求，通过stdout返回受大小限制的JSON，由主进程校验、映射三态后经受限preload IPC广播给React。状态不写入会话或工作区，UID缓存仅在内存，收藏类别和房号随配置保存。
+
+LiveMonitor按去重房号解析UID并按最多50个UID分批获取状态，所有请求起始至少间隔1秒，同一任务不重叠；间隔以一轮完成后计时。配置签名改变、停止或窗口关闭时AbortController取消延迟及工作进程，返回后再次检查信号，过期结果不得更新状态。首次解析成本随房间数量增加；没有创建检测网页、抓DOM或读取视频流。
+
 ```mermaid
 flowchart LR
   UI[React App / LayoutView] <-->|preload 受限IPC| Main[Electron main]

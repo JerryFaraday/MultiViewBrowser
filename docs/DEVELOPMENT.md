@@ -4,6 +4,8 @@
 
 建议Windows x64、Node.js 24和npm。实际依赖以[package.json](../package.json)与[锁文件](../package-lock.json)为准；不要求安装全局Electron、TypeScript或打包器。
 
+V0.2.2.0起，构建还需要已有的Visual Studio C++ Build Tools（x64编译器）和Windows 10/11 SDK；不通过项目脚本自动安装全局软件。`scripts/build-native.mjs`通过vswhere定位工具链，使用C++20、静态CRT与系统WinHTTP库生成`dist-native/LiveStatus.exe`。`npm run build`及开发启动会编译该模块；最终运行免安装程序不需要安装编译器。当前原生构建面向Windows x64。
+
 ```powershell
 git clone https://github.com/JerryFaraday/MultiViewBrowser.git
 cd MultiViewBrowser
@@ -23,7 +25,13 @@ npm run build
 npm start
 ```
 
-build执行TypeScript检查、Vite及esbuild；start只是electron .，需要已有dist和dist-electron。format:check只检查；format会重写源码，不应为文档整理随意执行。
+直播检测专项：`node scripts/live-status-smoke.mjs`运行隔离UI/IPC测试（明确建模API响应）；`node scripts/live-native-smoke.mjs`使用实际编译的C++进程访问当前API，需网络，不使用Cookie。两者均在构建后执行。单测中的计时器和进程替身验证取消/超时，不替代真实网络测试。
+
+已有完整免安装构建后，可运行`node scripts/live-pack-smoke.mjs`，以临时配置启动真实EXE并验证包内原生查询及指示灯。此脚本使用本地临时调试端口检查测试进程，退出时关闭，不修改实际用户配置。
+
+打包通过extraResources复制原生程序到`resources/live-status/LiveStatus.exe`，不放入ASAR执行；源代码在`native/live-status.cpp`。不要只复制主EXE，也不要提交dist-native、运行日志、诊断JSON或浏览器配置。
+
+build执行TypeScript检查、Vite、esbuild及C++原生模块编译；start只是electron .，需要已有dist、dist-electron和dist-native。format:check只检查；format会重写源码，不应为文档整理随意执行。
 
 类型检查启用noUnusedLocals/noUnusedParameters。测试方法及历史31项通过的范围见[验证记录](VALIDATION.md)，通过检查不等于不存在已知缺陷。
 

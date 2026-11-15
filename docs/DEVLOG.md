@@ -2,6 +2,12 @@
 
 本日志按有证据的开发阶段整理。原记录不含精确日期或版本的条目不补造；有编号的版本见[CHANGELOG](../CHANGELOG.md)，原始记录见[映射](DOCUMENTATION_MAP.md)。
 
+## 2026-11-15：B站直播状态（V0.2.2.0）
+
+沿用收藏标签、配置三方合并与设置入口，补齐类别/房号的旧配置默认值，使新增字段不会在已有记录合并时丢失。C++以WinHTTP_FLAG_ASYNC和回调链处理HTTPS，独立进程隔离于Electron UI，避免原生Node ABI依赖或新增第三方JSON库。主进程负责解析、限频、UID缓存、去重、批量与取消；状态灯仅订阅房号状态，不改变网页实例。
+
+直接调用当前room_init和get_status_info_by_uids，确认code/data/uid/room_id/live_status结构，原生实际批量请求返回两个成员及状态1、2；不假设服务永久不变。未知/失败不映射为未开播。状态2不作为实时开播，显示灰色轮播提示。UI专项曾因未等待原有180ms自动保存而误报，计时单测也需正确模拟node:timers/promises；修正测试模型，未更改现有保存语义。证据与限制见[专项记录](reviews/LIVE_STATUS_2026-11-15.md)。
+
 ## 2026-11-14：B站首页稍后观看点击（V0.2.1.12）
 
 真实主页DOM确认bili-watch-later位于target=_blank的视频封面链接内。media-preload在document捕获阶段stopImmediatePropagation并location.assign，阻止内部按钮先执行自身逻辑。嵌套按钮夹具复现修复前nestedAction=false。普通链接的左键策略移至window冒泡阶段并尊重defaultPrevented，保留直播个人主页及占位链接原捕获例外、中键规则。真实未登录主页修复后按钮触发登录提示且不离开主页；未使用用户账号验证实际添加到稍后观看的服务端结果。

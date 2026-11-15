@@ -874,3 +874,32 @@ footer {
 .settings-page {
   overflow: hidden;
 }
+.bookmark > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bookmark-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 7px;
+  background: #929aa5;
+}
+.live-dot.live {
+  background: #36be75;
+}
+.live-dot.offline {
+  background: #ec6868;
+}
+.setting-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

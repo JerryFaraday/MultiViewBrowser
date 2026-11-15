@@ -35,6 +35,8 @@ export const preferencesSchema = z.preprocess(
     scaleMode: z.enum(["auto", "responsive"]).default("auto"),
     pageZoom: z.number().min(0.25).max(5).default(1),
     retryCount: z.number().int().min(0).max(10).default(0),
+    liveDetection: z.boolean().default(false),
+    liveInterval: z.number().int().min(30).max(1800).default(60),
     showGroupNames: z.boolean().default(false),
     theme: z
       .enum(["dark", "gray", "black", "light", "system"])
