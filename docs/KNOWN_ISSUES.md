@@ -56,3 +56,8 @@ KI-04在V0.1.1.4修复：原生网页focus通知UI按页面ID更新选中槽位�
 自动适配25%–500%的5E嵌入页已通过独立原生缩放恢复交互；低于25%及手动比例仍使用原设备模拟，交互兼容性未解决。可放大主窗口或使用响应式模式操作；不能把兼容路径的验证推广到所有跨域iframe。实际逻辑视口在独立缩放下可能有1–2px整数舍入。[专项报告](reviews/5E_IFRAME_INPUT_2026-11-12.md)。
 
 V0.1.1.9补充：5E兼容路径边界按“自动适配比例×内容Page Zoom”计算；组合因子越界会回退原设备模拟，已有跨进程iframe限制仍可能出现。普通iframe/Canvas的原生Page Zoom点击已进行本地回归，不等于全部站点均已验证。
+
+## UI design system acceptance — open (2026-11-15)
+
+- Electron visual acceptance is blocked by local Electron install-directory Windows ACL. Screenshots, real DPI, collection extremes and full keyboard/save-failure paths remain unverified.
+- Remaining design exceptions: rendered contrast matrix, per-field asynchronous save feedback, independent modal body scrolling and discard confirmation. See docs/reviews/UI_DESIGN_SYSTEM_2026-11-15.md.

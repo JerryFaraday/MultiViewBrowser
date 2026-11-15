@@ -1,3 +1,4 @@
+import { useModalFocus } from "./useModalFocus";
 import { useState } from "react";
 import { favoriteSchema, normalizeUrl, type Config } from "../core/model";
 import {
@@ -23,6 +24,7 @@ export function FavoriteEditor({
     [creatingGroup, setCreatingGroup] = useState(false),
     [newGroup, setNewGroup] = useState(""),
     [error, setError] = useState("");
+  const modalRef = useModalFocus(onCancel);
   const isLive = draft.category !== "web";
   const detected = (() => {
     try {
@@ -33,6 +35,10 @@ export function FavoriteEditor({
   })();
   return (
     <form
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="favorite-editor-title"
       className="modal favorite-editor"
       onSubmit={(e) => {
         e.preventDefault();
@@ -58,7 +64,7 @@ export function FavoriteEditor({
       }}
     >
       <div className="modal-title">
-        <h2>{editing ? "编辑收藏" : "添加收藏"}</h2>
+        <h2 id="favorite-editor-title">{editing ? "编辑收藏" : "新建收藏"}</h2>
         <button type="button" aria-label="关闭收藏编辑" onClick={onCancel}>
           ×
         </button>
@@ -74,7 +80,7 @@ export function FavoriteEditor({
         />
       </label>
       <label>
-        类别
+        类型
         <select
           aria-label="标签类别"
           value={isLive ? "live" : "web"}
@@ -169,7 +175,7 @@ export function FavoriteEditor({
         />
       </label>
       <label>
-        分组
+        所属分组
         <select
           aria-label="收藏分组"
           disabled={creatingGroup}
@@ -208,7 +214,7 @@ export function FavoriteEditor({
         </label>
       )}
       <label>
-        备注
+        备注（可选）
         <textarea
           rows={3}
           maxLength={2000}

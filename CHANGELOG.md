@@ -289,3 +289,9 @@
 ### Known Issues
 
 截至文档整理时，配置旧写覆盖、播放器来源交接、站点同步解除静音等审计问题仍存在。完整状态见[已知问题](docs/KNOWN_ISSUES.md)，不能将局部音频修复理解为所有站点完全兼容。
+
+## UI design system adoption (2026-11-15)
+
+- Adopted application-wide design governance and shared settings/editor patterns.
+- Improved settings density, responsive controls, favorites management and keyboard modal handling.
+- Verification limitations are recorded in docs/reviews/UI_DESIGN_SYSTEM_2026-11-15.md.

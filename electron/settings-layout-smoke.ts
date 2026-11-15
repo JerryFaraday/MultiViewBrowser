@@ -16,6 +16,42 @@ app.whenReady().then(async () => {
     await wait(150);
     wc.debugger.attach("1.3");
     const cases = [];
+    for (const tab of [
+      "常规",
+      "网页浏览",
+      "收藏栏",
+      "外观",
+      "数据与隐私",
+      "关于与诊断",
+    ]) {
+      await wc.executeJavaScript(
+        `Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='${tab}').click()`,
+      );
+      await wait(100);
+      writeFileSync(
+        `design-system-${tab}.png`,
+        (await wc.capturePage()).toPNG(),
+      );
+    }
+    await wc.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='收藏栏').click()",
+    );
+    for (const text of ["新建分组", "添加收藏"]) {
+      await wc.executeJavaScript(
+        `Array.from(document.querySelectorAll('.side-title button')).find(b=>b.textContent==='${text}').click()`,
+      );
+      await wait(100);
+      writeFileSync(
+        `design-system-${text}.png`,
+        (await wc.capturePage()).toPNG(),
+      );
+      await wc.executeJavaScript(
+        "Array.from(document.querySelectorAll('.modal button')).find(b=>b.textContent==='取消').click()",
+      );
+    }
+    await wc.executeJavaScript(
+      "Array.from(document.querySelectorAll('.settings-tabs button')).find(b=>b.textContent==='常规').click()",
+    );
     for (const [width, height, dpi, zoom] of [
       [1920, 1080, 1, 1],
       [2560, 1440, 1.5, 1],
@@ -32,7 +68,7 @@ app.whenReady().then(async () => {
       wc.setZoomFactor(zoom);
       await wait(120);
       const result = await wc.executeJavaScript(
-        `(()=>{const modal=document.querySelector('.settings-page'),r=modal.getBoundingClientRect(),nav=document.querySelector('.settings-tabs'),content=document.querySelector('.settings-content');return {fits:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,centered:Math.abs((r.left+r.right)/2-innerWidth/2)<1&&Math.abs((r.top+r.bottom)/2-innerHeight/2)<1,size:Math.abs(r.width-innerWidth)<1&&Math.abs(r.height-innerHeight)<1,nav:nav.scrollHeight<=nav.clientHeight+1&&getComputedStyle(nav).overflowY==='hidden',scroll:getComputedStyle(content).overflowY==='auto'&&getComputedStyle(modal).overflowY==='hidden',aligned:Array.from(document.querySelectorAll('.setting-row')).every(row=>{const a=row.firstElementChild.getBoundingClientRect(),b=row.lastElementChild.getBoundingClientRect();return a.right<=b.left+1&&b.right<=content.getBoundingClientRect().right+1}),fonts:getComputedStyle(modal.querySelector('h1')).fontSize==='18px'&&getComputedStyle(nav.querySelector('button')).fontSize==='14px',navigation:nav.getBoundingClientRect().width===(innerWidth<=720?220:256)&&Array.from(nav.querySelectorAll('button')).every(e=>e.getBoundingClientRect().height>=(innerHeight<=520?32:44)),back:(()=>{const e=document.querySelector('.settings-back'),r=e.getBoundingClientRect();return e.textContent.trim()===''&&e.getAttribute('aria-label')==='返回浏览器'&&r.width===36&&r.height===36&&!!e.querySelector('svg')})()}})()`,
+        `(()=>{const modal=document.querySelector('.settings-page'),r=modal.getBoundingClientRect(),nav=document.querySelector('.settings-tabs'),content=document.querySelector('.settings-content');return {fits:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,centered:Math.abs((r.left+r.right)/2-innerWidth/2)<1&&Math.abs((r.top+r.bottom)/2-innerHeight/2)<1,size:Math.abs(r.width-innerWidth)<1&&Math.abs(r.height-innerHeight)<1,nav:getComputedStyle(nav).overflowY==='auto',scroll:getComputedStyle(content).overflowY==='auto'&&getComputedStyle(modal).overflowY==='hidden',aligned:Array.from(document.querySelectorAll('.setting-row')).every(row=>{const a=row.firstElementChild.getBoundingClientRect(),b=row.lastElementChild.getBoundingClientRect();return (a.right<=b.left+1 || a.bottom<=b.top+1)&&b.right<=content.getBoundingClientRect().right+1}),fonts:getComputedStyle(modal.querySelector('h1')).fontSize==='18px'&&getComputedStyle(nav.querySelector('button')).fontSize==='14px',navigation:Array.from(nav.querySelectorAll('button')).every(e=>e.getBoundingClientRect().height>=32),back:(()=>{const e=document.querySelector('.settings-back'),r=e.getBoundingClientRect();return e.textContent.trim()===''&&e.getAttribute('aria-label')==='返回浏览器'&&r.width===36&&r.height===36&&!!e.querySelector('svg')})()}})()`,
       );
       cases.push({ width, height, dpi, zoom, ...result });
     }

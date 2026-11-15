@@ -104,20 +104,38 @@ export function FavoritesList({
               title="拖动分组标题调整顺序"
             >
               <span className="group-grip">⠿</span>
-              {group}
-              <button title="重命名分组" onClick={() => onGroupRename(group)}>
-                ✎
+              <span className="group-name" title={group}>
+                {group}
+              </span>
+              <small>
+                {c.favorites.filter((f) => f.group === group).length} 项
+              </small>
+              <button
+                aria-label="编辑分组"
+                title="编辑分组"
+                onClick={() => onGroupRename(group)}
+              >
+                编辑
               </button>
               <button
+                aria-label="删除分组"
                 title="删除分组，收藏移至未分组"
-                onClick={() => onGroupDelete(group)}
+                onClick={() => {
+                  if (window.confirm("删除此分组？其中的收藏将移至未分组。"))
+                    onGroupDelete(group);
+                }}
               >
-                ×
+                删除
               </button>
             </h4>
           )}
           {bar && c.preferences.showGroupNames && (
             <span className="bookmark-group-name">{group}</span>
+          )}
+          {!bar && !visibleFavorites.some((f) => f.group === group) && (
+            <p className="empty-state">
+              此分组暂无收藏，可添加收藏或拖入已有收藏。
+            </p>
           )}
           {visibleFavorites
             .filter((f) => f.group === group)
@@ -163,7 +181,7 @@ export function FavoritesList({
                 }}
               >
                 <button
-                  title={f.url + "\n" + f.note}
+                  title={f.name + "\n" + f.url + "\n" + f.note}
                   onClick={() => onOpen(f.url)}
                 >
                   <span className={bar ? "bookmark-name" : undefined}>
@@ -186,12 +204,20 @@ export function FavoritesList({
                 </button>
                 {!bar && (
                   <>
-                    <button title="编辑收藏" onClick={() => onFavorite(f.id)}>
-                      ✎
+                    <button
+                      aria-label="编辑收藏"
+                      title="编辑收藏"
+                      onClick={() => onFavorite(f.id)}
+                    >
+                      编辑
                     </button>
                     <button
+                      aria-label="删除收藏"
                       title="删除收藏"
                       onClick={() =>
+                        window.confirm(
+                          "删除此收藏？此操作不会关闭已打开的网页。",
+                        ) &&
                         onEdit((d) => {
                           d.favorites = d.favorites.filter(
                             (x) => x.id !== f.id,
@@ -199,7 +225,7 @@ export function FavoritesList({
                         })
                       }
                     >
-                      ×
+                      删除
                     </button>
                   </>
                 )}

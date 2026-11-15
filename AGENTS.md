@@ -21,3 +21,11 @@
 - Keep test methods and results in validation records; passing tests do not prove absence of defects.
 - Documentation-only changes must not increment the software behavior version.
 - Prefer docs/ for new documentation to avoid accumulating files in the repository root.
+
+## UI/UX design governance
+
+- 所有涉及界面设计、布局、样式、组件及交互的任务，必须先完整阅读 docs/UI_DESIGN_SYSTEM.md；规范适用于整个桌面应用。
+- 新增或修改 UI 时必须优先复用设计变量和公共组件。
+- 不允许随意引入与设计规范冲突的字体、颜色、间距及交互样式。
+- 当新增通用设计规则时，应同步更新设计规范。
+- UI 修改完成后，必须根据规范中的验收清单进行检查，并记录例外与未验证项目。

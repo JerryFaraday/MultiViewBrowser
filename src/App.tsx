@@ -1,3 +1,4 @@
+import { NameEditor } from "./components/NameEditor";
 import type { LiveStates } from "./core/LiveStatus";
 import { SettingsIcon } from "./components/SettingsIcon";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -381,7 +382,7 @@ export function App() {
     );
   }
   const renameGroup = async (group: string) => {
-    const name = await ask("分组名称", group);
+    const name = await ask("编辑分组", group);
     if (name)
       edit((d) => {
         d.groups = [...new Set(d.groups.map((g) => (g === group ? name : g)))];
@@ -780,7 +781,20 @@ export function App() {
             favoritesEditor={
               <>
                 <div className="side-title">
-                  收藏夹 <button onClick={() => favorite()}>＋</button>
+                  <h4>收藏夹</h4>
+                  <button
+                    onClick={async () => {
+                      const name = await ask("新建分组", "");
+                      if (name?.trim())
+                        edit((d) => {
+                          if (!d.groups.includes(name.trim()))
+                            d.groups.push(name.trim());
+                        });
+                    }}
+                  >
+                    新建分组
+                  </button>
+                  <button onClick={() => favorite()}>添加收藏</button>
                 </div>
                 <FavoritesList {...favoriteListProps} />
               </>
@@ -941,36 +955,14 @@ export function App() {
       )}
       {question && (
         <div className="modal-cover question">
-          <form
-            className="modal"
-            onSubmit={(e) => {
-              e.preventDefault();
-              question.resolve(question.value);
+          <NameEditor
+            title={question.text}
+            initial={question.value}
+            onDone={(value) => {
+              question.resolve(value);
               setQuestion(undefined);
             }}
-          >
-            <h3>{question.text}</h3>
-            <input
-              autoFocus
-              style={{ width: "100%" }}
-              value={question.value}
-              onChange={(e) =>
-                setQuestion({ ...question, value: e.target.value })
-              }
-            />
-            <div className="saved">
-              <button type="submit">确定</button>
-              <button
-                type="button"
-                onClick={() => {
-                  question.resolve(null);
-                  setQuestion(undefined);
-                }}
-              >
-                取消
-              </button>
-            </div>
-          </form>
+          />
         </div>
       )}
     </div>

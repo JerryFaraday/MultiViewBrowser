@@ -1,3 +1,4 @@
+import { SettingRow } from "./SettingRow";
 import { SettingsIcon, categoryIcons } from "./SettingsIcon";
 import {
   useEffect,
@@ -45,20 +46,16 @@ export function SettingsPanel({
       d.preferences[key] = value;
     });
   const row = (label: string, control: ReactNode, hint?: string) => (
-    <label className="setting-row">
-      <span>
-        {label}
-        {hint && <small>{hint}</small>}
-      </span>
+    <SettingRow label={label} hint={hint}>
       {control}
-    </label>
+    </SettingRow>
   );
   const select = <K extends keyof Preferences>(
     key: K,
     options: [Preferences[K], string][],
   ) => (
     <select
-      aria-label={key}
+      title={options.find((x) => x[0] === p[key])?.[1]}
       value={String(p[key])}
       onChange={(e) => {
         const value = options.find((x) => String(x[0]) === e.target.value)![0];
@@ -342,6 +339,7 @@ export function SettingsPanel({
                 "检测间隔",
                 <div>
                   <input
+                    disabled={!c.bookmarksBar || !p.liveDetection}
                     aria-label="检测间隔"
                     type="number"
                     min={30}
