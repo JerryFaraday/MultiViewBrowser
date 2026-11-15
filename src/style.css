@@ -902,8 +902,32 @@ footer {
   background: #ec6868;
 }
 .setting-switch:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  opacity: 1;
+  cursor: default;
+  background: var(--ui-68, #455166);
+  border-color: var(--ui-69, #607086);
+  filter: none;
+  box-shadow: none;
+  outline: none;
+}
+.setting-switch:disabled[aria-checked="true"] {
+  background: var(--ui-71, #0087bd);
+  border-color: var(--ui-71, #0087bd);
+}
+.setting-switch:disabled::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--disabled-switch-overlay);
+  pointer-events: none;
+}
+.setting-row:has(> .setting-switch:disabled) {
+  cursor: default;
+}
+.setting-row:has(> .setting-switch:disabled) > span,
+.setting-row:has(> .setting-switch:disabled) > span small {
+  color: var(--text-disabled-readable);
 }
 /* Semantic aliases preserve the existing four themes and accent choices. */
 :root {
@@ -915,6 +939,12 @@ footer {
   --bg-selected: var(--ui-65);
   --text-primary: var(--ui-0);
   --text-secondary: var(--ui-25);
+  --text-disabled-readable: color-mix(
+    in srgb,
+    var(--text-primary) 75%,
+    var(--bg-canvas)
+  );
+  --disabled-switch-overlay: rgba(128, 128, 128, 0.38);
   --border-subtle: var(--ui-3);
   --radius-control: 8px;
   --radius-panel: 12px;

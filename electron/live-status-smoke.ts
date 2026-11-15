@@ -259,7 +259,6 @@ app.whenReady().then(async () => {
       (await load()).preferences.showGroupNames === true &&
       (await load()).preferences.showBookmarkGroups === false;
     await click('[aria-label="显示收藏栏分组"]');
-    await click('[aria-label="检测直播间开播状态"]');
     await wait(1100);
     const uiRepairs =
       inlineFocus &&
@@ -376,7 +375,7 @@ app.whenReady().then(async () => {
     await wait(300);
     cfg = await load();
     const stopped =
-      !cfg.preferences.liveDetection &&
+      cfg.preferences.liveDetection &&
       (await js(
         "document.querySelectorAll('.live-dot').length===0&&document.querySelector('[aria-label=\"检测直播间开播状态\"]').disabled",
       ));

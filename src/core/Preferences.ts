@@ -1,5 +1,19 @@
 import { z } from "zod";
 import { accentNames } from "./Accent";
+export const bookmarkChildPreferences = [
+  "showGroupNames",
+  "showBookmarkGroups",
+  "liveDetection",
+] as const;
+export function bookmarkPreferenceDisabled(
+  config: { bookmarksBar: boolean },
+  key: string,
+) {
+  return (
+    !config.bookmarksBar &&
+    (bookmarkChildPreferences as readonly string[]).includes(key)
+  );
+}
 export const preferencesSchema = z.preprocess(
   (raw) => {
     if (raw && typeof raw === "object") {

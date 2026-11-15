@@ -128,7 +128,7 @@ it("migrates old favorites, enforces room/url consistency and bookmark dependenc
   };
   expect(configSchema.parse(raw).favorites[0].category).toBe("web");
   c.bookmarksBar = false;
-  expect(configSchema.parse(c).preferences.liveDetection).toBe(false);
+  expect(configSchema.parse(c).preferences.liveDetection).toBe(true);
   expect(() =>
     favoriteSchema.parse({ ...favorite("a"), roomId: "36" }),
   ).toThrow();

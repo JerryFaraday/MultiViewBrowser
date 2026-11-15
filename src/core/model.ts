@@ -95,81 +95,76 @@ export const favoriteSchema = z
       f.liveCache = null;
     return f;
   });
-export const configSchema = z
-  .preprocess(
-    (raw) => {
-      if (raw && typeof raw === "object" && !("preferences" in raw)) {
-        const c = raw as Record<string, unknown>;
-        return {
-          ...c,
-          preferences: {
-            ...defaultPreferences(),
-            startupContent: c.restore === false ? "blank" : "last",
-          },
-        };
-      }
-      return raw;
-    },
-    z.object({
-      preferences: preferencesSchema.default(defaultPreferences),
-      windowState: z
-        .object({
-          x: z.number().int(),
-          y: z.number().int(),
-          width: z.number().int().min(800).max(20000),
-          height: z.number().int().min(600).max(20000),
-          maximized: z.boolean(),
-          fullscreen: z.boolean().default(false),
-        })
-        .optional(),
-      version: z.literal(1),
-      revision: z.number().int().nonnegative().default(0),
-      restore: z.boolean(),
-      bookmarksBar: z.boolean().default(false),
-      pageStash: z
-        .array(
-          z.object({
-            id: z.string().max(100),
-            url: pageSchema.shape.url,
-            title: z.string().max(1000),
-            page: pageSchema.optional(),
-          }),
-        )
-        .max(5000)
-        .default([]),
-      masterMuted: z.boolean().default(false),
-      masterVolume: z.number().min(0).max(150).default(100),
-      session: snapshotSchema,
-      groups: z.array(z.string().max(100)).max(200),
-      favorites: z.array(favoriteSchema).max(5000),
-      layouts: z
-        .array(
-          z.object({
-            id: z.string(),
-            name: z.string(),
-            tree: treeSchema,
-            created: z.string(),
-            modified: z.string(),
-          }),
-        )
-        .max(200),
-      workspaces: z
-        .array(
-          z.object({
-            id: z.string(),
-            name: z.string(),
-            snapshot: snapshotSchema,
-            created: z.string(),
-            modified: z.string(),
-          }),
-        )
-        .max(200),
-    }),
-  )
-  .transform((c) => {
-    if (!c.bookmarksBar) c.preferences.liveDetection = false;
-    return c;
-  });
+export const configSchema = z.preprocess(
+  (raw) => {
+    if (raw && typeof raw === "object" && !("preferences" in raw)) {
+      const c = raw as Record<string, unknown>;
+      return {
+        ...c,
+        preferences: {
+          ...defaultPreferences(),
+          startupContent: c.restore === false ? "blank" : "last",
+        },
+      };
+    }
+    return raw;
+  },
+  z.object({
+    preferences: preferencesSchema.default(defaultPreferences),
+    windowState: z
+      .object({
+        x: z.number().int(),
+        y: z.number().int(),
+        width: z.number().int().min(800).max(20000),
+        height: z.number().int().min(600).max(20000),
+        maximized: z.boolean(),
+        fullscreen: z.boolean().default(false),
+      })
+      .optional(),
+    version: z.literal(1),
+    revision: z.number().int().nonnegative().default(0),
+    restore: z.boolean(),
+    bookmarksBar: z.boolean().default(false),
+    pageStash: z
+      .array(
+        z.object({
+          id: z.string().max(100),
+          url: pageSchema.shape.url,
+          title: z.string().max(1000),
+          page: pageSchema.optional(),
+        }),
+      )
+      .max(5000)
+      .default([]),
+    masterMuted: z.boolean().default(false),
+    masterVolume: z.number().min(0).max(150).default(100),
+    session: snapshotSchema,
+    groups: z.array(z.string().max(100)).max(200),
+    favorites: z.array(favoriteSchema).max(5000),
+    layouts: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          tree: treeSchema,
+          created: z.string(),
+          modified: z.string(),
+        }),
+      )
+      .max(200),
+    workspaces: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          snapshot: snapshotSchema,
+          created: z.string(),
+          modified: z.string(),
+        }),
+      )
+      .max(200),
+  }),
+);
 export type Config = z.infer<typeof configSchema>;
 export function newPage(url: string): Page {
   return {

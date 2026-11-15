@@ -17,7 +17,9 @@ export function SettingSwitch({
       aria-label={label}
       disabled={disabled}
       className="setting-switch"
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        if (!disabled) onChange(!checked);
+      }}
     >
       <span aria-hidden="true" />
     </button>

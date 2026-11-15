@@ -127,6 +127,7 @@ Five adjectives: **clear / restrained / legible / efficient / coherent** (清晰
 
 - Switch rows explain effect, particularly for destructive or background-process behavior. Label-click toggles if safe.
 - Disabled dependent control should explain why it is unavailable (e.g., favoriting/live-check setting disabled while favorites bar hidden). Do not silently allow unsupported combinations.
+- Bookmark children (group names, group structure, live detection) share one dependency on the bar switch. Disabled UI must retain the saved checked state and knob position: native disabled button + grey rgba(128,128,128,.38) overlay, opacity 1, default cursor and no hover/pressed feedback. Row labels/descriptions share a readable disabled token; dimensions remain unchanged. Neither hiding the parent nor parsing/saving config may erase the child preferences; actual detection remains gated by the parent.
 - Changes: instant-save for safe toggles with reliable persistence and feedback; explicit Save/Cancel for multi-field editors. Define one strategy per control.
 
 ### 4.4 Icons and status

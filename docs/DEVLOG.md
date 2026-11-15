@@ -2,6 +2,12 @@
 
 本日志按有证据的开发阶段整理。原记录不含精确日期或版本的条目不补造；有编号的版本见[CHANGELOG](../CHANGELOG.md)，原始记录见[映射](DOCUMENTATION_MAP.md)。
 
+## 2026-11-15：收藏栏子开关保留值与禁用蒙层（V0.2.5.2）
+
+旧UI关闭父开关时主动写liveDetection=false，configSchema读取/保存时又强制清除；检测控件还用父值与偏好相与显示，导致交互状态与保存值混淆。移除这些清除，三个子项统一使用Preferences中的依赖列表/判断，SettingSwitch显式阻止禁用回调，ConfigStore保护隐藏时的三个值。实际检测仍由既有bar&&liveDetection门控，无需修改检测模块。
+
+禁用控件不再整体降透明度，而是保留原底色/滑块、叠加灰色伪元素蒙层；文字使用主题派生禁用色，尺寸不变。262项测试与四主题32组合/跨进程重启通过；扩展可信鼠标用例曾失败一次，改为逐用例建立诊断会话后全部通过，未为此修改产品行为。详细[验收](reviews/BOOKMARK_DEPENDENCIES_2026-11-15.md)。
+
 ## 2026-11-15：斗鱼HTTPS备用查询（V0.2.5.1）
 
 用户确认6657网页可打开且未播，betard却返回关闭HTML；1667826主接口正常。实测两房间RoomApi在HTTP/HTTPS均200，返回error=0及字符串room_status=0/1，无轮播字段。保留betard主查，新增固定HTTPS备用命令；独立解析RoomApi，0/2为明确非直播，1因不能排除轮播为UNKNOWN，不复用betard字段，也不自动降级明文HTTP。250项单测及实际打包查询通过，6657备用OFFLINE、1667826主LIVE；原B站监测器及收藏设置未修改。详见[实测记录](reviews/DOUYU_FALLBACK_2026-11-15.md)。

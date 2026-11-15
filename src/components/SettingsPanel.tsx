@@ -11,6 +11,7 @@ import { normalizeUrl, type Config } from "../core/model";
 import { SettingSwitch } from "./SettingSwitch";
 import { accentPresets, type AccentName } from "../core/Accent";
 import type { Preferences } from "../core/Preferences";
+import { bookmarkPreferenceDisabled } from "../core/Preferences";
 import version from "../../version.json";
 type Props = {
   config: Config;
@@ -43,11 +44,7 @@ export function SettingsPanel({
   }, []);
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) =>
     edit((d) => {
-      if (
-        !d.bookmarksBar &&
-        (key === "showGroupNames" || key === "showBookmarkGroups")
-      )
-        return;
+      if (bookmarkPreferenceDisabled(d, key)) return;
       d.preferences[key] = value;
     });
   const row = (label: string, control: ReactNode, hint?: string) => (
@@ -76,20 +73,22 @@ export function SettingsPanel({
   );
   const toggle = (
     key:
-      "autoSaveSession" | "showGroupNames" | "showBookmarkGroups" | "tooltips",
+      | "autoSaveSession"
+      | "showGroupNames"
+      | "showBookmarkGroups"
+      | "liveDetection"
+      | "tooltips",
   ) => (
     <SettingSwitch
       checked={p[key]}
-      disabled={
-        !c.bookmarksBar &&
-        (key === "showGroupNames" || key === "showBookmarkGroups")
-      }
+      disabled={bookmarkPreferenceDisabled(c, key)}
       onChange={(value) => update(key, value)}
       label={
         {
           autoSaveSession: "关闭时自动保存会话",
           showGroupNames: "显示收藏分组名称",
           showBookmarkGroups: "显示收藏栏分组",
+          liveDetection: "检测直播间开播状态",
           tooltips: "鼠标悬停提示",
         }[key]
       }
@@ -326,7 +325,6 @@ export function SettingsPanel({
                   onChange={(value) =>
                     edit((d) => {
                       d.bookmarksBar = value;
-                      if (!value) d.preferences.liveDetection = false;
                     })
                   }
                 />,
@@ -343,15 +341,8 @@ export function SettingsPanel({
               )}
               {row(
                 "检测直播间开播状态",
-                <SettingSwitch
-                  label="检测直播间开播状态"
-                  checked={c.bookmarksBar && p.liveDetection}
-                  disabled={!c.bookmarksBar}
-                  onChange={(value) => update("liveDetection", value)}
-                />,
-                c.bookmarksBar
-                  ? "检测B站和斗鱼直播间网页，不使用网页或播放流。"
-                  : "请先开启显示收藏栏。",
+                toggle("liveDetection"),
+                "检测B站和斗鱼直播间网页，不使用网页或播放流。",
               )}
               {row(
                 "检测间隔",
