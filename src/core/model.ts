@@ -67,7 +67,7 @@ export const snapshotSchema = z.object({
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export const favoriteSchema = z
   .object({
-    category: z.enum(["web", "bilibili-live"]).default("web"),
+    category: z.enum(["web", "bilibili-live", "douyu-live"]).default("web"),
     roomId: z.string().max(20).default(""),
     liveCache: liveCacheSchema.nullable().catch(null).default(null),
     id: z.string(),
@@ -78,9 +78,12 @@ export const favoriteSchema = z
     created: z.string(),
   })
   .superRefine((f, ctx) => {
-    if (f.category === "bilibili-live") {
+    if (f.category !== "web") {
       try {
-        if (roomId(f.roomId) !== f.roomId || roomFromUrl(f.url) !== f.roomId)
+        if (
+          roomId(f.roomId) !== f.roomId ||
+          roomFromUrl(f.url, f.category) !== f.roomId
+        )
           throw Error();
       } catch {
         ctx.addIssue({ code: "custom", message: "直播间号与地址不匹配" });

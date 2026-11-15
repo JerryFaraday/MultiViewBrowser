@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { favoriteSchema, normalizeUrl, type Config } from "../core/model";
-import { roomFromUrl, favoriteLiveUrl } from "../core/LiveStatus";
+import {
+  identifyLiveUrl,
+  favoriteLiveUrl,
+  type LiveCategory,
+} from "../core/LiveStatus";
 export type Favorite = Config["favorites"][number];
 export function FavoriteEditor({
   initial,
@@ -19,6 +23,14 @@ export function FavoriteEditor({
     [creatingGroup, setCreatingGroup] = useState(false),
     [newGroup, setNewGroup] = useState(""),
     [error, setError] = useState("");
+  const isLive = draft.category !== "web";
+  const detected = (() => {
+    try {
+      return identifyLiveUrl(draft.url);
+    } catch {
+      return null;
+    }
+  })();
   return (
     <form
       className="modal favorite-editor"
@@ -35,8 +47,8 @@ export function FavoriteEditor({
               name: draft.name.trim(),
               group: (creatingGroup ? newGroup : draft.group).trim() || "常用",
               url:
-                draft.category === "bilibili-live"
-                  ? favoriteLiveUrl(draft.roomId, draft.url)
+                draft.category !== "web"
+                  ? favoriteLiveUrl(draft.roomId, draft.url, draft.category)
                   : normalizeUrl(draft.url.trim()),
             }),
           );
@@ -65,31 +77,33 @@ export function FavoriteEditor({
         类别
         <select
           aria-label="标签类别"
-          value={draft.category}
+          value={isLive ? "live" : "web"}
           onChange={(e) => {
-            const category = e.target.value as Favorite["category"];
             try {
-              if (category === "bilibili-live") {
-                let id = "";
-                if (editing) id = roomFromUrl(draft.url);
-                else
-                  try {
-                    id = roomFromUrl(draft.url);
-                  } catch {}
+              if (e.target.value === "live") {
+                if (editing && !detected) throw Error();
                 setDraft({
                   ...draft,
-                  category,
-                  roomId: id,
-                  url: editing && id ? draft.url : "",
+                  category: detected?.category ?? "bilibili-live",
+                  roomId: detected?.roomId ?? "",
+                  liveCache: null,
+                  url: detected ? draft.url : "",
                 });
               } else
                 setDraft({
                   ...draft,
-                  category,
+                  category: "web",
                   roomId: "",
+                  liveCache: null,
                   url: (() => {
                     try {
-                      return favoriteLiveUrl(draft.roomId, draft.url);
+                      return draft.category === "web"
+                        ? draft.url
+                        : favoriteLiveUrl(
+                            draft.roomId,
+                            draft.url,
+                            draft.category,
+                          );
                     } catch {
                       return draft.url;
                     }
@@ -98,32 +112,56 @@ export function FavoriteEditor({
               setError("");
             } catch {
               setError(
-                "原网址必须是 live.bilibili.com 的数字房号路径，才能转换为B站直播间。",
+                "原网址必须是B站或斗鱼直播间的数字房号地址，才能转换为直播间网页。",
               );
             }
           }}
         >
           <option value="web">普通网页</option>
-          <option value="bilibili-live">B站直播间</option>
+          <option value="live" disabled={editing && !isLive && !detected}>
+            直播间网页
+          </option>
         </select>
       </label>
+      {editing && !isLive && !detected && (
+        <small>
+          当前网址不是支持的B站或斗鱼数字房号地址，无法转换为直播间网页。
+        </small>
+      )}
       <label>
-        {draft.category === "bilibili-live" ? "直播间号" : "网址"}
+        {isLive ? "直播间号" : "网址"}
+        {isLive && (
+          <select
+            aria-label="直播平台"
+            value={draft.category}
+            onChange={(e) => {
+              setDraft({
+                ...draft,
+                category: e.target.value as LiveCategory,
+                roomId: "",
+                url: "",
+                liveCache: null,
+              });
+              setError("");
+            }}
+          >
+            <option value="bilibili-live">https://live.bilibili.com/</option>
+            <option value="douyu-live">https://www.douyu.com/</option>
+          </select>
+        )}
         <input
           required
-          aria-label={draft.category === "bilibili-live" ? "直播间号" : "网址"}
-          inputMode={draft.category === "bilibili-live" ? "numeric" : "url"}
-          pattern={draft.category === "bilibili-live" ? "[0-9]+" : undefined}
+          aria-label={isLive ? "直播间号" : "网址"}
+          inputMode={isLive ? "numeric" : "url"}
+          pattern={isLive ? "[0-9]+" : undefined}
           placeholder={
-            draft.category === "bilibili-live"
-              ? "纯数字直播间号"
-              : "https://live.bilibili.com/…"
+            isLive ? "纯数字直播间号" : "https://live.bilibili.com/…"
           }
-          value={draft.category === "bilibili-live" ? draft.roomId : draft.url}
+          value={isLive ? draft.roomId : draft.url}
           onChange={(e) =>
             setDraft({
               ...draft,
-              ...(draft.category === "bilibili-live"
+              ...(isLive
                 ? { roomId: e.target.value.replace(/^0+(?=\d)/, "") }
                 : { url: e.target.value }),
             })

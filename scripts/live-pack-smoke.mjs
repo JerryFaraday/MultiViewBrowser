@@ -29,6 +29,16 @@ const config = {
       note: "",
       created: "",
     },
+    {
+      id: "douyu",
+      name: "douyu fixture",
+      category: "douyu-live",
+      roomId: "9999",
+      url: "https://www.douyu.com/9999",
+      group: "常用",
+      note: "",
+      created: "",
+    },
   ],
   groups: ["常用"],
   layouts: [],
@@ -97,12 +107,19 @@ try {
   for (let i = 0; i < 100; i++) {
     const r = await command("Runtime.evaluate", {
       expression:
-        'window.browser.liveStatus().then(s=>({status:s["35"]?.status,reason:s["35"]?.reason,dots:document.querySelectorAll(".live-dot").length}))',
+        'window.browser.liveStatus().then(s=>({status:s["35"]?.status,reason:s["35"]?.reason,douyu:s["douyu:9999"]?.status,douyuReason:s["douyu:9999"]?.reason,dots:document.querySelectorAll(".live-dot").length}))',
       awaitPromise: true,
       returnByValue: true,
     });
     result = r.result?.value;
-    if (result && result.reason !== "pending" && result.status) break;
+    if (
+      result &&
+      result.reason !== "pending" &&
+      result.status &&
+      result.douyuReason !== "pending" &&
+      result.douyu
+    )
+      break;
     await wait(150);
   }
   const loaded = await command("Runtime.evaluate", {
@@ -115,7 +132,8 @@ try {
     !!result &&
     (["live", "offline"].includes(result.status) ||
       result.reason === "replay") &&
-    result.dots === 1 &&
+    result.dots === 2 &&
+    ["live", "offline"].includes(result.douyu) &&
     loaded.result?.value?.enabled === true &&
     loaded.result?.value?.category === "bilibili-live";
   writeFileSync(

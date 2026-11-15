@@ -327,15 +327,15 @@ export function SettingsPanel({
                 "分组顺序与分隔线保持现有规则。",
               )}
               {row(
-                "检测B站直播间开播状态",
+                "检测直播间开播状态",
                 <SettingSwitch
-                  label="检测B站直播间开播状态"
+                  label="检测直播间开播状态"
                   checked={c.bookmarksBar && p.liveDetection}
                   disabled={!c.bookmarksBar}
                   onChange={(value) => update("liveDetection", value)}
                 />,
                 c.bookmarksBar
-                  ? "仅检测B站直播间类别标签，不使用网页或播放流。"
+                  ? "检测B站和斗鱼直播间网页，不使用网页或播放流。"
                   : "请先开启显示收藏栏。",
               )}
               {row(

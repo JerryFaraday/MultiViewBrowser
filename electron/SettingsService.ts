@@ -1,5 +1,7 @@
 import type { CacheUpdate } from "../src/core/LiveStatus";
-import { LiveMonitor, nativeLiveQuery, liveExecutable } from "./LiveMonitor";
+import { nativeLiveQuery, liveExecutable } from "./LiveMonitor";
+import { LiveCoordinator } from "./live/LiveCoordinator";
+import { nativeDouyuQuery } from "./live/DouyuNative";
 import { themeCSS, themePalettes } from "../src/core/Theme";
 import { accentCSS } from "../src/core/Accent";
 import { applyNativeTheme } from "./NativeTheme";
@@ -25,22 +27,23 @@ export class SettingsService {
   private styles = new Map<number, string>();
   private generations = new Map<number, number>();
   private previous = "";
-  private live: LiveMonitor;
+  private live: LiveCoordinator;
   constructor(
     private window: BrowserWindow,
     private read: () => Config,
     private manager: BrowserManager,
     persistCache: (updates: CacheUpdate[]) => void = () => {},
   ) {
-    this.live = new LiveMonitor(
-      nativeLiveQuery(
-        liveExecutable(app.isPackaged ? process.resourcesPath : undefined),
-      ),
+    const executable = liveExecutable(
+      app.isPackaged ? process.resourcesPath : undefined,
+    );
+    this.live = new LiveCoordinator(
+      nativeLiveQuery(executable),
+      nativeDouyuQuery(executable),
       (states) => {
         if (!window.isDestroyed() && !window.webContents.isDestroyed())
           window.webContents.send("live-status", states);
       },
-      1000,
       persistCache,
     );
     window.on("closed", () => this.live.dispose());

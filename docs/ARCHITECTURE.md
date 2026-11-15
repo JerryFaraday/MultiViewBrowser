@@ -4,7 +4,7 @@
 
 ## 进程与模块
 
-直播状态查询独立于BrowserManager和网页实例。SettingsService在配置变化时驱动[LiveMonitor](../electron/LiveMonitor.ts)，读取全局检测偏好与收藏标签类别；原生[C++ WinHTTP](../native/live-status.cpp)进程执行HTTPS异步请求，通过stdout返回受大小限制的JSON，由主进程校验、映射三态后经受限preload IPC广播给React。状态仅保留在内存；房号/UID映射从V0.2.2.1起存于各收藏的`liveCache`，不写入会话或工作区，也无独立缓存文件。
+直播状态查询独立于BrowserManager和网页实例。SettingsService在配置变化时驱动[LiveCoordinator](../electron/live/LiveCoordinator.ts)，读取全局检测偏好与收藏标签类别，将B站交给原[LiveMonitor](../electron/LiveMonitor.ts)、斗鱼交给独立[DouyuAdapter](../electron/live/Douyu.ts)。原生[C++ WinHTTP](../native/live-status.cpp)进程执行HTTPS异步请求，通过stdout返回受大小限制的JSON，由主进程校验、映射三态后经受限preload IPC广播给React。B站状态键保持房号，斗鱼使用`douyu:房号`避免冲突。状态仅保留在内存；B站房号/UID映射从V0.2.2.1起存于各收藏的`liveCache`，斗鱼暂不持久化映射，不写入会话或工作区，也无独立缓存文件。
 
 LiveMonitor优先按最多50个去重房号调用get_by_ids，以可靠的roomid/short_id/uid元数据维护映射；失败成员才使用原有room_init及UID批量备用路径。缓存不设强制过期，24小时校验可由正常批量结果完成；备用路径的过期映射校验使用独立串行队列，不延长状态轮询。前台状态队列、后台校验队列各自每秒最多发起一次请求，各最多一个在途；用户轮询间隔仍以一轮状态检测完成后计时。配置签名改变、停止或窗口关闭时AbortController取消任务，返回后再次检查信号。没有创建检测网页、抓DOM或读取视频流。
 

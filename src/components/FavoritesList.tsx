@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { DragEvent } from "react";
 import type { Config } from "../core/model";
-import { liveLabel, type LiveStates } from "../core/LiveStatus";
+import { liveKey, liveLabel, type LiveStates } from "../core/LiveStatus";
 import {
   moveItem,
   moveFavorite,
@@ -172,14 +172,14 @@ export function FavoritesList({
                   {bar &&
                     c.bookmarksBar &&
                     c.preferences.liveDetection &&
-                    f.category === "bilibili-live" && (
+                    f.category !== "web" && (
                       <span
                         role="img"
-                        aria-label={liveLabel(liveStates[f.roomId])}
-                        title={liveLabel(liveStates[f.roomId])}
+                        aria-label={liveLabel(liveStates[liveKey(f)])}
+                        title={liveLabel(liveStates[liveKey(f)])}
                         className={
                           "live-dot " +
-                          (liveStates[f.roomId]?.status ?? "unknown")
+                          (liveStates[liveKey(f)]?.status ?? "unknown")
                         }
                       />
                     )}

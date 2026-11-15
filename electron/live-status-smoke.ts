@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { defaults } from "../src/core/WorkspaceManager";
 import { favoriteSchema } from "../src/core/model";
 import { LiveMonitor } from "./LiveMonitor";
+import { DouyuAdapter } from "./live/Douyu";
 app.setPath("userData", app.getPath("temp") + "/mvb-live-ui-" + Date.now());
 const c = defaults();
 c.masterMuted = true;
@@ -20,14 +21,28 @@ c.favorites = [
       created: "",
     }),
   ),
-  ...["old", "bad"].map((id) =>
+  ...["35", "9999", "10", "9999"].map((roomId, i) =>
+    favoriteSchema.parse({
+      id: "d" + i,
+      name: "douyu" + i,
+      category: "douyu-live",
+      roomId,
+      url: "https://www.douyu.com/" + roomId,
+      group: "常用",
+      note: "",
+      created: "",
+    }),
+  ),
+  ...["old", "bad", "oldDouyu"].map((id) =>
     favoriteSchema.parse({
       id,
       name: id,
       url:
-        id === "old"
-          ? "http://live.bilibili.com/35/?test=1"
-          : "https://example.com",
+        id === "oldDouyu"
+          ? "http://www.douyu.com/9999/?test=1"
+          : id === "old"
+            ? "http://live.bilibili.com/35/?test=1"
+            : "https://example.com",
       group: "常用",
       note: "",
       created: "",
@@ -37,6 +52,23 @@ c.favorites = [
 mkdirSync(app.getPath("userData"), { recursive: true });
 writeFileSync(app.getPath("userData") + "/config.json", JSON.stringify(c));
 const requests: any[] = [];
+(DouyuAdapter.prototype as any).attempt = async (
+  id: string,
+  signal: AbortSignal,
+) => {
+  signal.throwIfAborted();
+  requests.push({ kind: "douyu", id });
+  return {
+    httpStatus: 200,
+    body: {
+      room: {
+        room_id: Number(id),
+        show_status: id === "35" ? 0 : 1,
+        videoLoop: id === "10" ? 1 : 0,
+      },
+    },
+  };
+};
 // UI/IPC test fixture only. Native WinHTTP is verified separately against APIs.
 (LiveMonitor.prototype as any).request = async (
   kind: string,
@@ -89,15 +121,15 @@ app.whenReady().then(async () => {
       "document.querySelector('.bookmarks-bar').getBoundingClientRect().height",
     );
     await js(
-      "document.querySelector('[aria-label=\"检测B站直播间开播状态\"]').click()",
+      "document.querySelector('[aria-label=\"检测直播间开播状态\"]').click()",
     );
-    await wait(200);
+    await wait(1100);
     const dots = await js(
       "Array.from(document.querySelectorAll('.live-dot')).map(e=>({status:e.className,label:e.getAttribute('aria-label'),right:e.getBoundingClientRect().left>=e.previousElementSibling.getBoundingClientRect().right}))",
     );
     const indicators =
-      dots.length === 4 &&
-      dots.filter((x: any) => x.status.includes(" live")).length === 2 &&
+      dots.length === 8 &&
+      dots.filter((x: any) => x.status.includes(" live")).length === 4 &&
       dots.some((x: any) => x.status.includes("offline")) &&
       dots.some((x: any) => x.status.includes("unknown")) &&
       dots.every((x: any) => x.right);
@@ -126,7 +158,8 @@ app.whenReady().then(async () => {
         ));
     const dedup =
       requests.filter((r) => r.kind === "rooms").length === 1 &&
-      requests.find((r) => r.kind === "rooms")?.count === 3;
+      requests.find((r) => r.kind === "rooms")?.count === 3 &&
+      requests.filter((r) => r.kind === "douyu").length === 3;
     const input = async (selector: string, value: string) => {
       await js(
         `(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));})()`,
@@ -150,7 +183,7 @@ app.whenReady().then(async () => {
       await wait(300);
     };
     await edit("old");
-    await category("bilibili-live");
+    await category("live");
     await save();
     let cfg = await load();
 
@@ -163,16 +196,33 @@ app.whenReady().then(async () => {
     const reversed =
       cfg.favorites.find((f: any) => f.id === "old").url ===
       "http://live.bilibili.com/35/?test=1";
+    await edit("oldDouyu");
+    await category("live");
+    const autoDouyu = await js(
+      "document.querySelector('[aria-label=\"直播平台\"]').value==='douyu-live'&&document.querySelector('[aria-label=\"直播间号\"]').value==='9999'",
+    );
+    await save();
+    cfg = await load();
+    const douyuSaved =
+      cfg.favorites.find((f: any) => f.id === "oldDouyu").category ===
+      "douyu-live";
+    await edit("oldDouyu");
+    await category("web");
+    await save();
+    cfg = await load();
+    const douyuReversed =
+      cfg.favorites.find((f: any) => f.id === "oldDouyu").url ===
+      "http://www.douyu.com/9999/?test=1";
     await edit("bad");
-    await category("bilibili-live");
+    await category("live");
     const rejected = await js(
-      "!!document.querySelector('.favorite-editor [role=alert]')&&document.querySelector('[aria-label=\"标签类别\"]').value==='web'",
+      "!!document.querySelector('.favorite-editor [role=alert]')&&document.querySelector('[aria-label=\"标签类别\"]').value==='web'&&document.querySelector('[aria-label=\"标签类别\"] option[value=live]').disabled",
     );
     await js("document.querySelector('[aria-label=\"关闭收藏编辑\"]').click()");
     await js("document.querySelector('.side-title button').click()");
     await wait(50);
     await input(".favorite-editor label:first-of-type input", "new");
-    await category("bilibili-live");
+    await category("live");
     await input('[aria-label="直播间号"]', "abc");
     const invalidRoom = await js(
       "!document.querySelector('.favorite-editor').checkValidity()",
@@ -193,6 +243,23 @@ app.whenReady().then(async () => {
     const deleted =
       !(await load()).favorites.some((f: any) => f.name === "new") &&
       !(await js("window.browser.liveStatus()"))["55"];
+    await js("document.querySelector('.side-title button').click()");
+    await wait(50);
+    await input(".favorite-editor label:first-of-type input", "newDouyu");
+    await category("live");
+    await js(
+      "(()=>{const e=document.querySelector('[aria-label=\"直播平台\"]');e.value='douyu-live';e.dispatchEvent(new Event('change',{bubbles:true}))})()",
+    );
+    await wait(50);
+    await input('[aria-label="直播间号"]', "123");
+    await save();
+    cfg = await load();
+    const newDouyu = cfg.favorites.some(
+      (f: any) =>
+        f.name === "newDouyu" &&
+        f.category === "douyu-live" &&
+        f.url === "https://www.douyu.com/123",
+    );
     await js("document.querySelector('[aria-label=\"检测间隔\"]').focus()");
     await input('[aria-label="检测间隔"]', "30");
     await js("document.querySelector('[aria-label=\"检测间隔\"]').blur()");
@@ -204,7 +271,7 @@ app.whenReady().then(async () => {
     const stopped =
       !cfg.preferences.liveDetection &&
       (await js(
-        "document.querySelectorAll('.live-dot').length===0&&document.querySelector('[aria-label=\"检测B站直播间开播状态\"]').disabled",
+        "document.querySelectorAll('.live-dot').length===0&&document.querySelector('[aria-label=\"检测直播间开播状态\"]').disabled",
       ));
     const count = requests.length;
     await wait(400);
@@ -223,6 +290,7 @@ app.whenReady().then(async () => {
       interval &&
       stopped &&
       noQuery;
+    const platformChecks = autoDouyu && douyuSaved && douyuReversed && newDouyu;
     const result = {
       barStable,
       invalidRoom,
@@ -237,11 +305,12 @@ app.whenReady().then(async () => {
       interval,
       stopped,
       noQuery,
-      pass,
+      platformChecks,
+      pass: pass && platformChecks,
     };
     writeFileSync("live-ui-diagnostic.json", JSON.stringify(result, null, 2));
     console.log(JSON.stringify(result));
-    app.exit(pass ? 0 : 1);
+    app.exit(pass && platformChecks ? 0 : 1);
   } catch (e) {
     console.error(
       "Live UI smoke failed",
