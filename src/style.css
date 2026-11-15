@@ -944,7 +944,7 @@ footer {
     var(--text-primary) 75%,
     var(--bg-canvas)
   );
-  --disabled-switch-overlay: rgba(128, 128, 128, 0.38);
+  --disabled-switch-overlay: rgba(128, 128, 128, 0.68);
   --border-subtle: var(--ui-3);
   --radius-control: 8px;
   --radius-panel: 12px;

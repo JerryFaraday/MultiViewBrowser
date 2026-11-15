@@ -106,7 +106,7 @@ app.whenReady().then(async () => {
               s.opacity === "1" &&
               s.cursor === "default" &&
               s.overlayContent === '""' &&
-              s.overlay.includes("0.38") &&
+              s.overlay.includes("0.68") &&
               s.text === s.desc,
           );
         await js(
