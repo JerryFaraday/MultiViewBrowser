@@ -52,6 +52,8 @@ const requests: any[] = [];
       {
         uid: Number(id),
         room_id: Number(id),
+        roomid: Number(id),
+        short_id: 0,
         live_status: id === "35" ? 1 : id === "6" ? 0 : 99,
       },
     ]),
@@ -122,7 +124,9 @@ app.whenReady().then(async () => {
         (await js(
           "document.querySelector('.bookmarks-bar').getBoundingClientRect().height",
         ));
-    const dedup = requests.filter((r) => r.kind === "room").length === 3;
+    const dedup =
+      requests.filter((r) => r.kind === "rooms").length === 1 &&
+      requests.find((r) => r.kind === "rooms")?.count === 3;
     const input = async (selector: string, value: string) => {
       await js(
         `(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));})()`,

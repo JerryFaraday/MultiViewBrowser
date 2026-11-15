@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createServer } from "node:net";
@@ -143,5 +143,19 @@ try {
   ws?.close();
   await wait(800);
   if (child.exitCode === null) child.kill();
+}
+try {
+  const cached = JSON.parse(readFileSync(join(profile, "config.json"), "utf8"))
+    .favorites[0].liveCache;
+  const cachePersisted =
+    cached?.inputRoomId === "35" &&
+    /^\d+$/.test(cached.realRoomId) &&
+    /^\d+$/.test(cached.uid) &&
+    cached.checkedAt > 0 &&
+    cached.formatVersion === 1;
+  pass = pass && cachePersisted;
+  console.log(JSON.stringify({ cachePersisted, pass }));
+} catch {
+  pass = false;
 }
 process.exit(pass ? 0 : 1);

@@ -41,6 +41,7 @@ server.listen(0, "127.0.0.1", async () => {
   seed.bookmarksBar = true;
   seed.favorites = [
     {
+      liveCache: null,
       category: "web",
       roomId: "",
       id: "favorite",

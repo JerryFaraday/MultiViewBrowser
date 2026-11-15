@@ -1,3 +1,4 @@
+import type { CacheUpdate } from "../src/core/LiveStatus";
 import { LiveMonitor, nativeLiveQuery, liveExecutable } from "./LiveMonitor";
 import { themeCSS, themePalettes } from "../src/core/Theme";
 import { accentCSS } from "../src/core/Accent";
@@ -29,6 +30,7 @@ export class SettingsService {
     private window: BrowserWindow,
     private read: () => Config,
     private manager: BrowserManager,
+    persistCache: (updates: CacheUpdate[]) => void = () => {},
   ) {
     this.live = new LiveMonitor(
       nativeLiveQuery(
@@ -38,6 +40,8 @@ export class SettingsService {
         if (!window.isDestroyed() && !window.webContents.isDestroyed())
           window.webContents.send("live-status", states);
       },
+      1000,
+      persistCache,
     );
     window.on("closed", () => this.live.dispose());
     ipcMain.handle("live-status-get", (e) => {

@@ -1,3 +1,4 @@
+import { z } from "zod";
 export function roomId(input: string) {
   if (!/^\d{1,20}$/.test(input) || /^0+$/.test(input))
     throw Error("请输入有效的纯数字直播间号");
@@ -51,4 +52,29 @@ export function liveLabel(state?: LiveState) {
     : state?.reason === "pending" || !state
       ? "尚未获得直播状态"
       : "检测失败，等待下次重试";
+}
+
+const cachedId = z.string().refine((s) => {
+  try {
+    return roomId(s) === s;
+  } catch {
+    return false;
+  }
+});
+export const liveCacheSchema = z.object({
+  formatVersion: z.literal(1),
+  inputRoomId: cachedId,
+  realRoomId: cachedId,
+  uid: cachedId,
+  checkedAt: z.number().int().nonnegative().max(8640000000000000),
+});
+export type LiveCache = z.infer<typeof liveCacheSchema>;
+export type CacheUpdate = {
+  favoriteId: string;
+  roomId: string;
+  cache: LiveCache;
+};
+export const mappingCheckInterval = 24 * 60 * 60 * 1000;
+export function mappingDue(cache: LiveCache, now = Date.now()) {
+  return cache.checkedAt > now || now - cache.checkedAt >= mappingCheckInterval;
 }

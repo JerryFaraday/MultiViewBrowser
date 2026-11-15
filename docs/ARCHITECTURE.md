@@ -4,9 +4,11 @@
 
 ## 进程与模块
 
-V0.2.2.0补充：直播状态查询独立于BrowserManager和网页实例。SettingsService在配置变化时驱动[LiveMonitor](../electron/LiveMonitor.ts)，读取全局检测偏好与收藏标签类别；原生[C++ WinHTTP](../native/live-status.cpp)进程执行HTTPS异步请求，通过stdout返回受大小限制的JSON，由主进程校验、映射三态后经受限preload IPC广播给React。状态不写入会话或工作区，UID缓存仅在内存，收藏类别和房号随配置保存。
+直播状态查询独立于BrowserManager和网页实例。SettingsService在配置变化时驱动[LiveMonitor](../electron/LiveMonitor.ts)，读取全局检测偏好与收藏标签类别；原生[C++ WinHTTP](../native/live-status.cpp)进程执行HTTPS异步请求，通过stdout返回受大小限制的JSON，由主进程校验、映射三态后经受限preload IPC广播给React。状态仅保留在内存；房号/UID映射从V0.2.2.1起存于各收藏的`liveCache`，不写入会话或工作区，也无独立缓存文件。
 
-LiveMonitor按去重房号解析UID并按最多50个UID分批获取状态，所有请求起始至少间隔1秒，同一任务不重叠；间隔以一轮完成后计时。配置签名改变、停止或窗口关闭时AbortController取消延迟及工作进程，返回后再次检查信号，过期结果不得更新状态。首次解析成本随房间数量增加；没有创建检测网页、抓DOM或读取视频流。
+LiveMonitor优先按最多50个去重房号调用get_by_ids，以可靠的roomid/short_id/uid元数据维护映射；失败成员才使用原有room_init及UID批量备用路径。缓存不设强制过期，24小时校验可由正常批量结果完成；备用路径的过期映射校验使用独立串行队列，不延长状态轮询。前台状态队列、后台校验队列各自每秒最多发起一次请求，各最多一个在途；用户轮询间隔仍以一轮状态检测完成后计时。配置签名改变、停止或窗口关闭时AbortController取消任务，返回后再次检查信号。没有创建检测网页、抓DOM或读取视频流。
+
+[LiveCacheWriter](../electron/LiveCacheWriter.ts)以500ms窗口合并缓存补丁，只在映射变化、首次补齐或成功校验时间到期更新时写入。保存前重读最新配置并核对收藏ID/类别/房号，只修改匹配收藏的缓存，沿用ConfigStore原子替换与配置三方合并，避免覆盖并发编辑。关闭时冲刷待写补丁；失败保留补丁供后续正常机会重试。细节与验证见[缓存专项记录](reviews/LIVE_CACHE_2026-11-15.md)。
 
 ```mermaid
 flowchart LR

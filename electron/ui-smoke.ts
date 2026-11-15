@@ -9,6 +9,7 @@ app.setPath(
 const seed = defaults();
 seed.groups = ["A", "B"];
 seed.favorites = ["a", "b", "c"].map((id, i) => ({
+  liveCache: null,
   category: "web" as const,
   roomId: "",
   id,

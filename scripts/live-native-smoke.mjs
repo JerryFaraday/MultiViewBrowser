@@ -26,6 +26,18 @@ const request = (kind, ids) =>
     });
   });
 try {
+  const started = performance.now();
+  const direct = await request("rooms", "35,22637261");
+  const directMs = Math.round(performance.now() - started);
+  const directValid = ["35", "22637261"].every((id) =>
+    Object.entries(direct).some(
+      ([key, r]) =>
+        String(r.roomid) === key &&
+        (key === id || String(r.short_id) === id) &&
+        Number.isSafeInteger(r.uid) &&
+        Number.isInteger(r.live_status),
+    ),
+  );
   const rooms = await Promise.all(
     ["35", "22637261"].map((id) => request("room", id)),
   );
@@ -37,12 +49,16 @@ try {
   )
     throw Error("Unexpected room response");
   const states = await request("uids", uids.join(","));
-  const pass = uids.every(
-    (uid) =>
-      String(states[uid]?.uid) === uid &&
-      Number.isInteger(states[uid]?.live_status),
-  );
+  const pass =
+    directValid &&
+    uids.every(
+      (uid) =>
+        String(states[uid]?.uid) === uid &&
+        Number.isInteger(states[uid]?.live_status),
+    );
   const result = {
+    directMembers: Object.keys(direct).length,
+    directMs,
     roomResolution: rooms.length,
     batchMembers: Object.keys(states).length,
     pass,

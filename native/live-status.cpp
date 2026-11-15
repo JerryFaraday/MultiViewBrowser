@@ -77,8 +77,8 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring command = argv[1], input = argv[2], path;
     if (command == L"room" && digits(input)) {
         path = L"/room/v1/Room/room_init?id=" + input;
-    } else if (command == L"uids") {
-        path = L"/room/v1/Room/get_status_info_by_uids?";
+    } else if ((command == L"uids" || command == L"rooms")) {
+        path = command == L"rooms" ? L"/room/v2/Room/get_by_ids?" : L"/room/v1/Room/get_status_info_by_uids?";
         size_t start = 0;
         int count = 0;
         do {
@@ -86,7 +86,7 @@ int wmain(int argc, wchar_t** argv) {
             auto id = input.substr(start, end == std::wstring::npos ? end : end - start);
             if (!digits(id) || ++count > 50) return 2;
             if (count > 1) path += L"&";
-            path += L"uids%5B%5D=" + id;
+            path += (command == L"rooms" ? L"ids%5B%5D=" : L"uids%5B%5D=") + id;
             if (end == std::wstring::npos) break;
             start = end + 1;
         } while (true);

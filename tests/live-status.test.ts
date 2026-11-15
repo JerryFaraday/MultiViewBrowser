@@ -48,17 +48,27 @@ function config() {
   return c;
 }
 const reply: LiveQuery = async (kind, ids) =>
-  kind === "room"
-    ? { code: 0, data: { uid: 100, room_id: 35 } }
-    : {
+  kind === "rooms"
+    ? {
         code: 0,
         data: Object.fromEntries(
-          ids.map((uid) => [
-            uid,
-            { uid: Number(uid), room_id: 35, live_status: 1 },
+          ids.map((id) => [
+            id,
+            { roomid: Number(id), short_id: 0, uid: 100, live_status: 1 },
           ]),
         ),
-      };
+      }
+    : kind === "room"
+      ? { code: 0, data: { uid: 100, room_id: 35 } }
+      : {
+          code: 0,
+          data: Object.fromEntries(
+            ids.map((uid) => [
+              uid,
+              { uid: Number(uid), room_id: 35, live_status: 1 },
+            ]),
+          ),
+        };
 const processes = vi.hoisted(() => ({ children: [] as any[] }));
 vi.mock("node:child_process", async () => {
   const { EventEmitter } = await import("node:events");
@@ -141,19 +151,16 @@ it.each([29, 1801, 30.5])("rejects interval %i", (value) => {
   c.preferences.liveInterval = value;
   expect(() => configSchema.parse(c)).toThrow();
 });
-it("deduplicates rooms and uses cached UID in subsequent periodic batches", async () => {
+it("deduplicates rooms and keeps direct room batches as the primary path", async () => {
   const q = vi.fn(reply),
     monitor = new LiveMonitor(q, () => {});
   monitor.configure(config());
   await vi.advanceTimersByTimeAsync(1100);
-  expect(q.mock.calls.map((c) => c.slice(0, 2))).toEqual([
-    ["room", ["35"]],
-    ["uids", ["100"]],
-  ]);
+  expect(q.mock.calls.map((c) => c.slice(0, 2))).toEqual([["rooms", ["35"]]]);
   expect(monitor.states["35"].status).toBe("live");
   await vi.advanceTimersByTimeAsync(60000);
-  expect(q.mock.calls.filter((c) => c[0] === "room")).toHaveLength(1);
-  expect(q.mock.calls.filter((c) => c[0] === "uids")).toHaveLength(2);
+  expect(q.mock.calls.filter((c) => c[0] === "room")).toHaveLength(0);
+  expect(q.mock.calls.filter((c) => c[0] === "rooms")).toHaveLength(2);
   monitor.dispose();
 });
 it("disabled or hidden bookmarks never query, stopping clears indicators and queued work", async () => {
@@ -201,7 +208,7 @@ it("network failure is unknown and next cycle recovers without false offline", a
   };
   const monitor = new LiveMonitor(q, () => {});
   monitor.configure(config());
-  await vi.advanceTimersByTimeAsync(1);
+  await vi.advanceTimersByTimeAsync(1100);
   expect(monitor.states["35"]).toEqual({
     status: "unknown",
     reason: "network",
@@ -218,7 +225,7 @@ it("malformed batch is unknown, not offline", async () => {
     () => {},
   );
   monitor.configure(config());
-  await vi.advanceTimersByTimeAsync(1100);
+  await vi.advanceTimersByTimeAsync(2100);
   expect(monitor.states["35"]).toEqual({ status: "unknown", reason: "api" });
   monitor.dispose();
 });
@@ -240,10 +247,12 @@ it("interval changes cancel old timer and apply 30 second cadence", async () => 
 it("canonical aliases share one UID batch", async () => {
   const c = config();
   c.favorites = [favorite("a", "35"), favorite("b", "36")];
-  const q = vi.fn(reply),
+  const q = vi.fn<LiveQuery>(async (...args) =>
+      args[0] === "rooms" ? { code: -1 } : reply(...args),
+    ),
     m = new LiveMonitor(q, () => {});
   m.configure(c);
-  await vi.advanceTimersByTimeAsync(2100);
+  await vi.advanceTimersByTimeAsync(3100);
   expect(q.mock.calls.filter((x) => x[0] === "uids").map((x) => x[1])).toEqual([
     ["100"],
   ]);
@@ -279,23 +288,38 @@ it("splits many unique UIDs into bounded batches", async () => {
     favorite(String(i), String(i + 1)),
   );
   const q = vi.fn<LiveQuery>(async (kind, ids) =>
-    kind === "room"
-      ? { code: 0, data: { uid: Number(ids[0]), room_id: Number(ids[0]) } }
-      : {
+    kind === "rooms"
+      ? {
           code: 0,
           data: Object.fromEntries(
-            ids.map((uid) => [
-              uid,
-              { uid: Number(uid), room_id: Number(uid), live_status: 0 },
+            ids.map((id) => [
+              id,
+              {
+                roomid: Number(id),
+                uid: Number(id),
+                short_id: 0,
+                live_status: 0,
+              },
             ]),
           ),
-        },
+        }
+      : kind === "room"
+        ? { code: 0, data: { uid: Number(ids[0]), room_id: Number(ids[0]) } }
+        : {
+            code: 0,
+            data: Object.fromEntries(
+              ids.map((uid) => [
+                uid,
+                { uid: Number(uid), room_id: Number(uid), live_status: 0 },
+              ]),
+            ),
+          },
   );
   const m = new LiveMonitor(q, () => {});
   m.configure(c);
   await vi.advanceTimersByTimeAsync(54000);
   expect(
-    q.mock.calls.filter((x) => x[0] === "uids").map((x) => x[1].length),
+    q.mock.calls.filter((x) => x[0] === "rooms").map((x) => x[1].length),
   ).toEqual([50, 1]);
   expect(Object.values(m.states).every((x) => x.status === "offline")).toBe(
     true,

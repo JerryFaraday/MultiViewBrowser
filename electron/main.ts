@@ -1,3 +1,4 @@
+import { LiveCacheWriter } from "./LiveCacheWriter";
 import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
 import version from "../version.json";
 import { themePalettes } from "../src/core/Theme";
@@ -187,7 +188,19 @@ app.whenReady().then(async () => {
       window.webContents.send("session-update", c.session, c);
     },
   );
-  const settings = new SettingsService(window, () => store.load(), manager);
+  const cacheWrites = new LiveCacheWriter(store, (c) => {
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+      settings.apply();
+      window.webContents.send("session-update", c.session, c);
+    }
+  });
+  window.on("closed", () => cacheWrites.dispose());
+  const settings = new SettingsService(
+    window,
+    () => store.load(),
+    manager,
+    (updates) => cacheWrites.queue(updates),
+  );
   settings.apply();
   function updatePageVolume(
     id: string,

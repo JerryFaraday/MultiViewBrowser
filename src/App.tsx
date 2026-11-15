@@ -368,6 +368,7 @@ export function App() {
       existing
         ? structuredClone(existing)
         : {
+            liveCache: null,
             category: "web",
             roomId: "",
             id: crypto.randomUUID(),

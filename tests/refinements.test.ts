@@ -36,6 +36,7 @@ it("拖动分组和收藏可以前后排序及跨组移动", () => {
   expect(moveItem(["a", "b", "c"], 0, 2, true)).toEqual(["b", "c", "a"]);
   const f = (id: string, group: string) => ({
     id,
+    liveCache: null,
     category: "web" as const,
     roomId: "",
     group,

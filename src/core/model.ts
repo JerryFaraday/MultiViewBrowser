@@ -1,4 +1,4 @@
-import { roomId, roomFromUrl } from "./LiveStatus";
+import { roomId, roomFromUrl, liveCacheSchema } from "./LiveStatus";
 import { z } from "zod";
 import { preferencesSchema, defaultPreferences } from "./Preferences";
 export type Tree =
@@ -69,6 +69,7 @@ export const favoriteSchema = z
   .object({
     category: z.enum(["web", "bilibili-live"]).default("web"),
     roomId: z.string().max(20).default(""),
+    liveCache: liveCacheSchema.nullable().catch(null).default(null),
     id: z.string(),
     name: z.string().min(1).max(200),
     url: pageSchema.shape.url,
@@ -85,6 +86,11 @@ export const favoriteSchema = z
         ctx.addIssue({ code: "custom", message: "直播间号与地址不匹配" });
       }
     }
+  })
+  .transform((f) => {
+    if (f.category !== "bilibili-live" || f.liveCache?.inputRoomId !== f.roomId)
+      f.liveCache = null;
+    return f;
   });
 export const configSchema = z
   .preprocess(
