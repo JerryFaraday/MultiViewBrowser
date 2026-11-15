@@ -2,6 +2,12 @@
 
 软件当前版本以 [version.json](version.json) 为准。以下只使用原有记录中明确出现的版本，不为未编号阶段补造版本或发布日期。版本条目的证据见[历史验证原文](docs/reviews/VALIDATION_HISTORY.md)；本次文档整理不递增版本。
 
+## V0.2.3.0
+
+### Added
+
+- 独立斗鱼直播状态底层适配器，复用C++异步WinHTTP，提供LIVE/LOOP/OFFLINE/UNKNOWN、房号映射、有限并发、轮内去重、取消及有限退避重试。仅开发调用，不接入设置、收藏、状态灯或自动轮询。
+
 ## V0.2.2.1
 
 ### Changed
