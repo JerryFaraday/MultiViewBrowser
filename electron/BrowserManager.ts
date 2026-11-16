@@ -158,16 +158,35 @@ export class BrowserManager {
   private configureRelease() {
     this.release.sync(this.preferences, this.retained, this.views, (id, v) => {
       if (this.views.get(id) !== v) return;
-      this.window.contentView.removeChildView(v);
-      this.views.delete(id);
-      this.requested.delete(id);
-      this.emulations.delete(id);
-      this.sentAudio.delete(id);
-      this.suspension.forget(id);
-      this.zoomFeedback.remove(id);
+      this.retirePage(id, false);
+      this.syncFullscreenRole();
     });
   }
 
+  /** Native-instance retirement also covers IDs whose WebContents was already released. */
+  private retirePage(id: string, close: boolean) {
+    const view = this.views.get(id);
+    clearTimeout(this.retries.get(id)?.timer);
+    this.retries.delete(id);
+    if (view) {
+      this.window.contentView.removeChildView(view);
+      if (close && !view.webContents.isDestroyed()) view.webContents.close();
+    }
+    this.views.delete(id);
+    this.requested.delete(id);
+    this.slots.delete(id);
+    this.pageVolumes.delete(id);
+    this.muted.delete(id);
+    this.pageZooms.delete(id);
+    this.frameZoomPages.delete(id);
+    this.frameZoomFactors.delete(id);
+    this.sentAudio.delete(id);
+    this.htmlFullscreen.delete(id);
+    this.emulations.delete(id);
+    this.suspension.forget(id);
+    this.zoomFeedback.remove(id);
+    if (this.pendingFocus === id) this.pendingFocus = undefined;
+  }
   muted = new Map<string, boolean>();
   private sentAudio = new Map<string, string>();
   setVolume(value: number) {
@@ -250,26 +269,16 @@ export class BrowserManager {
     this.retained = retained;
     const entries = [...snapshot.pages, ...retained];
     const ids = new Set(entries.flatMap((p) => (p ? [p.id] : [])));
-    for (const [id, v] of this.views)
+    const known = new Set([
+      ...this.views.keys(),
+      ...this.slots.keys(),
+      ...this.pageZooms.keys(),
+      ...this.muted.keys(),
+      ...this.pageVolumes.keys(),
+    ]);
+    for (const id of known)
       if (!ids.has(id)) {
-        clearTimeout(this.retries.get(id)?.timer);
-        this.retries.delete(id);
-        logOperation("web.page_closed", { slot: this.slots.get(id) });
-        this.window.contentView.removeChildView(v);
-        v.webContents.close();
-        this.views.delete(id);
-        this.requested.delete(id);
-        this.muted.delete(id);
-        this.pageVolumes.delete(id);
-        this.slots.delete(id);
-        this.pageZooms.delete(id);
-        this.frameZoomPages.delete(id);
-        this.frameZoomFactors.delete(id);
-        this.zoomFeedback.remove(id);
-        this.sentAudio.delete(id);
-        this.htmlFullscreen.delete(id);
-        this.emulations.delete(id);
-        this.suspension.forget(id);
+        this.retirePage(id, true);
         this.release.reset(id);
       }
     entries.forEach((p, index) => {
@@ -382,6 +391,7 @@ export class BrowserManager {
               value,
             });
             this.pageVolumes.set(p.id, value);
+            this.sentAudio.delete(p.id);
             this.onSiteVolume(p.id, value);
           }
         });

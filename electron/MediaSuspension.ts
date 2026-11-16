@@ -7,11 +7,12 @@ export const suspendMedia = `(() => {
  const state={items:new Map(),cancelled:false};window[key]=state;
  state.cancel=event=>{if(event.isTrusted)state.cancelled=true;};
  for(const type of ['pointerdown','keydown'])document.addEventListener(type,state.cancel,true);
- state.pause=event=>{const media=event.target;if(!(media instanceof HTMLMediaElement))return;
+ state.prune=()=>{for(const [media,item]of state.items)if(!media.isConnected||media.currentSrc!==item.src||media.srcObject!==item.stream)state.items.delete(media);};
+ state.pause=event=>{state.prune();const media=event.target;if(!(media instanceof HTMLMediaElement))return;
    if(state.items.has(media)){if(!state.items.get(media).ownPause)state.items.get(media).cancelled=true;else state.items.get(media).ownPause=false;}
  };
  document.addEventListener('pause',state.pause,true);
- state.play=event=>{const media=event.target;if(media instanceof HTMLMediaElement&&!media.paused){const item=state.items.get(media);if(item)item.ownPause=true;media.pause();}};
+ state.play=event=>{state.prune();const media=event.target;if(media instanceof HTMLMediaElement&&!media.paused){let item=state.items.get(media);if(!item){item={src:media.currentSrc,stream:media.srcObject,ownPause:true,cancelled:false};state.items.set(media,item);}else item.ownPause=true;media.pause();}};
  document.addEventListener('play',state.play,true);
  for(const media of document.querySelectorAll('audio,video'))if(!media.paused&&!media.ended){
    state.items.set(media,{src:media.currentSrc,stream:media.srcObject,ownPause:true,cancelled:false});media.pause();

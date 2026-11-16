@@ -255,7 +255,7 @@ async function main() {
   );
   await measure("max-layout");
   await apply(
-    `c.session.tree=${JSON.stringify(c.session.tree)};c.session.pages=c.session.pages.slice(0,4);c.pageStash=Array.from({length:20},()=>{const page={...c.session.pages[0],id:crypto.randomUUID()};return {id:crypto.randomUUID(),url:page.url,title:'fixture',page}})`,
+    `c.session.tree=${JSON.stringify(c.session.tree)};c.session.pages=c.session.pages.slice(0,4);c.pageStash=Array.from({length:20},()=>{const page={...c.session.pages[0],id:crypto.randomUUID()};return {id:page.id,url:page.url,title:'fixture',page}})`,
   );
   await measure("twenty-hot-stash");
   await apply("c.pageStash=[]");

@@ -1,0 +1,477 @@
+{
+  "audit-merge-results.json": {
+    "baseline": "6aee48722ec01d6a5496c74f1bfd4a99e0ddf193",
+    "node": "v24.22.1",
+    "fixture": "two independent favorite field edits; 1 warm-up, 5 samples; milliseconds",
+    "rows": [
+      {
+        "count": 100,
+        "baseline": {
+          "medianMs": 0.5506000000000029,
+          "maxMs": 0.7313000000000045
+        },
+        "current": {
+          "medianMs": 0.6824000000000012,
+          "maxMs": 0.8199999999999932
+        }
+      },
+      {
+        "count": 1000,
+        "baseline": {
+          "medianMs": 11.222399999999993,
+          "maxMs": 11.78909999999999
+        },
+        "current": {
+          "medianMs": 6.572399999999988,
+          "maxMs": 6.983699999999999
+        }
+      },
+      {
+        "count": 5000,
+        "baseline": {
+          "medianMs": 91.23489999999993,
+          "maxMs": 209.31280000000004
+        },
+        "current": {
+          "medianMs": 31.801699999999983,
+          "maxMs": 33.36079999999993
+        }
+      }
+    ]
+  },
+  "performance-after-results.json": {
+    "label": "after",
+    "fixture": "local DOM changes every 30ms; generated media streams; 3 one-second samples; one-view precise coverage; GPU counter after sampling",
+    "results": [
+      {
+        "name": "four-idle",
+        "mainCpu": 0.02534442749065632,
+        "rendererCpu": 0.004476405032003129,
+        "gpuProcessCpu": 0.005648660914650473,
+        "workingSetMB": 672.3372395833334,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 2,
+        "actionMs": 0.0009000000000014552,
+        "eventLoopP95Ms": 16.138239,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "four-media",
+        "mainCpu": 0.016256706560214124,
+        "rendererCpu": 0.012975272837345722,
+        "gpuProcessCpu": 0.012548525339397066,
+        "workingSetMB": 727.8567708333334,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 2,
+        "actionMs": 0.0016999999998006388,
+        "eventLoopP95Ms": 16.121855,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "max-layout",
+        "mainCpu": 0.014803370758433354,
+        "rendererCpu": 0.006371312723858737,
+        "gpuProcessCpu": 0.003270203077715301,
+        "workingSetMB": 1264.3125,
+        "webContents": 10,
+        "views": 9,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 2,
+        "actionMs": 0.0010999999994965037,
+        "eventLoopP95Ms": 16.113663,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "twenty-hot-stash",
+        "mainCpu": 0.017450904569726543,
+        "rendererCpu": 0.01377203668435519,
+        "gpuProcessCpu": 0.003539129522587453,
+        "workingSetMB": 2735.9557291666665,
+        "webContents": 25,
+        "views": 24,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 1,
+        "actionMs": 0.0015000000021245796,
+        "eventLoopP95Ms": 16.113663,
+        "ipc": {},
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "repeated-state-and-bounds",
+        "mainCpu": 0.05668428158469498,
+        "rendererCpu": 0.013900663598787577,
+        "gpuProcessCpu": 0.0030835308450963064,
+        "workingSetMB": 807.6875,
+        "webContents": 5,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 2,
+        "actionMs": 39.79469999999856,
+        "eventLoopP95Ms": 16.146431,
+        "ipc": {
+          "config-load": 51,
+          "config-save": 50
+        },
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 1,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "zoom-switch",
+        "mainCpu": 0.06976769122057076,
+        "rendererCpu": 0.019978927059086077,
+        "gpuProcessCpu": 0.0491198229932758,
+        "workingSetMB": 910.0833333333334,
+        "webContents": 6,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 2,
+        "actionMs": 495.4487999999983,
+        "eventLoopP95Ms": 16.752639,
+        "ipc": {
+          "config-save": 1
+        },
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 1,
+        "logWrites": 4,
+        "configReads": 0,
+        "syncDiskMs": 0
+      },
+      {
+        "name": "settings-toggle",
+        "mainCpu": 0.028653153868994728,
+        "rendererCpu": 0.02926008224414635,
+        "gpuProcessCpu": 0.0009366827425696542,
+        "workingSetMB": 890.4752604166666,
+        "webContents": 6,
+        "views": 4,
+        "gpu": {
+          "available": true,
+          "maxEnginePercent": 0
+        },
+        "mediaScans": 1,
+        "actionMs": 310.02899999999863,
+        "eventLoopP95Ms": 16.105471,
+        "ipc": {
+          "settings-view": 10
+        },
+        "outgoing": {},
+        "bounds": 0,
+        "visible": 0,
+        "emulation": 0,
+        "configWrites": 0,
+        "logWrites": 0,
+        "configReads": 0,
+        "syncDiskMs": 0
+      }
+    ]
+  },
+  "resource-policies-results.json": {
+    "backgroundDefault": true,
+    "backgroundDisabled": true,
+    "defaultMute": true,
+    "muteIndependent": true,
+    "pauseAux": true,
+    "settingsPause": true,
+    "overlappingReasons": true,
+    "resumePrior": true,
+    "prepaused": true,
+    "mainFullscreen": true,
+    "fullscreenViewport": true,
+    "roleExchange": true,
+    "auxFullscreen": true,
+    "f11Independent": true,
+    "instancePreserved": true,
+    "repeatedFullscreenResolutionZoom": true,
+    "crossOriginFullscreen": true,
+    "crossOriginPause": true,
+    "crossOriginResume": true,
+    "releaseSafe": true,
+    "releaseProtected": true,
+    "releaseRestore": true,
+    "titleDefaultNoLoad": true,
+    "titleNoWebContents": true,
+    "pass": true
+  },
+  "lifecycle-smoke-results.json": {
+    "cycles": [
+      {
+        "clean": true,
+        "restored": true,
+        "instancesClean": true
+      },
+      {
+        "clean": true,
+        "restored": true,
+        "instancesClean": true
+      },
+      {
+        "clean": true,
+        "restored": true,
+        "instancesClean": true
+      },
+      {
+        "clean": true,
+        "restored": true,
+        "instancesClean": true
+      },
+      {
+        "clean": true,
+        "restored": true,
+        "instancesClean": true
+      }
+    ],
+    "pass": true
+  },
+  "fullscreen-sites-results.json": {
+    "rows": [
+      {
+        "site": 0,
+        "status": "passed",
+        "stage": "slot-1-exit",
+        "checks": [true, true]
+      },
+      {
+        "site": 1,
+        "status": "passed",
+        "stage": "slot-1-exit",
+        "checks": [true, true]
+      },
+      {
+        "site": 2,
+        "status": "passed",
+        "stage": "slot-1-exit",
+        "checks": [true, true]
+      }
+    ],
+    "focusEmulation": true,
+    "passed": 3,
+    "failed": 0,
+    "environment": 0
+  },
+  "performance-pack-results.json": {
+    "preloadIntegrity": true,
+    "startupPreferences": true,
+    "version": true,
+    "resizePreload": true,
+    "normalClosed": true,
+    "exitPersisted": true,
+    "restartPreferences": true,
+    "restartLastSave": true,
+    "restartClosed": true,
+    "pass": true
+  },
+  "log-smoke-results.json": {
+    "file": "MultiViewBrowser_V0.2.6.0_2026-11-16-13-25-33_288_25548_54ca59cf.log",
+    "count": 25,
+    "lifecycle": true,
+    "uiClick": true,
+    "audioChange": true,
+    "webClick": true,
+    "privateDataAbsent": true,
+    "pass": true
+  },
+  "audio-smoke-results.json": {
+    "volumes": [0.25, 0.5],
+    "siteVolume": 75,
+    "absolute25": 0.25,
+    "maximizedMuted": [false, true],
+    "restoredMuted": [false, false],
+    "masterMuted": [true, true],
+    "restoredVolumes": [0.25, 0.5],
+    "signal": [
+      {
+        "page": 25,
+        "master": 0.5,
+        "inputRms": 0.031845995449855516,
+        "outputRms": 0.015922997724927758,
+        "ratio": 0.5,
+        "context": "running"
+      }
+    ],
+    "pass": true
+  },
+  "settings-smoke-results.json": {
+    "nativePreference": true,
+    "themeFocusPreserved": true,
+    "black": true,
+    "navy": true,
+    "webUntouched": true,
+    "icons": true,
+    "esc": true,
+    "preserved": true,
+    "returned": true,
+    "sameWindow": true,
+    "removedTools": true,
+    "switches": true,
+    "editor": true,
+    "groupsVisible": true,
+    "newGroupSaved": true,
+    "customUrl": true,
+    "startup": true,
+    "appearance": true,
+    "scale": true,
+    "newDefaults": true,
+    "retry": true,
+    "intact": true,
+    "coordinates": true,
+    "clickable": true,
+    "popupAppearance": true,
+    "cookies": true,
+    "cleaned": true,
+    "diagnostics": true,
+    "importScope": true,
+    "categories": true,
+    "pass": true
+  },
+  "exchange-smoke-results.json": {
+    "cases": [
+      {
+        "from": 1,
+        "to": 0,
+        "focused": true,
+        "sameInstance": true
+      },
+      {
+        "from": 0,
+        "to": 2,
+        "focused": true,
+        "sameInstance": true
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "focused": true,
+        "sameInstance": true
+      },
+      {
+        "from": 2,
+        "to": 1,
+        "focused": true,
+        "sameInstance": true
+      },
+      {
+        "from": 0,
+        "to": 3,
+        "focused": true,
+        "sameInstance": true
+      },
+      {
+        "from": 3,
+        "to": 0,
+        "focused": true,
+        "sameInstance": true
+      }
+    ],
+    "preserved": [true, true, true],
+    "pass": true
+  },
+  "page-zoom-smoke-results.json": {
+    "initiallyHidden": true,
+    "actualPercentage": true,
+    "focusPreserved": true,
+    "independentTimeout": true,
+    "dismissed": true,
+    "followsExchange": true,
+    "resetFeedback": true,
+    "keyboard": true,
+    "wheelRequest": true,
+    "zoomContainerStable": true,
+    "minus": true,
+    "exchanged": true,
+    "unchanged": true,
+    "reset": true,
+    "max": true,
+    "min": true,
+    "interaction": true,
+    "preserved": true,
+    "pass": true
+  },
+  "fullscreen-sites-initial-readiness-results": {
+    "rows": [
+      {
+        "site": 0,
+        "status": "environment",
+        "stage": "player-ready",
+        "reason": "No playing media: login, challenge, offline, or autoplay precondition"
+      },
+      {
+        "site": 1,
+        "status": "environment",
+        "stage": "player-ready",
+        "reason": "No playing media: login, challenge, offline, or autoplay precondition"
+      },
+      {
+        "site": 2,
+        "status": "environment",
+        "stage": "player-ready",
+        "reason": "No playing media: login, challenge, offline, or autoplay precondition"
+      }
+    ],
+    "focusEmulation": true,
+    "passed": 0,
+    "failed": 0,
+    "environment": 3
+  }
+}

@@ -1,3 +1,4 @@
+import { visibleSelection } from "./core/Selection";
 import { NameEditor } from "./components/NameEditor";
 import { renameFavoriteGroup } from "./core/FavoritesManager";
 import type { LiveStates } from "./core/LiveStatus";
@@ -132,7 +133,8 @@ export function App() {
   useEffect(
     () =>
       window.browser.onZoomShortcut((direction) => {
-        const page = current.current?.session.pages[selected];
+        const snapshot = current.current?.session;
+        const page = snapshot?.pages[visibleSelection(snapshot, selected)];
         if (page) void window.browser.zoomPage(page.id, direction).catch(fail);
       }),
     [selected],
@@ -147,6 +149,14 @@ export function App() {
     new Promise<string | null>((resolve) =>
       setQuestion({ text, value, resolve }),
     );
+  const reconcileDraft = (base: Config, draft: Config, saved: Config) => {
+    try {
+      return mergeConfig(base, draft, saved);
+    } catch (error) {
+      queueMicrotask(() => fail(error));
+      return draft;
+    }
+  };
   const fail = (e: unknown) => {
     void window.browser.log("app.error", { status: "failed" });
     setError(String(e));
@@ -203,7 +213,7 @@ export function App() {
               draft === config
                 ? saved
                 : draft
-                  ? mergeConfig(config, draft, saved)
+                  ? reconcileDraft(config, draft, saved)
                   : saved,
             );
           })
@@ -284,7 +294,7 @@ export function App() {
         if (saved.revision < (acknowledged.current?.revision ?? -1)) return;
         const base = acknowledged.current;
         acknowledged.current = saved;
-        setConfig((c) => (c && base ? mergeConfig(base, c, saved) : saved));
+        setConfig((c) => (c && base ? reconcileDraft(base, c, saved) : saved));
       }),
     [],
   );
@@ -306,6 +316,31 @@ export function App() {
       }),
     [],
   );
+  const selectionIdentity = useRef<string | undefined>(undefined);
+  const selectionValue = useRef(selected);
+  const selectionStructure = useRef("");
+  if (selectionValue.current !== selected) {
+    selectionValue.current = selected;
+    selectionIdentity.current = config?.session.pages[selected]?.id;
+  }
+  useEffect(() => {
+    if (!config) return;
+    const structure = JSON.stringify([
+      config.session.tree,
+      config.session.pages.map((p) => p?.id),
+    ]);
+    const changed = selectionStructure.current !== structure;
+    selectionStructure.current = structure;
+    const next = visibleSelection(
+      config.session,
+      selected,
+      selectionIdentity.current,
+      changed,
+    );
+    selectionIdentity.current = config.session.pages[next]?.id;
+    selectionValue.current = next;
+    if (next !== selected) setSelected(next);
+  }, [config?.session, selected]);
   if (!config)
     return <div className="loading">正在启动 MultiView Browser…{error}</div>;
   const c = config,
@@ -321,7 +356,7 @@ export function App() {
     edit((d) => {
       if (d.session.pages[slot]) fn(d.session.pages[slot]);
     });
-  function open(url: string, slot = selected) {
+  function open(url: string, slot = visibleSelection(s, selected)) {
     try {
       const normalized = normalizeUrl(url);
       edit((d) => {
@@ -940,6 +975,8 @@ export function App() {
                           d.workspaces = d.workspaces.filter(
                             (v) => v.id !== w.id,
                           );
+                          if (d.preferences.defaultWorkspace === w.id)
+                            d.preferences.defaultWorkspace = "";
                         })
                       }
                     >

@@ -1,3 +1,4 @@
+import { until } from "./SmokeDeadline";
 import { app, BrowserWindow } from "electron";
 import { createServer } from "node:http";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -52,22 +53,62 @@ server.listen(0, "127.0.0.1", () => {
         `window.browser.log('ui.change',{area:'pane',slot:0,url:'https://${marker}',title:'${marker}',input:'${marker}'})`,
       );
       const view = window.contentView.children.find(
-        (v) => "webContents" in v,
+        (v) =>
+          "webContents" in v &&
+          (v as Electron.WebContentsView).webContents !== window.webContents &&
+          (v as Electron.WebContentsView).webContents.getURL() === page.url,
       ) as Electron.WebContentsView;
-      view.webContents.sendInputEvent({
-        type: "mouseDown",
-        x: 40,
-        y: 15,
-        button: "left",
-        clickCount: 1,
+      window.focus();
+      view.webContents.focus();
+      await wait(150);
+      console.log("page-target", {
+        id: view.webContents.id,
+        root: window.webContents.id,
+        visible: view.getVisible(),
+        bounds: view.getBounds(),
+        focused: view.webContents.isFocused(),
       });
-      view.webContents.sendInputEvent({
-        type: "mouseUp",
-        x: 40,
-        y: 15,
-        button: "left",
-        clickCount: 1,
-      });
+      await view.webContents.executeJavaScript(
+        "window.__trustedClicks=0;document.addEventListener('pointerdown',e=>{if(e.isTrusted)window.__trustedClicks++},true)",
+      );
+      const target = await view.webContents.executeJavaScript(
+        "(()=>{const r=document.querySelector('input').getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}})()",
+      );
+      console.log(
+        "hit-test",
+        await view.webContents.executeJavaScript(
+          "({rect:document.querySelector('input').getBoundingClientRect().toJSON(),inner:[innerWidth,innerHeight],state:document.visibilityState,target:document.elementFromPoint(100,20)?.tagName})",
+        ),
+      );
+      // Chromium Input injects a real trusted pointer event in page coordinates.
+      // Unlike native sendInputEvent, this does not depend on desktop widget routing.
+      view.webContents.debugger.attach("1.3");
+      try {
+        await view.webContents.debugger.sendCommand(
+          "Emulation.setFocusEmulationEnabled",
+          { enabled: true },
+        );
+        await view.webContents.debugger.sendCommand(
+          "Input.dispatchMouseEvent",
+          { type: "mousePressed", ...target, button: "left", clickCount: 1 },
+        );
+        await view.webContents.debugger.sendCommand(
+          "Input.dispatchMouseEvent",
+          { type: "mouseReleased", ...target, button: "left", clickCount: 1 },
+        );
+        await until("trusted-page-input", () =>
+          view.webContents.executeJavaScript("window.__trustedClicks>0"),
+        );
+      } finally {
+        view.webContents.debugger.detach();
+      }
+      await wait(100);
+      const trusted = await view.webContents.executeJavaScript(
+        "window.__trustedClicks",
+      );
+      console.log("trusted-page-clicks", trusted);
+      if (trusted < 1)
+        throw Error("Real page pointer event did not reach target");
       view.webContents.insertText(marker);
       await wait(300);
       server.close();

@@ -1,3 +1,6 @@
+import { CloseTransaction } from "./CloseTransaction";
+import { recoverIntegrity } from "../src/core/ConfigIntegrity";
+import { configSchema } from "../src/core/model";
 import { LiveCacheWriter } from "./LiveCacheWriter";
 import { ResizePreview } from "./ResizePreview";
 import { parkPage, placeStashed, reorderStash } from "../src/core/PageStash";
@@ -66,7 +69,18 @@ app.whenReady().then(async () => {
   }
   logOperation("app.ready");
   store = new ConfigStore(app.getPath("userData"), 350);
-  const initial = store.load();
+  let initial: import("../src/core/model").Config;
+  try {
+    initial = store.load();
+  } catch {
+    dialog.showMessageBoxSync({
+      type: "error",
+      message:
+        "配置及备份无法安全恢复，原文件已保留。请备份用户数据目录并联系维护者修复；程序不会重置配置。",
+    });
+    app.quit();
+    return;
+  }
   applyNativeTheme(initial.preferences.theme);
   const savedWindow =
     initial.preferences.startupWindow === "last"
@@ -626,7 +640,27 @@ app.whenReady().then(async () => {
         before.preferences,
         draft.preferences,
       );
-    const c = store.accept(draft);
+    let c: import("../src/core/model").Config;
+    try {
+      c = store.accept(draft);
+    } catch (error) {
+      const action = dialog.showMessageBoxSync(window, {
+        type: "warning",
+        message: "配置不能安全合并，当前草稿尚未保存。",
+        detail:
+          "保留草稿可返回继续编辑；选择备份并同步，会先保存完整草稿恢复文件，然后载入主进程最新状态。",
+        buttons: ["保留草稿", "备份草稿并同步"],
+        defaultId: 0,
+        cancelId: 0,
+      });
+      if (action !== 1) throw error;
+      writeFileSync(
+        join(app.getPath("userData"), "recovery-" + Date.now() + ".json"),
+        JSON.stringify(draft, null, 2),
+        { flag: "wx" },
+      );
+      return store.load();
+    }
     settings.apply();
     stash?.configure();
     settings.reloadOrigins(revoked);
@@ -711,7 +745,11 @@ app.whenReady().then(async () => {
       });
       if (!r.canceled) {
         const imported = validateConfig(
-          JSON.parse(readFileSync(r.filePaths[0], "utf8")),
+          recoverIntegrity(
+            configSchema.parse(
+              JSON.parse(readFileSync(r.filePaths[0], "utf8")),
+            ),
+          ),
         );
         const labels = {
           all: "全部配置（含当前会话、偏好与站点权限、收藏、暂存和工作区）",
@@ -742,6 +780,10 @@ app.whenReady().then(async () => {
         if (scope === "workspaces") {
           c.workspaces = imported.workspaces;
           c.layouts = imported.layouts;
+          if (
+            !c.workspaces.some((w) => w.id === c.preferences.defaultWorkspace)
+          )
+            c.preferences.defaultWorkspace = "";
         }
         const revoked = settings.confirmPreferences(
           before.preferences,
@@ -768,53 +810,9 @@ app.whenReady().then(async () => {
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (e) => e.preventDefault());
-  let closing = false,
-    confirmed = false,
-    closeTimer: ReturnType<typeof setTimeout> | undefined;
-  let flushingClose = false;
-  const completeClose = async () => {
-    if (flushingClose) return;
-    if (confirmed || window.isDestroyed()) return;
-    clearTimeout(closeTimer);
-    const c = store.load();
-    const count = c.session.pages.filter(Boolean).length + c.pageStash.length;
-    if (
-      (c.preferences.confirmClose === "always" ||
-        (c.preferences.confirmClose === "multiple" && count > 1)) &&
-      dialog.showMessageBoxSync(window, {
-        type: "question",
-        message: `确定关闭 MultiView Browser？当前有${count}个网页（含暂存）。`,
-        buttons: ["取消", "关闭"],
-        defaultId: 0,
-        cancelId: 0,
-      }) !== 1
-    ) {
-      closing = false;
-      return;
-    }
-
-    c.windowState = manager.windowState();
-    store.save(c);
-    flushingClose = true;
-    try {
-      await store.flush();
-    } catch {
-      flushingClose = false;
-      closing = false;
-      logOperation("app.error", { status: "failed" });
-      dialog.showMessageBoxSync(window, {
-        type: "error",
-        message: "配置保存失败，请检查磁盘空间和目录权限后重试关闭。",
-      });
-      return;
-    }
-    confirmed = true;
-    window.close();
-  };
-  ipcMain.handle("close-ready", (e, raw) => {
-    trusted(e);
-    if (!closing) return;
-    try {
+  const closing = new CloseTransaction({
+    requestDraft: () => window.webContents.send("close-flush"),
+    accept: (raw) => {
       const before = store.load(),
         draft = validateConfig(raw);
       const revoked = settings.confirmPreferences(
@@ -826,18 +824,61 @@ app.whenReady().then(async () => {
       stash?.configure();
       settings.reloadOrigins(revoked);
       window.webContents.send("session-update", saved.session, saved);
-    } finally {
-      completeClose();
-    }
+    },
+    persist: async () => {
+      const c = store.load(),
+        count = c.session.pages.filter(Boolean).length + c.pageStash.length;
+      if (
+        (c.preferences.confirmClose === "always" ||
+          (c.preferences.confirmClose === "multiple" && count > 1)) &&
+        dialog.showMessageBoxSync(window, {
+          type: "question",
+          message:
+            "确定关闭 MultiView Browser？当前有" + count + "个网页（含暂存）。",
+          buttons: ["取消", "关闭"],
+          defaultId: 0,
+          cancelId: 0,
+        }) !== 1
+      )
+        return false;
+      c.windowState = manager.windowState();
+      store.save(c);
+      await store.flush();
+      return true;
+    },
+    failure: (stage, retryAllowed) => {
+      logOperation("app.error", { status: "failed" });
+      const choice = dialog.showMessageBoxSync(window, {
+        type: "error",
+        message:
+          stage === "draft"
+            ? "最终草稿未能安全接受，修改仍保留。"
+            : "磁盘保存未完成，请检查空间与权限。",
+        detail:
+          "重试不会丢弃草稿；取消可返回编辑。只有明确选择放弃修改才会继续关闭。",
+        buttons: retryAllowed
+          ? ["重试", "取消关闭", "放弃修改并关闭"]
+          : ["取消关闭", "放弃修改并关闭"],
+        defaultId: 0,
+        cancelId: retryAllowed ? 1 : 0,
+      });
+      return retryAllowed && choice === 0
+        ? "retry"
+        : choice === (retryAllowed ? 2 : 1)
+          ? "discard"
+          : "cancel";
+    },
+    finish: () => window.close(),
+  });
+  ipcMain.handle("close-ready", async (e, raw) => {
+    trusted(e);
+    await closing.submit(raw);
   });
   window.on("close", (event) => {
     logOperation("app.close_requested");
-    if (confirmed) return;
+    if (closing.phase === "done") return;
     event.preventDefault();
-    if (closing) return;
-    closing = true;
-    window.webContents.send("close-flush");
-    closeTimer = setTimeout(completeClose, 2500);
+    closing.request();
   });
   for (const [name, event] of [
     ["focus", "app.focus"],

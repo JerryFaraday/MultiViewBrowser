@@ -50,7 +50,8 @@ it("A01 closed pages are never resurrected or shifted by stale edits", () => {
   latest.session.pages[0] = null;
   store.save(latest);
   stale.session.pages[0]!.volume = 25;
-  expect(store.accept(stale).session.pages).toEqual(latest.session.pages);
+  expect(() => store.accept(stale)).toThrow("并发冲突");
+  expect(store.load().session.pages).toEqual(latest.session.pages);
 });
 it("A03 site sync preserves explicit mute and automatic secondary mute; user action can unmute", () => {
   for (const audio of ["muted", "auto", "unmuted"] as const) {

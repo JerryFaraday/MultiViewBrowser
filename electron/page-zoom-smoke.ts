@@ -1,3 +1,4 @@
+import { focusForInput } from "./SmokeDeadline";
 import { app, BrowserWindow } from "electron";
 import { createServer } from "node:http";
 import { writeFileSync } from "node:fs";
@@ -138,6 +139,7 @@ app.whenReady().then(async () => {
     const min = Math.abs(a.webContents.getZoomFactor() - 0.25) < 0.0001;
     await key(a.webContents, "0");
     m.changePageZoom(pages[0].id, "in");
+    await focusForInput(a.webContents);
     const points = await a.webContents.executeJavaScript(
       `(()=>{const c=document.querySelector('canvas').getBoundingClientRect(),f=document.querySelector('iframe'),r=f.getBoundingClientRect(),b=f.contentDocument.querySelector('button').getBoundingClientRect();return [{x:c.x+c.width/2,y:c.y+c.height/2},{x:r.x+f.clientLeft+b.x+b.width/2,y:r.y+f.clientTop+b.y+b.height/2}]})()`,
     );

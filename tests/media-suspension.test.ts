@@ -63,3 +63,21 @@ it("用户主动交互后不自动恢复，来源变更后不自动恢复", () =
   g.run(resumeMedia);
   expect(g.playing.plays).toBe(0);
 });
+
+it("N03 newly playing media is restored, unless replaced, removed, or user cancelled", () => {
+  for (const change of ["none", "source", "removed", "user"]) {
+    const f = fixture();
+    f.run(suspendMedia);
+    // A distinct media instance begins playback while the policy is active.
+    const Media = f.playing.constructor as new () => typeof f.playing;
+    const added = new Media();
+    f.listeners.get("play")!({ target: added });
+    expect(added.paused).toBe(true);
+    if (change === "source") added.currentSrc = "new";
+    if (change === "removed") added.isConnected = false;
+    if (change === "user") f.listeners.get("keydown")!({ isTrusted: true });
+    f.run(resumeMedia);
+    expect(added.plays).toBe(change === "none" ? 1 : 0);
+    expect(f.listeners.size).toBe(0);
+  }
+});

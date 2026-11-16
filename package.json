@@ -75,5 +75,8 @@
     ]
   },
   "type": "module",
-  "shortVersionWindows": "0.2.6.0"
+  "shortVersionWindows": "0.2.6.0",
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "11.0.1"
+  }
 }

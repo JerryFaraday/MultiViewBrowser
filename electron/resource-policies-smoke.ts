@@ -1,3 +1,4 @@
+import { traceScripts, exitHtml, focusForInput, until } from "./SmokeDeadline";
 import { app, BrowserWindow } from "electron";
 import { createServer } from "node:http";
 import { writeFileSync } from "node:fs";
@@ -77,6 +78,10 @@ app.whenReady().then(async () => {
     await wait(900);
     const a = m.views.get(pages[0].id)!,
       b = m.views.get(pages[1].id)!;
+    await focusForInput(a.webContents);
+    await focusForInput(b.webContents);
+    traceScripts(a.webContents, "primary");
+    traceScripts(b.webContents, "secondary");
     a.webContents.on("console-message", (event) =>
       console.log("pageconsole", event.level, event.message),
     );
@@ -166,18 +171,16 @@ app.whenReady().then(async () => {
       a.getVisible() &&
       b.getVisible() &&
       (await a.webContents.executeJavaScript("!!document.fullscreenElement"));
-    await a.webContents.executeJavaScript(
-      "document.fullscreenElement&&document.exitFullscreen()",
-    );
+    await exitHtml(a.webContents);
     await wait(150);
     await a.webContents.executeJavaScript(
-      'document.querySelector("#full").requestFullscreen()',
+      'void document.querySelector("#full").requestFullscreen();true',
       true,
     );
     await wait(150);
     result.auxFullscreen =
       !w.isFullScreen() && b.getVisible() && a.getBounds().width === 550;
-    await a.webContents.executeJavaScript("document.exitFullscreen()");
+    await exitHtml(a.webContents);
     await wait(100);
     m.toggleApplicationFullscreen();
     await wait(200);
@@ -188,7 +191,7 @@ app.whenReady().then(async () => {
       true,
     );
     await wait(200);
-    await b.webContents.executeJavaScript("document.exitFullscreen()");
+    await exitHtml(b.webContents);
     await wait(200);
     result.f11Independent = w.isFullScreen();
     m.exitApplicationFullscreen();
@@ -217,7 +220,7 @@ app.whenReady().then(async () => {
         !w.isFullScreen() &&
         a.getBounds().width === 550 &&
         (await a.webContents.executeJavaScript("!!document.fullscreenElement"));
-      await a.webContents.executeJavaScript("document.exitFullscreen()");
+      await exitHtml(a.webContents);
       await wait(60);
       cycles &&=
         a.getBounds().width === 550 &&
@@ -241,7 +244,12 @@ app.whenReady().then(async () => {
       result.crossOriginFullscreen =
         !w.isFullScreen() &&
         Boolean(await frame.executeJavaScript("!!document.fullscreenElement"));
-      await frame.executeJavaScript("document.exitFullscreen()");
+      await frame.executeJavaScript("void document.exitFullscreen();true");
+      await until(
+        "cross-frame-exit",
+        async () =>
+          !(await frame.executeJavaScript("!!document.fullscreenElement")),
+      );
       await wait(100);
       m.setPreferences({ ...p, pauseInSettings: true });
       m.setSettingsOpen(true);
