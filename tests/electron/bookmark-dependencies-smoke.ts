@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { app, BrowserWindow } from "electron";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { defaults } from "../../src/core/WorkspaceManager";

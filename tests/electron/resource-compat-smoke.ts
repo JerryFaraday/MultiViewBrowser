@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { app, BrowserWindow, WebContentsView } from "electron";
 import { writeFileSync } from "node:fs";
 const wait = (n: number) => new Promise((r) => setTimeout(r, n));

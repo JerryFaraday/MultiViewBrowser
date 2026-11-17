@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { app, BrowserWindow, ipcMain, webContents } from "electron";
 import { createServer } from "node:http";
 import { mkdtempSync, writeFileSync } from "node:fs";

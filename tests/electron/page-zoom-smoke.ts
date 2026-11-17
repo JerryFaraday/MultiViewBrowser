@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { focusForInput } from "./SmokeDeadline";
 import { app, BrowserWindow } from "electron";
 import { createServer } from "node:http";

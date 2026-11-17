@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 // Read-only application review: uses a fresh temporary profile, never the user's session.
 import { app, BrowserWindow, WebContentsView } from "electron";
 import { createServer } from "node:http";

@@ -10,7 +10,7 @@
 
 ## 核心功能
 
-- **设置系统**：启动与会话、新页面默认值、外观、数据管理和诊断，见[设置说明](docs/SETTINGS.md)。
+- **设置系统**：启动与会话、新页面默认值、外观、数据管理和诊断，见[设置说明](docs/user/settings.md)。
 
 - **分屏布局**：16种内置布局，可拖动分割线、保存自定义布局；网页关闭后留空，不自动补位。
 - **窗口换位**：拖动“主、2、3”等按钮交换网页，保持网页实例；拖动期间网页继续播放与渲染。
@@ -18,10 +18,10 @@
 - **原生内容缩放**：Ctrl+滚轮及Ctrl++/-/0，25%–500%，各视图独立并随网页换位保留。
 - **逻辑视口适配**：悬停浮窗选择1080p、1440p或4K；主窗口放大期间临时使用2K。自动适配固定逻辑视口为实验性功能，另有原生响应式兼容模式。
 - **收藏与工作区**：收藏单页编辑、分组与收藏拖动排序、可开关的横向收藏栏；保存和恢复布局及网页组合，支持JSON配置导入导出。
-- **B站开播状态**：直播间类别收藏可启用原生API检测（默认关闭），在收藏栏显示状态灯；网络和第三方接口异常显示未知，见[使用说明](docs/USER_GUIDE.md#b站直播状态检测)。
+- **B站开播状态**：直播间类别收藏可启用原生API检测（默认关闭），在收藏栏显示状态灯；网络和第三方接口异常显示未知，见[使用说明](docs/user/user-guide.md#b站直播状态检测)。
 - **会话操作日志**：每次启动独立记录操作类别，不记录具体网址、标题、输入文字或凭据。
 
-操作细节见[使用指南](docs/USER_GUIDE.md)。上述为已实现能力，不表示所有网站和时序场景均已验收；待处理事项见[已知问题](docs/KNOWN_ISSUES.md)，不作为已实现功能宣传。
+操作细节见[使用指南](docs/user/user-guide.md)。上述为已实现能力，不表示所有网站和时序场景均已验收；待处理事项见[已知问题](docs/development/known-issues.md)，不作为已实现功能宣传。
 
 ## 界面截图
 
@@ -35,7 +35,7 @@
 
 如果已取得Windows免安装构建，保留整个 `win-unpacked` 目录，运行 `MultiViewBrowser.exe`。本地项目已有构建时，也可双击根目录的 [Start-MultiViewBrowser.cmd](Start-MultiViewBrowser.cmd)，它指向 `release/win-unpacked/MultiViewBrowser.exe`；仅克隆源码还不能直接使用该脚本。机器专用快捷方式不随仓库分发。
 
-程序默认最大化；F11切换全屏，Esc退出全屏。首次使用及音频、缩放操作见[使用指南](docs/USER_GUIDE.md)。当前免安装构建未签名。
+程序默认最大化；F11切换全屏，Esc退出全屏。首次使用及音频、缩放操作见[使用指南](docs/user/user-guide.md)。当前免安装构建未签名。
 
 ## 开发环境与快速启动
 
@@ -54,29 +54,29 @@ npm start
 npm run pack
 ```
 
-`npm start` 需要先构建。`npm run pack` 生成Windows目录构建；`npm run dist` 配置为NSIS安装器，不能把“已配置”视为“已交付”。完整命令及本机特殊环境处理见[开发指南](docs/DEVELOPMENT.md)。
+`npm start` 需要先构建。`npm run pack` 生成Windows目录构建；`npm run dist` 配置为NSIS安装器，不能把“已配置”视为“已交付”。完整命令及本机特殊环境处理见[开发指南](docs/development/development.md)。
 
 ## 技术栈
 
-Electron / Chromium WebContentsView、React、TypeScript、Vite、esbuild、Zod、Vitest、electron-builder。实际依赖版本以 [package-lock.json](package-lock.json) 为准；模块关系见[架构说明](docs/ARCHITECTURE.md)。
+Electron / Chromium WebContentsView、React、TypeScript、Vite、esbuild、Zod、Vitest、electron-builder。实际依赖版本以 [package-lock.json](package-lock.json) 为准；模块关系见[架构说明](docs/development/architecture.md)。
 
 ## 当前状态与限制
 
 自动固定视口缩放仍属实验性；跨域iframe、DRM及网站自有音频图不能保证统一音量控制。已审计出的配置旧写覆盖、播放器来源交接、音量同步解除静音等问题仍未解决。真实直播间验证曾被验证码阻断，长期播放、多屏DPI和完整系统鼠标路径尚需人工回归。
 
-31项测试通过不代表不存在上述缺陷。V0.1.1.5已验证交换后的真实网页焦点和状态保留，并更新Windows免安装构建。详见[验证记录](docs/VALIDATION.md)。
+31项测试通过不代表不存在上述缺陷。V0.1.1.5已验证交换后的真实网页焦点和状态保留，并更新Windows免安装构建。详见[验证记录](docs/development/validation.md)。
 
 ## 文档导航
 
 | 文档                                            | 用途                       |
 | ----------------------------------------------- | -------------------------- |
 | [CHANGELOG](CHANGELOG.md)                       | 有证据支持的版本变化       |
-| [使用指南](docs/USER_GUIDE.md)                  | 面向使用者的实际操作       |
-| [开发指南](docs/DEVELOPMENT.md)                 | 安装依赖、开发、测试和打包 |
-| [架构说明](docs/ARCHITECTURE.md)                | 进程、模块、数据与安全边界 |
-| [已知问题](docs/KNOWN_ISSUES.md)                | 未解决问题、复现条件和状态 |
-| [开发日志](docs/DEVLOG.md)                      | 技术演进、原因分析及取舍   |
-| [验证记录](docs/VALIDATION.md)                  | 测试方法、已有结果与局限   |
+| [使用指南](docs/user/user-guide.md)             | 面向使用者的实际操作       |
+| [开发指南](docs/development/development.md)     | 安装依赖、开发、测试和打包 |
+| [架构说明](docs/development/architecture.md)    | 进程、模块、数据与安全边界 |
+| [已知问题](docs/development/known-issues.md)    | 未解决问题、复现条件和状态 |
+| [开发日志](docs/development/devlog.md)          | 技术演进、原因分析及取舍   |
+| [验证记录](docs/development/validation.md)      | 测试方法、已有结果与局限   |
 | [历史报告与分类映射](docs/DOCUMENTATION_MAP.md) | 原文去向与维护方式         |
 | [AGENTS.md](AGENTS.md)                          | 版本、隐私及长期文档约束   |
 

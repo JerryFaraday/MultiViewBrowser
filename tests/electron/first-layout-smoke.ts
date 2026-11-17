@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from "electron";
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { createServer } from "node:http";
 import { BrowserManager } from "../../electron/BrowserManager";
 import { newPage, type Snapshot } from "../../src/core/model";

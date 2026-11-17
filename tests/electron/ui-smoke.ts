@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { defaults } from "../../src/core/WorkspaceManager";
 import { app, BrowserWindow, webContents } from "electron";
 import { withPopupPointer } from "./smoke-popup-pointer";

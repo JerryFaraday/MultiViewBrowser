@@ -1,4 +1,4 @@
-import { artifactOutputPath } from "../../scripts/test-artifacts.mjs";
+import { artifactOutputPath } from "../../scripts/lib/test-artifacts.mjs";
 import { app, BrowserWindow, WebContentsView } from "electron";
 import { writeFileSync } from "node:fs";
 app.setPath("userData", app.getPath("temp") + "/mvb-bili-app-" + Date.now());

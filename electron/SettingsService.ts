@@ -278,7 +278,7 @@ export class SettingsService {
     ) {
       const url =
         action === "manual"
-          ? repository + "/blob/main/docs/USER_GUIDE.md"
+          ? repository + "/blob/main/docs/user/user-guide.md"
           : repository + (action === "releases" ? "/releases" : "");
       await shell.openExternal(url);
       return { message: "已在系统浏览器打开。" };

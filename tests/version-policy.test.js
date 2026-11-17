@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { nextVersion } from "../scripts/version-policy.mjs";
+import { nextVersion } from "../scripts/lib/version-policy.mjs";
 it("bumps one chosen component and resets lower components", () => {
   expect(nextVersion("0.2.3.9", { kind: "feature" })).toBe("0.2.4.0");
   expect(nextVersion("0.2.3.9", { kind: "revision" })).toBe("0.2.3.10");

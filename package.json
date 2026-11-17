@@ -17,7 +17,8 @@
     "format": "prettier --write src electron scripts tests package.json tsconfig.json vite.config.ts",
     "format:check": "prettier --check src electron scripts tests package.json tsconfig.json vite.config.ts",
     "smoke:drag": "node scripts/drag-smoke.mjs",
-    "version:bump": "node scripts/bump-version.mjs"
+    "version:bump": "node scripts/bump-version.mjs",
+    "pack:validation": "npm run build && electron-builder --win --dir --config.directories.output=out/validation"
   },
   "dependencies": {
     "react": "^19.3.1",

@@ -5,15 +5,15 @@
 - 修复N01–N07配置集合并发、暂存恢复、关闭事务、数据校验迁移、媒体暂停/实例清理和不可见选中目标。不可安全合并时保留/备份草稿，不静默覆盖。
 - 仅对受公告影响的minimatch版本范围锁定11.0.1，保留electron-builder及旧主版本匹配API；当前依赖audit为0。
 - 补齐原生探针有界等待和真实输入前提、生命周期及性能回归；三个指定真实站点样本通过，其他房间与长期真实场景仍待验收。
-- 详细状态及兼容恢复规则见[审计修复记录](docs/reviews/AUDIT_REPAIR_2026-11-16.md)。
+- 详细状态及兼容恢复规则见[审计修复记录](docs/reviews/audit-repair-2026-11-16.md)。
 
-软件当前版本以 [version.json](version.json) 为准。以下只使用原有记录中明确出现的版本，不为未编号阶段补造版本或发布日期。版本条目的证据见[历史验证原文](docs/reviews/VALIDATION_HISTORY.md)；本次文档整理不递增版本。
+软件当前版本以 [version.json](version.json) 为准。以下只使用原有记录中明确出现的版本，不为未编号阶段补造版本或发布日期。版本条目的证据见[历史验证原文](docs/reviews/validation-history-archived-2026-11-02.md)；本次文档整理不递增版本。
 
 ## V0.2.6.1
 
 ### Fixed
 
-- 修复首次分屏边界早于网页实例创建时，隐藏视图未应用缓存布局而持续空白的竞态；保留布局去重，并阻止过期边界重新显示设置页后方、暂存或关闭的网页。见[专项记录](docs/reviews/FIRST_LAYOUT_2026-11-17.md)。
+- 修复首次分屏边界早于网页实例创建时，隐藏视图未应用缓存布局而持续空白的竞态；保留布局去重，并阻止过期边界重新显示设置页后方、暂存或关闭的网页。见[专项记录](docs/reviews/first-layout-2026-11-17.md)。
 
 ## V0.2.6.0
 
@@ -36,7 +36,7 @@
 ### Known Issues
 
 - 后台节流存在同 BrowserWindow 关联；媒体自动恢复受站点播放限制，长期暂存释放采取保守策略。
-- B站多个直播间本轮未生成视频元素，真实直播流及所有网站播放器按钮仍需补验。范围见[专项报告](docs/reviews/PERFORMANCE_2026-11-16.md)。
+- B站多个直播间本轮未生成视频元素，真实直播流及所有网站播放器按钮仍需补验。范围见[专项报告](docs/reviews/performance-2026-11-16.md)。
 
 ## V0.2.5.3
 
@@ -144,7 +144,7 @@
 
 - 恢复历史浅色主题，保留深蓝、深灰和纯黑；主题与强调色独立持久化，切换互不覆盖。
 - 默认蓝色沿用原页面音量按钮的亮蓝色#29B6FF，保留青绿色与紫色预设；统一导航、按钮、开关、滑块和焦点的强调色，适配浅色前景对比度。
-- 兼容旧accent配置并保留仍存储为light的主题偏好；更新[使用指南](docs/USER_GUIDE.md)与[验证报告](docs/reviews/THEME_ACCENT_2026-11-14.md)。
+- 兼容旧accent配置并保留仍存储为light的主题偏好；更新[使用指南](docs/user/user-guide.md)与[验证报告](docs/reviews/theme-accent-2026-11-14.md)。
 
 ## V0.2.1.6
 
@@ -156,7 +156,7 @@
 
 ### Fixed
 
-- Bilibili视频页的大合集列表改为按需排版屏外条目，降低主窗口放大/恢复时的尺寸适配延迟，保留原网页实例、合集条目与操作。详见[验证与范围](docs/reviews/BILIBILI_COLLECTION_LAYOUT_2026-11-14.md)。
+- Bilibili视频页的大合集列表改为按需排版屏外条目，降低主窗口放大/恢复时的尺寸适配延迟，保留原网页实例、合集条目与操作。详见[验证与范围](docs/reviews/bilibili-collection-layout-2026-11-14.md)。
 
 ## V0.2.1.4
 
@@ -240,7 +240,7 @@
 - A01：配置通过主进程修订号与三方合并保存，防止旧快照撤销已保存的音量、缩放、换位或关闭；网页字段按页面ID合并。
 - A02：暂停/结束的旧播放器可让出音量来源，同分新播放器的播放事件可接管控制。
 - A03：网站音量回传仅同步百分比，保留手动静音与主副自动策略；用户主动调整非零音量仍可解除静音。
-- 回归证据及真实网站验证范围见docs/CODE_AUDIT.md的第一阶段修复记录。
+- 回归证据及真实网站验证范围见docs/reviews/code-audit-2026-11-12.md的第一阶段修复记录。
 
 ## V0.1.1.11
 
@@ -360,10 +360,10 @@
 
 ### Known Issues
 
-截至文档整理时，配置旧写覆盖、播放器来源交接、站点同步解除静音等审计问题仍存在。完整状态见[已知问题](docs/KNOWN_ISSUES.md)，不能将局部音频修复理解为所有站点完全兼容。
+截至文档整理时，配置旧写覆盖、播放器来源交接、站点同步解除静音等审计问题仍存在。完整状态见[已知问题](docs/development/known-issues.md)，不能将局部音频修复理解为所有站点完全兼容。
 
 ## UI design system adoption (2026-11-15)
 
 - Adopted application-wide design governance and shared settings/editor patterns.
 - Improved settings density, responsive controls, favorites management and keyboard modal handling.
-- Verification limitations are recorded in docs/reviews/UI_DESIGN_SYSTEM_2026-11-15.md.
+- Verification limitations are recorded in docs/reviews/ui-design-system-2026-11-15.md.

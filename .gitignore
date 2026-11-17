@@ -7,7 +7,7 @@ dist/
 dist-electron/
 release/
 out/
-build/
+/build/
 coverage/
 .vite/
 .cache/
@@ -16,6 +16,8 @@ coverage/
 /logs/*
 !/logs/.gitkeep
 test-artifacts/
+# User-requested temporary tree snapshots (never a maintained project document)
+/PROJECT_FILE_TREE_TEMP.txt
 
 # Secrets and machine-specific configuration
 .env

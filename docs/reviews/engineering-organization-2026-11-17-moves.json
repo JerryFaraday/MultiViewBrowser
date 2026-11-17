@@ -1,0 +1,126 @@
+{
+  "trackedMoves": {
+    "scripts/appearance-smoke.mjs": "scripts/smoke/appearance-smoke.mjs",
+    "scripts/audio-smoke.mjs": "scripts/smoke/audio-smoke.mjs",
+    "scripts/audit-merge-bench.mjs": "scripts/smoke/audit-merge-bench.mjs",
+    "scripts/bilibili-profile-smoke.mjs": "scripts/smoke/bilibili-profile-smoke.mjs",
+    "scripts/bilibili-smoke.mjs": "scripts/smoke/bilibili-smoke.mjs",
+    "scripts/bookmark-dependencies-smoke.mjs": "scripts/smoke/bookmark-dependencies-smoke.mjs",
+    "scripts/build-native.mjs": "scripts/build/build-native.mjs",
+    "scripts/build.mjs": "scripts/build/build.mjs",
+    "scripts/bump-version.mjs": "scripts/maintenance/bump-version.mjs",
+    "scripts/check-secrets.mjs": "scripts/maintenance/check-secrets.mjs",
+    "scripts/dev.mjs": "scripts/dev/dev.mjs",
+    "scripts/douyu-smoke.mjs": "scripts/smoke/douyu-smoke.mjs",
+    "scripts/drag-smoke.mjs": "scripts/smoke/drag-smoke.mjs",
+    "scripts/exchange-smoke.mjs": "scripts/smoke/exchange-smoke.mjs",
+    "scripts/first-layout-smoke.mjs": "scripts/smoke/first-layout-smoke.mjs",
+    "scripts/fullscreen-sites-smoke.mjs": "scripts/smoke/fullscreen-sites-smoke.mjs",
+    "scripts/interaction-smoke.mjs": "scripts/smoke/interaction-smoke.mjs",
+    "scripts/lifecycle-smoke.mjs": "scripts/smoke/lifecycle-smoke.mjs",
+    "scripts/live-native-smoke.mjs": "scripts/smoke/live-native-smoke.mjs",
+    "scripts/live-pack-smoke.mjs": "scripts/smoke/live-pack-smoke.mjs",
+    "scripts/live-status-smoke.mjs": "scripts/smoke/live-status-smoke.mjs",
+    "scripts/log-smoke.mjs": "scripts/smoke/log-smoke.mjs",
+    "scripts/page-zoom-smoke.mjs": "scripts/smoke/page-zoom-smoke.mjs",
+    "scripts/performance-pack-smoke.mjs": "scripts/smoke/performance-pack-smoke.mjs",
+    "scripts/performance-smoke.mjs": "scripts/smoke/performance-smoke.mjs",
+    "scripts/performance-ui-smoke.mjs": "scripts/smoke/performance-ui-smoke.mjs",
+    "scripts/popup-hover-smoke.mjs": "scripts/smoke/popup-hover-smoke.mjs",
+    "scripts/popup-smoke.mjs": "scripts/smoke/popup-smoke.mjs",
+    "scripts/resize-transition-smoke.mjs": "scripts/smoke/resize-transition-smoke.mjs",
+    "scripts/resource-compat-smoke.mjs": "scripts/smoke/resource-compat-smoke.mjs",
+    "scripts/resource-policies-smoke.mjs": "scripts/smoke/resource-policies-smoke.mjs",
+    "scripts/review-media-probe.mjs": "scripts/smoke/review-media-probe.mjs",
+    "scripts/review-probe.mjs": "scripts/smoke/review-probe.mjs",
+    "scripts/rooms-diagnostic.mjs": "scripts/smoke/rooms-diagnostic.mjs",
+    "scripts/scrollbar-smoke.mjs": "scripts/smoke/scrollbar-smoke.mjs",
+    "scripts/settings-layout-smoke.mjs": "scripts/smoke/settings-layout-smoke.mjs",
+    "scripts/settings-smoke.mjs": "scripts/smoke/settings-smoke.mjs",
+    "scripts/smoke.mjs": "scripts/smoke/smoke.mjs",
+    "scripts/startup-smoke.mjs": "scripts/smoke/startup-smoke.mjs",
+    "scripts/startup-theme-smoke.mjs": "scripts/smoke/startup-theme-smoke.mjs",
+    "scripts/stash-smoke.mjs": "scripts/smoke/stash-smoke.mjs",
+    "scripts/test-artifacts.d.mts": "scripts/lib/test-artifacts.d.mts",
+    "scripts/test-artifacts.mjs": "scripts/lib/test-artifacts.mjs",
+    "scripts/ui-smoke.mjs": "scripts/smoke/ui-smoke.mjs",
+    "scripts/version-policy.mjs": "scripts/lib/version-policy.mjs",
+    "docs/USER_GUIDE.md": "docs/user/user-guide.md",
+    "docs/SETTINGS.md": "docs/user/settings.md",
+    "docs/UI_DESIGN_SYSTEM.md": "docs/design/ui-design-system.md",
+    "docs/DEVELOPMENT.md": "docs/development/development.md",
+    "docs/ARCHITECTURE.md": "docs/development/architecture.md",
+    "docs/DEVLOG.md": "docs/development/devlog.md",
+    "docs/VALIDATION.md": "docs/development/validation.md",
+    "docs/KNOWN_ISSUES.md": "docs/development/known-issues.md",
+    "docs/CODE_AUDIT.md": "docs/reviews/code-audit-2026-11-12.md",
+    "docs/USER_MANUAL.md": "docs/reviews/user-manual-2026-11-12.md",
+    "docs/MULTIVIEW_DESIGN_SYSTEM.md": "docs/reviews/multiview-design-system-2026-11-15.md",
+    "docs/reviews/5E_IFRAME_INPUT_2026-11-12.md": "docs/reviews/5e-iframe-input-2026-11-12.md",
+    "docs/reviews/AUDIT_REPAIR_2026-11-16.md": "docs/reviews/audit-repair-2026-11-16.md",
+    "docs/reviews/AUDIT_REPAIR_2026-11-16_DATA.json": "docs/reviews/audit-repair-2026-11-16-data.json",
+    "docs/reviews/BILIBILI_COLLECTION_LAYOUT_2026-11-14.md": "docs/reviews/bilibili-collection-layout-2026-11-14.md",
+    "docs/reviews/BOOKMARK_DEPENDENCIES_2026-11-15.md": "docs/reviews/bookmark-dependencies-2026-11-15.md",
+    "docs/reviews/BUG_ANALYSIS.md": "docs/reviews/bug-analysis-archived-2026-11-02.md",
+    "docs/reviews/CODE_AUDIT_2026-11-16.md": "docs/reviews/code-audit-2026-11-16.md",
+    "docs/reviews/CODE_REVIEW.md": "docs/reviews/code-review-archived-2026-11-02.md",
+    "docs/reviews/DIRECTORY_REORGANIZATION_2026-11-17.md": "docs/reviews/directory-reorganization-2026-11-17.md",
+    "docs/reviews/DIRECTORY_REORGANIZATION_2026-11-17_MOVES.json": "docs/reviews/directory-reorganization-2026-11-17-moves.json",
+    "docs/reviews/DOUYU_ADAPTER_2026-11-15.md": "docs/reviews/douyu-adapter-2026-11-15.md",
+    "docs/reviews/DOUYU_FALLBACK_2026-11-15.md": "docs/reviews/douyu-fallback-2026-11-15.md",
+    "docs/reviews/FAVORITES_REPAIR_2026-11-15.md": "docs/reviews/favorites-repair-2026-11-15.md",
+    "docs/reviews/FIRST_LAYOUT_2026-11-17.md": "docs/reviews/first-layout-2026-11-17.md",
+    "docs/reviews/GIT_IMPORT_REVIEW.md": "docs/reviews/git-import-review-archived-2026-11-02.md",
+    "docs/reviews/LIVE_CACHE_2026-11-15.md": "docs/reviews/live-cache-2026-11-15.md",
+    "docs/reviews/LIVE_PLATFORMS_2026-11-15.md": "docs/reviews/live-platforms-2026-11-15.md",
+    "docs/reviews/LIVE_STATUS_2026-11-15.md": "docs/reviews/live-status-2026-11-15.md",
+    "docs/reviews/NATIVE_SCROLLBAR_THEME_2026-11-14.md": "docs/reviews/native-scrollbar-theme-2026-11-14.md",
+    "docs/reviews/PERFORMANCE_2026-11-16.md": "docs/reviews/performance-2026-11-16.md",
+    "docs/reviews/PERFORMANCE_2026-11-16_DATA.json": "docs/reviews/performance-2026-11-16-data.json",
+    "docs/reviews/README_BEFORE_REORGANIZATION.md": "docs/reviews/readme-before-reorganization-archived-2026-11-02.md",
+    "docs/reviews/RESIZE_DELAY_CHECKPOINT_2026-11-14.md": "docs/reviews/resize-delay-checkpoint-2026-11-14.md",
+    "docs/reviews/REVIEW_2026-11-02.md": "docs/reviews/review-2026-11-02.md",
+    "docs/reviews/TASKBAR_POPUP_2026-11-14.md": "docs/reviews/taskbar-popup-2026-11-14.md",
+    "docs/reviews/THEME_ACCENT_2026-11-14.md": "docs/reviews/theme-accent-2026-11-14.md",
+    "docs/reviews/UI_DESIGN_SYSTEM_2026-11-15.md": "docs/reviews/ui-design-system-2026-11-15.md",
+    "docs/reviews/VALIDATION_HISTORY.md": "docs/reviews/validation-history-archived-2026-11-02.md"
+  },
+  "localArtifactMoves": [
+    {
+      "from": "release/settings-fullpage",
+      "to": "out/legacy-validation/settings-fullpage"
+    },
+    {
+      "from": "release/validation-0.2.5.0",
+      "to": "out/legacy-validation/validation-0.2.5.0"
+    },
+    {
+      "from": "release/validation-0.2.5.1",
+      "to": "out/legacy-validation/validation-0.2.5.1"
+    },
+    {
+      "from": "release/validation-0.2.5.2",
+      "to": "out/legacy-validation/validation-0.2.5.2"
+    },
+    {
+      "from": "release/validation-0.2.5.3",
+      "to": "out/legacy-validation/validation-0.2.5.3"
+    },
+    {
+      "from": "release/validation-first-layout",
+      "to": "out/legacy-validation/validation-first-layout"
+    },
+    {
+      "from": "release/validation-performance",
+      "to": "out/legacy-validation/validation-performance"
+    },
+    {
+      "from": "release/zoom-feedback-validation",
+      "to": "out/legacy-validation/zoom-feedback-validation"
+    },
+    {
+      "from": "out/first-layout/initial-probe.json",
+      "to": "test-artifacts/first-layout/initial-probe.json"
+    }
+  ]
+}
