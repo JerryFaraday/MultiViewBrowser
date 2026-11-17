@@ -2,7 +2,7 @@ import { build } from "esbuild";
 import { spawn } from "node:child_process";
 // Public-room API probe; no Electron window, account, cookie or profile is used.
 await build({
-  entryPoints: ["electron/live/douyu-probe.ts"],
+  entryPoints: ["tests/electron/douyu-probe.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",

@@ -12,7 +12,7 @@
 | REVIEW_2026-11-02.md           | [2026-11-02审计](reviews/REVIEW_2026-11-02.md)                                  | 保留日期和复现结果                                                      |
 | GIT_IMPORT_REVIEW.md           | [Git导入前复查](reviews/GIT_IMPORT_REVIEW.md)                                   | 保留四项再次复现及精简候选判断                                          |
 | AGENTS.md                      | [根目录AGENTS](../AGENTS.md)                                                    | 保留原约束，追加长期文档规范                                            |
-| 本地scale-popup-smoke.png      | [公开局部截图](images/scale-popup.png)                                          | 真实运行截图，经检查不含网址、账号或输入内容                            |
+| 本地test-artifacts/ui/scale-popup-smoke.png      | [公开局部截图](images/scale-popup.png)                                          | 真实运行截图，经检查不含网址、账号或输入内容                            |
 
 历史报告中提及的JSON、日志和其他截图属于本地生成产物，未随仓库发布；文档采用纯文本名称引用，不能将其视为可下载附件。报告原始代码行号会过时，归档链接统一指向当前源码文件，诊断结论仍按报告当时的上下文理解。
 

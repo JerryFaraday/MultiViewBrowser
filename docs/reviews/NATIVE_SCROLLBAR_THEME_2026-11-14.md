@@ -56,4 +56,4 @@ Blink对默认`color-scheme:normal`的顶层非覆盖式滚动条采用独立判
 
 网站显式浅色方案、自定义滚动条、iframe自身或继承的配色仍由网站和Chromium管理。根滚动条机制不意味着强行统一所有页面内部滚动容器；不能把已验证站点与夹具推广为全部第三方网页。应用设置页及菜单等本地区域继续使用既有三主题样式与暗色color-scheme。
 
-本轮未改动之前的Bilibili合集排版兼容规则。网页可主动响应`prefers-color-scheme:dark`改变自己的样式，这是网站行为；应用没有强制改写整页配色。原始数字结果保留于被Git忽略的`scrollbar-diagnostic.json`，截图为`scrollbar-*-smoke.png`；不提交用户日志、浏览器配置或凭据。
+本轮未改动之前的Bilibili合集排版兼容规则。网页可主动响应`prefers-color-scheme:dark`改变自己的样式，这是网站行为；应用没有强制改写整页配色。原始数字结果保留于被Git忽略的`test-artifacts/scrollbar/scrollbar-diagnostic.json`，截图为`scrollbar-*-smoke.png`；不提交用户日志、浏览器配置或凭据。

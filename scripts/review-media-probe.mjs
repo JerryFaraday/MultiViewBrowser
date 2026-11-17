@@ -1,3 +1,4 @@
+import { artifactOutputPath } from "./test-artifacts.mjs";
 // Audit reproducer, intentionally reports current faults rather than locking them into unit tests.
 import { buildSync } from "esbuild";
 import { runInNewContext } from "node:vm";
@@ -83,7 +84,10 @@ const result = {
     afterCommand.newVolume === 0.75 &&
     !sent.some((e) => e[0] === "site-volume"),
 };
-writeFileSync("review-media-results.json", JSON.stringify(result, null, 2));
+writeFileSync(
+  artifactOutputPath("review-media-results.json"),
+  JSON.stringify(result, null, 2),
+);
 console.log(JSON.stringify(result, null, 2));
 
 if (

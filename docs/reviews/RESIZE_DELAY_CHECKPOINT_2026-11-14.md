@@ -48,7 +48,7 @@
 
 不删除条目或事件处理器，不改WebContentsView、逻辑视口、Page Zoom、音频、交换或焦点，不加等待、不隐藏整个网页。但它会更改目标网站列表CSS排版策略，必须继续核对滚动高度、展开多P、远端条目及点击选集；网站未来更改DOM或行高也是兼容风险。
 
-本地未提交文件：`electron/bilibili-layout.ts`、`electron/media-preload.ts`、`electron/resize-transition-smoke.ts`、`scripts/resize-transition-smoke.mjs`。前两者为候选，后两者为诊断工具。
+本地未提交文件：`electron/bilibili-layout.ts`、`electron/media-preload.ts`、`tests/electron/resize-transition-smoke.ts`、`scripts/resize-transition-smoke.mjs`。前两者为候选，后两者为诊断工具。
 
 `electron/BrowserManager.ts`已恢复原实现。以下实验未进入候选：关闭再启用设备模拟（严格对照反而变慢）、缓存重复模拟参数、调整调用顺序、统一原生缩放、普通layout containment。避免音频扫描比较播放器自身的试验未降低延迟，也已撤回。测试工具已去掉删除条目的实验代码。
 
@@ -56,10 +56,10 @@
 
 以下根目录结果被Git忽略，已写入本地磁盘；只记录数值/布尔信息及阶段标识，不记录URL、标题、凭据或用户输入。
 
-- `resize-delivery-first-diagnostic.json`：最后20次候选及指标。
-- `resize-delivery-first-baseline-diagnostic.json`：最后20次基线及指标。
-- `video-resize-first-diagnostic.json`、`video-resize-second-diagnostic.json`、`video-resize-medium-diagnostic.json`、`video-resize-plain-diagnostic.json`：四页早期基线。
-- `resize-profile-first-diagnostic.json`、`resize-profile-medium-diagnostic.json`、`resize-profile-plain-diagnostic.json`、`resize-profile-second-diagnostic.json`：中间性能对照。
+- `test-artifacts/video-resize/resize-delivery-first-diagnostic.json`：最后20次候选及指标。
+- `test-artifacts/video-resize/resize-delivery-first-baseline-diagnostic.json`：最后20次基线及指标。
+- `test-artifacts/video-resize/video-resize-first-diagnostic.json`、`test-artifacts/video-resize/video-resize-second-diagnostic.json`、`test-artifacts/video-resize/video-resize-medium-diagnostic.json`、`test-artifacts/video-resize/video-resize-plain-diagnostic.json`：四页早期基线。
+- `test-artifacts/video-resize/resize-profile-first-diagnostic.json`、`test-artifacts/video-resize/resize-profile-medium-diagnostic.json`、`test-artifacts/video-resize/resize-profile-plain-diagnostic.json`、`test-artifacts/video-resize/resize-profile-second-diagnostic.json`：中间性能对照。
 - 其他诊断文件为中间实验，不能混为正式候选结果。
 
 `dist-electron`含候选测试构建；`release/win-unpacked`未更新。测试使用临时userData，没有覆盖用户配置。用户要求以后测试静音，工具已默认`masterMuted=true`。当前验证进程已经退出，不再启动新测试。

@@ -5,7 +5,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 await build({
-  entryPoints: ["electron/appearance-smoke.ts"],
+  entryPoints: ["tests/electron/appearance-smoke.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",

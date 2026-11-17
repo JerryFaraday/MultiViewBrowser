@@ -1,3 +1,4 @@
+import { artifactOutputPath } from "./test-artifacts.mjs";
 import { build } from "esbuild";
 import { spawn } from "node:child_process";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -5,7 +6,7 @@ import electron from "electron";
 
 const before = new Set(readdirSync("logs"));
 await build({
-  entryPoints: ["electron/log-smoke.ts"],
+  entryPoints: ["tests/electron/log-smoke.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",
@@ -52,6 +53,9 @@ result.pass =
   result.audioChange &&
   result.webClick &&
   result.privateDataAbsent;
-writeFileSync("log-smoke-results.json", JSON.stringify(result, null, 2));
+writeFileSync(
+  artifactOutputPath("log-smoke-results.json"),
+  JSON.stringify(result, null, 2),
+);
 console.log(JSON.stringify(result, null, 2));
 process.exit(result.pass ? 0 : 1);

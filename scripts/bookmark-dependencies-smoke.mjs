@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import electron from "electron";
 await build({
-  entryPoints: ["electron/bookmark-dependencies-smoke.ts"],
+  entryPoints: ["tests/electron/bookmark-dependencies-smoke.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",

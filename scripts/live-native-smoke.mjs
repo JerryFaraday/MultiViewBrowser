@@ -1,3 +1,4 @@
+import { artifactOutputPath } from "./test-artifacts.mjs";
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 const request = (kind, ids) =>
@@ -63,7 +64,10 @@ try {
     batchMembers: Object.keys(states).length,
     pass,
   };
-  writeFileSync("live-native-diagnostic.json", JSON.stringify(result, null, 2));
+  writeFileSync(
+    artifactOutputPath("live-native-diagnostic.json"),
+    JSON.stringify(result, null, 2),
+  );
   console.log(JSON.stringify(result));
   process.exit(pass ? 0 : 1);
 } catch {

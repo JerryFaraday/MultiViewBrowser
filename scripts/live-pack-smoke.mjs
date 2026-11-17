@@ -1,3 +1,4 @@
+import { artifactOutputPath } from "./test-artifacts.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -150,7 +151,7 @@ try {
     loaded.result?.value?.enabled === true &&
     loaded.result?.value?.category === "bilibili-live";
   writeFileSync(
-    "live-pack-diagnostic.json",
+    artifactOutputPath("live-pack-diagnostic.json"),
     JSON.stringify(
       {
         status: result?.status,

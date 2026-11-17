@@ -1,8 +1,6 @@
 # Dependencies and local tooling
 node_modules/
 .npm-tools/
-npm-bootstrap.tgz
-electron-runtime.zip
 
 # Builds, installers, generated reports and caches
 dist/
@@ -17,11 +15,7 @@ coverage/
 *.log
 /logs/*
 !/logs/.gitkeep
-/*-results.json
-/*-diagnostic.json
-/rooms-diagnostic.json
-/*-smoke.png
-/ui-smoke.png
+test-artifacts/
 
 # Secrets and machine-specific configuration
 .env

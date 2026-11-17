@@ -9,7 +9,7 @@
 | [LiveStatus.ts](../../src/core/LiveStatus.ts)、[model.ts](../../src/core/model.ts)、[Preferences.ts](../../src/core/Preferences.ts) | 房号/URL、三态、兼容迁移及设置约束 |
 | [FavoriteEditor.tsx](../../src/components/FavoriteEditor.tsx)、[FavoritesList.tsx](../../src/components/FavoritesList.tsx)、[SettingsPanel.tsx](../../src/components/SettingsPanel.tsx) | 类别编辑、设置、指示灯 |
 | [App.tsx](../../src/App.tsx)、[preload.ts](../../electron/preload.ts)、[api.ts](../../src/api.ts) | 受限IPC和React订阅 |
-| [live-status.test.ts](../../tests/live-status.test.ts)、[UI专项](../../electron/live-status-smoke.ts)、[原生专项](../../scripts/live-native-smoke.mjs)、[包专项](../../scripts/live-pack-smoke.mjs) | 状态、界面、网络及部署验证 |
+| [live-status.test.ts](../../tests/live-status.test.ts)、[UI专项](../../tests/electron/live-status-smoke.ts)、[原生专项](../../scripts/live-native-smoke.mjs)、[包专项](../../scripts/live-pack-smoke.mjs) | 状态、界面、网络及部署验证 |
 
 另同步build脚本、package构建资源、版本元数据、样式、旧测试夹具和使用/开发文档；未改动BrowserManager、布局、交换、音频或网页导航模块。
 

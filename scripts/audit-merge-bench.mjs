@@ -1,3 +1,4 @@
+import { artifactOutputPath } from "./test-artifacts.mjs";
 import { buildSync, transformSync } from "esbuild";
 import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -82,5 +83,8 @@ const result = {
     "two independent favorite field edits; 1 warm-up, 5 samples; milliseconds",
   rows,
 };
-writeFileSync("audit-merge-results.json", JSON.stringify(result, null, 2));
+writeFileSync(
+  artifactOutputPath("audit-merge-results.json"),
+  JSON.stringify(result, null, 2),
+);
 console.log(JSON.stringify(result, null, 2));

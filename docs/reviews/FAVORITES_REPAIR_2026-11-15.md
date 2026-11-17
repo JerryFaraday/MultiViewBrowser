@@ -36,4 +36,4 @@
 
 - 检测：electron/live/Douyu.ts、DouyuNative.ts、LiveCoordinator.ts、新增LiveDisplay.ts、electron/LiveMonitor.ts，以及src/core/LiveStatus.ts、OperationLog.ts。
 - 收藏/设置：src/components/FavoritesList.tsx、FavoriteEditor.tsx、SettingsIcon.tsx、SettingsPanel.tsx；src/App.tsx、src/style.css、src/core/FavoritesManager.ts、Preferences.ts、model.ts与electron/storage.ts。
-- 验证：新增tests/favorites-repair.test.ts，更新直播解析/平台/原生用例、electron/live-status-smoke.ts、settings-smoke.ts、scripts/live-pack-smoke.mjs；版本元数据、手册、设计规范及本记录同步。
+- 验证：新增tests/favorites-repair.test.ts，更新直播解析/平台/原生用例、tests/electron/live-status-smoke.ts、settings-smoke.ts、scripts/live-pack-smoke.mjs；版本元数据、手册、设计规范及本记录同步。

@@ -1,3 +1,4 @@
+import { artifactOutputPath } from "./test-artifacts.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -185,7 +186,7 @@ try {
   await run(true);
   results.pass = Object.values(results).every(Boolean);
   writeFileSync(
-    "performance-pack-results.json",
+    artifactOutputPath("performance-pack-results.json"),
     JSON.stringify(results, null, 2),
   );
   console.log(JSON.stringify(results));

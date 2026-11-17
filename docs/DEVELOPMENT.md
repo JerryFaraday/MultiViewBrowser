@@ -79,3 +79,7 @@ git diff --cached --check
 
 
 设置专项回归：node scripts/settings-smoke.mjs；跨进程启动/退出回归：node scripts/startup-smoke.mjs。均使用隔离配置及本地网页，数据清理仅针对测试临时目录；真实设备授权和所有DPI组合仍需人工验证。配置分层见[设置说明](SETTINGS.md)。
+
+## 测试产物目录
+
+开发/维护命令仍从项目根目录运行；原生测试源码在`tests/electron/`，入口仍为`scripts/*.mjs`。自动生成截图/结果/诊断统一写入`test-artifacts/<模块>/`；读取最新结果用`artifactPath`，写入用`artifactOutputPath`，同名旧结果在模块内archive保留。该目录被Git忽略；正式基准和文档截图仍在tests或docs。可用`MVB_TEST_ARTIFACT_ROOT`隔离并行验证。完整规则见[目录整理记录](reviews/DIRECTORY_REORGANIZATION_2026-11-17.md)。应用userData、logs及构建输出目录未变。

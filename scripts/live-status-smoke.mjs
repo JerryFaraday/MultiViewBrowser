@@ -2,7 +2,7 @@ import { build } from "esbuild";
 import { spawn } from "node:child_process";
 import electron from "electron";
 await build({
-  entryPoints: ["electron/live-status-smoke.ts"],
+  entryPoints: ["tests/electron/live-status-smoke.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",

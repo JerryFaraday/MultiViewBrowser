@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import electron from "electron";
 await build({
-  entryPoints: ["electron/startup-smoke.ts"],
+  entryPoints: ["tests/electron/startup-smoke.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",
