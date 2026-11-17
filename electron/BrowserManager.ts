@@ -142,6 +142,7 @@ export class BrowserManager {
   setSettingsOpen(active: boolean) {
     this.settingsOpen = active;
     this.applyMediaPolicies();
+    this.bounds(this.visibleBounds);
   }
   private applyMediaPolicies(refresh = false) {
     for (const [id, v] of this.views)
@@ -266,6 +267,7 @@ export class BrowserManager {
     );
   }
   sync(snapshot: Snapshot, retained: (Page & { parkedAt?: number })[] = []) {
+    let layoutChanged = false;
     this.retained = retained;
     const entries = [...snapshot.pages, ...retained];
     const ids = new Set(entries.flatMap((p) => (p ? [p.id] : [])));
@@ -278,18 +280,21 @@ export class BrowserManager {
     ]);
     for (const id of known)
       if (!ids.has(id)) {
+        layoutChanged = true;
         this.retirePage(id, true);
         this.release.reset(id);
       }
     entries.forEach((p, index) => {
       const slot = index < snapshot.pages.length ? index : -1;
       if (!p) return;
+      if (this.slots.get(p.id) !== slot) layoutChanged = true;
       this.slots.set(p.id, slot);
       this.pageZooms.set(p.id, p.pageZoom ?? 1);
       if (slot >= 0) this.release.released.delete(p.id);
       if (slot < 0 && this.release.released.has(p.id)) return;
       let view = this.views.get(p.id);
       if (!view) {
+        layoutChanged = true;
         logOperation("web.page_created", { slot });
         view = new WebContentsView({
           webPreferences: {
@@ -591,10 +596,18 @@ export class BrowserManager {
     this.applyMediaPolicies();
     this.configureRelease();
     this.syncFullscreenRole();
+    // bounds may arrive before this instance exists. Keep the latest request
+    // and reconcile on lifecycle changes, independently of renderer IPC dedup.
+    if (layoutChanged) this.bounds(this.visibleBounds);
   }
   bounds(items: { id: string; rect: Rect; scale: Page["scale"] }[]) {
     if (this.disposed) return;
     this.visibleBounds = items;
+    if (this.settingsOpen) {
+      this.hideViews();
+      return;
+    }
+    items = items.filter((item) => (this.slots.get(item.id) ?? -1) >= 0);
     if (this.monitorOwner) {
       const view = this.views.get(this.monitorOwner);
       if (view) {
