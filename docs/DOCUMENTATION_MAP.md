@@ -1,15 +1,16 @@
 # 文档分类与归档映射
 
-## 当前权威入口（2026-11-17）
+## 当前权威入口（2026-11-18）
 
-| 类别               | 唯一维护入口                                                                   | 归属                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| 普通用户           | [使用指南](user/user-guide.md)                                                 | `docs/user/`；[设置参考](user/settings.md)为专题补充                                       |
-| 界面设计           | [UI 设计规范](design/ui-design-system.md)                                      | `docs/design/`，包含后续实现映射和用户明确要求                                             |
-| 开发与架构         | [开发指南](development/development.md)、[架构](development/architecture.md)    | `docs/development/`                                                                        |
-| 当前问题与验证     | [已知问题](development/known-issues.md)、[验证记录](development/validation.md) | `docs/development/`                                                                        |
-| 历史审计与交付证据 | `docs/reviews/topic-YYYY-MM-DD.md`                                             | 保留原始结论、版本及局限，不作为现行产品规范                                               |
-| 工程目录规范       | [AGENTS](../AGENTS.md)                                                         | 长期规则；[本轮整理报告](reviews/engineering-organization-2026-11-17.md)记录具体迁移及验证 |
+| 类别               | 唯一维护入口                                                                   | 归属                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| 普通用户           | [使用指南](user/user-guide.md)                                                 | `docs/user/`；[设置参考](user/settings.md)为专题补充                                         |
+| 界面设计           | [UI 设计规范](design/ui-design-system.md)                                      | `docs/design/`，包含后续实现映射和用户明确要求                                               |
+| 开发与架构         | [开发指南](development/development.md)、[架构](development/architecture.md)    | `docs/development/`                                                                          |
+| 未来功能规划       | [开发待办](development/todo.md)                                                | 仅记录待规划需求；用户明确要求实施后才开始开发，与已知问题、开发过程及已交付版本记录分工维护 |
+| 当前问题与验证     | [已知问题](development/known-issues.md)、[验证记录](development/validation.md) | `docs/development/`                                                                          |
+| 历史审计与交付证据 | `docs/reviews/topic-YYYY-MM-DD.md`                                             | 保留原始结论、版本及局限，不作为现行产品规范                                                 |
+| 工程目录规范       | [AGENTS](../AGENTS.md)                                                         | 长期规则；[本轮整理报告](reviews/engineering-organization-2026-11-17.md)记录具体迁移及验证   |
 
 `USER_GUIDE.md`、`USER_MANUAL.md`、`UI_DESIGN_SYSTEM.md`、`MULTIVIEW_DESIGN_SYSTEM.md`只保留旧链接导航，不再维护第二份正文。旧手册适用V0.1.1.12，完整归档；旧设计文档与现行规范共享原始正文，但缺少现行规范第12、13节的后续补充，故完整归档而不按相似名称合并。归档文件开头的历史权威声明不再生效。
 

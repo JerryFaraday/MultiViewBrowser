@@ -21,6 +21,7 @@
 - Keep test methods and results in validation records; passing tests do not prove absence of defects.
 - Documentation-only changes must not increment the software behavior version.
 - Prefer docs/ for new documentation to avoid accumulating files in the repository root.
+- 未来新增功能构思优先记录到 `docs/development/todo.md`；只有用户明确要求实施时才开始开发。TODO 负责未来规划，known-issues.md 负责已知问题，devlog.md 负责开发过程，CHANGELOG.md 负责已交付版本变化，避免重复维护。
 
 ## UI/UX design governance
 
