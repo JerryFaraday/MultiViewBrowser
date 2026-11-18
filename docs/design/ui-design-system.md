@@ -189,6 +189,8 @@ Suggested page layout:
 
 ## 6. States and motion
 
+- Shell text hints use an in-document tooltip, never a system-level title popup. Convert title text into stored hint data, preserve explicit accessible names, and provide names for otherwise unnamed actions. Show on deliberate hover, hide on blur, visibility change, input or scroll; honor the existing tooltip preference. This rule does not restyle or instrument third-party page hints.
+
 - Application-shell native title tooltips must invalidate their hover target on owner deactivation, hide/minimize and OS app-switch shortcuts. Preserve normal hover hints and keyboard behavior; do not apply shell cleanup by modifying third-party pages.
 
 - Mandatory interactive states: default, hover, pressed, focus-visible, selected, disabled, loading, validation error, success.

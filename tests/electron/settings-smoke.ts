@@ -312,10 +312,15 @@ server.listen(0, "127.0.0.1", async () => {
       "document.querySelector('.favorite-editor').requestSubmit()",
     );
     await wait(350);
-    const afterFavorite = await load(),
+    let newGroupSaved = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const afterFavorite = await load();
       newGroupSaved =
         afterFavorite.groups.includes("测试新分组") &&
         afterFavorite.favorites.some((f: any) => f.group === "测试新分组");
+      if (newGroupSaved) break;
+      await wait(50);
+    }
     await edit(
       "c.preferences.newPageUrl=" +
         JSON.stringify(base + "/custom") +

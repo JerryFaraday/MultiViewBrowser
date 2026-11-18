@@ -50,3 +50,10 @@ it("destroyed windows are ignored", () => {
   f.window.emit("blur");
   expect(f.sent).toEqual([]);
 });
+it("webContents may become null before the window finishes closing", () => {
+  const f = fixture();
+  Object.assign(f.window, { webContents: null });
+  f.destroy();
+  expect(() => f.wc.emit("blur")).not.toThrow();
+  expect(f.sent).toEqual([]);
+});

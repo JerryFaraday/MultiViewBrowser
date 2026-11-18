@@ -1,5 +1,6 @@
 import type { CacheUpdate } from "../src/core/LiveStatus";
 import { installNativeTooltipDismissal } from "./native-tooltip";
+import { installUITooltips } from "./ui-tooltip";
 import { nativeLiveQuery, liveExecutable } from "./LiveMonitor";
 import { LiveCoordinator } from "./live/LiveCoordinator";
 import { nativeDouyuQuery } from "./live/DouyuNative";
@@ -204,7 +205,7 @@ export class SettingsService {
       this.styles.set(w.id, inserted);
       if (old) await w.webContents.removeInsertedCSS(old).catch(() => {});
       await w.webContents.executeJavaScript(
-        `(()=>{window.__tooltipObserver?.disconnect();const enabled=${p.tooltips};const sync=()=>{for(const el of document.querySelectorAll(enabled?'[data-hidden-title]':'[title]')){if(enabled){el.title=el.dataset.hiddenTitle;delete el.dataset.hiddenTitle;}else{el.dataset.hiddenTitle=el.title;el.removeAttribute('title');}}};sync();window.__tooltipObserver=new MutationObserver(sync);window.__tooltipObserver.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['title']});})()`,
+        `(${installUITooltips.toString()})(${p.tooltips})`,
       );
     } catch {}
   }
