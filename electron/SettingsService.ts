@@ -1,4 +1,5 @@
 import type { CacheUpdate } from "../src/core/LiveStatus";
+import { installNativeTooltipDismissal } from "./native-tooltip";
 import { nativeLiveQuery, liveExecutable } from "./LiveMonitor";
 import { LiveCoordinator } from "./live/LiveCoordinator";
 import { nativeDouyuQuery } from "./live/DouyuNative";
@@ -62,6 +63,7 @@ export class SettingsService {
     });
     window.webContents.setZoomMode("isolated");
     const observe = (w: BrowserWindow) => {
+      installNativeTooltipDismissal(w);
       w.webContents.on("did-finish-load", () => void this.style(w));
       w.on("closed", () => {
         this.styles.delete(w.id);

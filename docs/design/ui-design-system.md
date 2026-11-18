@@ -189,6 +189,8 @@ Suggested page layout:
 
 ## 6. States and motion
 
+- Application-shell native title tooltips must invalidate their hover target on owner deactivation, hide/minimize and OS app-switch shortcuts. Preserve normal hover hints and keyboard behavior; do not apply shell cleanup by modifying third-party pages.
+
 - Mandatory interactive states: default, hover, pressed, focus-visible, selected, disabled, loading, validation error, success.
 - Feedback: short non-blocking toast for completion (e.g., saved), inline errors for failures, confirmation for irreversible actions. Never claim save succeeded before persistence result.
 - Transition durations: hover/focus 100–150ms, opening/closing 150–200ms; prefer subtle opacity/transform changes, no bouncy motion; respect `prefers-reduced-motion`. Motion must never delay essential interactions.
