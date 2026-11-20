@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src 'unsafe-inline'"
+  /><title>网页查找</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface, #262629);
+      color: var(--text-primary, #eee);
+      font:
+        14px "Segoe UI",
+        sans-serif;
+    }
+    input {
+      width: 0;
+      min-width: 35px;
+      flex: 1;
+    }
+    input,
+    button {
+      height: 36px;
+      border: 1px solid var(--border-subtle, #444);
+      border-radius: 6px;
+      background: var(--bg-elevated, #303034);
+      color: inherit;
+    }
+    button {
+      min-width: 32px;
+    }
+    output {
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    button:hover {
+      background: var(--bg-hover, #35353a);
+    }
+    :focus-visible {
+      outline: 2px solid var(--accent, #29b6ff);
+    }</style
+  ><input aria-label="查找网页" maxlength="2000" /><output aria-live="polite"
+    >0/0</output
+  ><button data-action="previous" aria-label="上一个">↑</button
+  ><button data-action="next" aria-label="下一个">↓</button
+  ><button data-action="close" aria-label="关闭查找">×</button>
+</html>

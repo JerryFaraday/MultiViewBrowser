@@ -12,6 +12,18 @@ const nativeRect = (r: UiRect) => {
   };
 };
 contextBridge.exposeInMainWorld("browser", {
+  shortcut: (id: string, action: string) =>
+    ipcRenderer.invoke("browser-shortcut", id, action),
+  onShortcut: (fn: (action: string) => void) => {
+    const h = (_e: unknown, action: string) => fn(action);
+    ipcRenderer.on("browser-shortcut", h);
+    return () => ipcRenderer.removeListener("browser-shortcut", h);
+  },
+  onAddress: (fn: (id: string) => void) => {
+    const h = (_e: unknown, id: string) => fn(id);
+    ipcRenderer.on("focus-address", h);
+    return () => ipcRenderer.removeListener("focus-address", h);
+  },
   beginResize: (axis: "x" | "y") => ipcRenderer.invoke("resize-start", axis),
   onResizePointer: (fn: (event: unknown) => void) => {
     const listener = (

@@ -120,7 +120,7 @@ export function App() {
   useEffect(() => {
     void window.browser.settingsView(panel === "settings", returnFocus.current);
   }, [panel]);
-  useEffect(() => window.browser.onSettingsEscape(() => setPanel("")), []);
+
   useEffect(
     () =>
       window.browser.onCloseFlush(() => {
@@ -145,6 +145,42 @@ export function App() {
     value: string;
     resolve: (v: string | null) => void;
   }>();
+  useEffect(
+    () =>
+      window.browser.onShortcut((action) => {
+        if (panel || question || favoriteDraft) return;
+        const snapshot = current.current?.session;
+        const page = snapshot?.pages[visibleSelection(snapshot, selected)];
+        if (page) void window.browser.shortcut(page.id, action).catch(fail);
+      }),
+    [selected, panel, question, favoriteDraft],
+  );
+  useEffect(
+    () =>
+      window.browser.onAddress((id) => {
+        const slot = current.current?.session.pages.findIndex(
+          (p) => p?.id === id,
+        );
+        if (slot === undefined || slot < 0) return;
+        const input = document.querySelector<HTMLInputElement>(
+          '.pane[data-slot="' + slot + '"] input[name="url"]',
+        );
+        input?.focus();
+        input?.select();
+      }),
+    [],
+  );
+  useEffect(
+    () =>
+      window.browser.onSettingsEscape(() => {
+        if (favoriteDraft) setFavoriteDraft(undefined);
+        else if (question) {
+          question.resolve(null);
+          setQuestion(undefined);
+        } else setPanel("");
+      }),
+    [favoriteDraft, question],
+  );
   const ask = (text: string, value = "") =>
     new Promise<string | null>((resolve) =>
       setQuestion({ text, value, resolve }),

@@ -10,6 +10,9 @@ export type PageEvent = {
 declare global {
   interface Window {
     browser: {
+      shortcut(id: string, action: string): Promise<void>;
+      onShortcut(fn: (action: string) => void): () => void;
+      onAddress(fn: (id: string) => void): () => void;
       liveStatus(): Promise<import("./core/LiveStatus").LiveStates>;
       onLiveStatus(
         fn: (states: import("./core/LiveStatus").LiveStates) => void,

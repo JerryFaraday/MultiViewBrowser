@@ -1,3 +1,4 @@
+import { browserShortcut } from "../src/core/Shortcuts";
 import { CloseTransaction } from "./CloseTransaction";
 import { recoverIntegrity } from "../src/core/ConfigIntegrity";
 import { configSchema } from "../src/core/model";
@@ -133,36 +134,29 @@ app.whenReady().then(async () => {
   let settingsVisible = false;
   window.webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return;
-    if (input.control && !input.alt && !input.meta) {
-      const direction = ["+", "="].includes(input.key)
-        ? "in"
-        : input.key === "-"
-          ? "out"
-          : input.key === "0"
-            ? "reset"
-            : undefined;
-      if (direction) {
+    const action = browserShortcut(input);
+    if (!action) return;
+    if (settingsVisible) {
+      if (action === "escape") {
         event.preventDefault();
-        window.webContents.send("page-zoom-shortcut", direction);
-        return;
+        window.webContents.send("settings-escape");
+      } else if (action === "fullscreen") {
+        event.preventDefault();
+        manager.toggleApplicationFullscreen();
       }
-    }
-    if (input.key === "Escape" && settingsVisible) {
-      event.preventDefault();
-      window.webContents.send("settings-escape");
       return;
     }
-    if (input.key === "F11") {
+    if (action === "fullscreen") {
       event.preventDefault();
       manager.toggleApplicationFullscreen();
-    } else if (
-      input.key === "Escape" &&
-      window.isFullScreen() &&
-      !manager.hasHtmlFullscreen()
-    ) {
-      event.preventDefault();
-      manager.exitApplicationFullscreen();
+      return;
     }
+    if (action === "escape") {
+      if (manager.escapeTransient()) event.preventDefault();
+      return;
+    }
+    event.preventDefault();
+    window.webContents.send("browser-shortcut", action);
   });
   function openRequested(url: string) {
     const c = store.load();
@@ -386,6 +380,26 @@ app.whenReady().then(async () => {
       rect.y + rect.height <= size.height
     )
       resizePreview.show(rect);
+  });
+  ipcMain.handle("browser-shortcut", (event, id, input) => {
+    trusted(event);
+    const action = z
+      .enum([
+        "reload",
+        "reload-hard",
+        "back",
+        "forward",
+        "address",
+        "find",
+        "find-next",
+        "find-previous",
+        "zoom-in",
+        "zoom-out",
+        "zoom-reset",
+        "escape",
+      ])
+      .parse(input);
+    manager.performShortcut(z.string().parse(id), action);
   });
   ipcMain.handle("settings-view", (e, active, id) => {
     trusted(e);

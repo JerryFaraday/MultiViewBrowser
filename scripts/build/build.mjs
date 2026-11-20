@@ -3,6 +3,7 @@ import { build } from "esbuild";
 await build({
   entryPoints: [
     "electron/main.ts",
+    "electron/find-preload.ts",
     "electron/stash-preload.ts",
     "electron/preload.ts",
     "electron/media-preload.ts",
@@ -25,3 +26,5 @@ copyFileSync("electron/drag.html", "dist-electron/drag.html");
 copyFileSync("electron/scale.html", "dist-electron/scale.html");
 
 await import("./build-native.mjs");
+
+copyFileSync("electron/find.html", "dist-electron/find.html");

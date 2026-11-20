@@ -1,3 +1,5 @@
+import { browserShortcut, type BrowserShortcut } from "../src/core/Shortcuts";
+import { FindBar } from "./FindBar";
 import { logOperation } from "./OperationLogger";
 import { themePalettes } from "../src/core/Theme";
 import { nextPageZoom } from "../src/core/PageZoom";
@@ -52,6 +54,47 @@ export class BrowserManager {
     }
   }
   private zoomFeedback: ZoomFeedback;
+  private find: FindBar;
+  canHandleEscape() {
+    return (
+      this.find.active ||
+      (this.window.isFullScreen() && !this.hasHtmlFullscreen())
+    );
+  }
+  escapeTransient() {
+    if (this.find.active) {
+      this.find.close();
+      return true;
+    }
+    if (this.window.isFullScreen() && !this.hasHtmlFullscreen()) {
+      this.exitApplicationFullscreen();
+      return true;
+    }
+    return false;
+  }
+  performShortcut(id: string, action: BrowserShortcut) {
+    if (this.settingsOpen) return;
+    const view = this.views.get(id);
+    if (!view?.getVisible()) return;
+    const wc = view.webContents;
+    if (action === "address") {
+      this.window.webContents.focus();
+      this.window.webContents.send("focus-address", id);
+    } else if (action === "find") void this.find.show(id);
+    else if (action === "find-next" || action === "find-previous")
+      this.find.next(id, action === "find-next");
+    else if (action === "reload") wc.reload();
+    else if (action === "reload-hard") wc.reloadIgnoringCache();
+    else if (action === "back" || action === "forward")
+      this.navigate(id, action);
+    else if (action.startsWith("zoom-"))
+      this.changePageZoom(id, action.slice(5) as "in" | "out" | "reset");
+    else if (action === "fullscreen") this.toggleApplicationFullscreen();
+    else if (action === "escape") {
+      if (this.find.active) this.find.close();
+      else if (!this.hasHtmlFullscreen()) this.exitApplicationFullscreen();
+    }
+  }
   pageZooms = new Map<string, number>();
   changePageZoom(id: string, direction: "in" | "out" | "reset") {
     if (!this.views.has(id)) return;
@@ -141,6 +184,7 @@ export class BrowserManager {
   private settingsOpen = false;
   setSettingsOpen(active: boolean) {
     this.settingsOpen = active;
+    if (active) this.find.close(false);
     this.applyMediaPolicies();
     this.bounds(this.visibleBounds);
   }
@@ -231,6 +275,7 @@ export class BrowserManager {
     private onPageZoom: (id: string, value: number) => void = () => {},
   ) {
     this.zoomFeedback = new ZoomFeedback(window);
+    this.find = new FindBar(window, (id) => this.views.get(id));
     for (const event of [
       "enter-full-screen",
       "leave-full-screen",
@@ -401,33 +446,20 @@ export class BrowserManager {
           }
         });
         wc.on("before-input-event", (event, input) => {
-          if (input.type !== "keyDown") return;
-          if (input.control && !input.alt && !input.meta) {
-            const direction =
-              ["+", "="].includes(input.key) || input.code === "NumpadAdd"
-                ? "in"
-                : input.key === "-" || input.code === "NumpadSubtract"
-                  ? "out"
-                  : input.key === "0" || input.code === "Numpad0"
-                    ? "reset"
-                    : undefined;
-            if (direction) {
-              event.preventDefault();
-              this.changePageZoom(p.id, direction);
-              return;
-            }
-          }
-          if (input.key === "F11") {
-            event.preventDefault();
-            this.toggleApplicationFullscreen();
-          } else if (
-            input.key === "Escape" &&
-            this.window.isFullScreen() &&
-            !this.htmlFullscreen.has(p.id)
-          ) {
-            event.preventDefault();
-            this.exitApplicationFullscreen();
-          }
+          const action = browserShortcut(input);
+          if (
+            !action ||
+            this.settingsOpen ||
+            !this.views.get(p.id)?.getVisible()
+          )
+            return;
+          if (
+            action === "escape" &&
+            (this.htmlFullscreen.has(p.id) || !this.canHandleEscape())
+          )
+            return;
+          event.preventDefault();
+          this.performShortcut(p.id, action);
         });
         let middleUntil = 0;
         wc.on("before-mouse-event", (_event, mouse) => {
@@ -609,6 +641,7 @@ export class BrowserManager {
     }
     items = items.filter((item) => (this.slots.get(item.id) ?? -1) >= 0);
     if (this.monitorOwner) {
+      this.find.close(false);
       const view = this.views.get(this.monitorOwner);
       if (view) {
         const size = this.window.getContentBounds();
@@ -685,6 +718,7 @@ export class BrowserManager {
       });
       if (!v.getVisible()) v.setVisible(true);
     }
+    this.find.update();
     this.zoomFeedback.update(
       items.flatMap(({ id }) => {
         const view = this.views.get(id);
@@ -769,6 +803,7 @@ export class BrowserManager {
     this.release.destroy();
     for (const item of this.retries.values()) clearTimeout(item.timer);
     this.retries.clear();
+    this.find.destroy();
     this.zoomFeedback.destroy();
     for (const v of this.views.values())
       if (!v.webContents.isDestroyed()) v.webContents.close();
